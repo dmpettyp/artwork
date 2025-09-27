@@ -24,17 +24,18 @@ type Node struct {
 	Version NodeVersion
 	Type    NodeType
 	Name    string
-	Inputs  []Input
-	Outputs []Output
+	Inputs  map[InputName]Input
+	Outputs map[OutputName]Output
 }
 
 func NewNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	// inputNames []string,
-	// outputNames []string,
-) (*Node, error) {
+) (
+	*Node,
+	error,
+) {
 	conf, ok := nodeConfigs[nodeType]
 
 	if !ok {
@@ -49,62 +50,113 @@ func NewNode(
 	}
 
 	for _, inputName := range conf.inputNames {
-		n.Inputs = append(n.Inputs, Input{Name: inputName})
+		if _, ok := n.Inputs[inputName]; ok {
+			return nil, fmt.Errorf("node already has an input named %q", inputName)
+		}
+		n.Inputs[inputName] = Input{Name: inputName}
 	}
 
 	for _, outputName := range conf.outputNames {
-		n.Outputs = append(n.Outputs, Output{Name: outputName})
+		if _, ok := n.Outputs[outputName]; ok {
+			return nil, fmt.Errorf("node already has an output named %q", outputName)
+		}
+		n.Outputs[outputName] = Output{Name: outputName}
 	}
 
 	return n, nil
 }
 
-// func (n *Node) addEvent(event NodeEvent) {
-// 	event.SetNodeID(n.ID)
-// 	event.SetNodeVersion(n.Version.Next())
-// 	n.Events = append(n.Events, event)
-// }
-//
-// func (n *Node) GetEvents() []NodeEvent {
-// 	events := n.Events
-// 	n.Events = nil
-// 	return events
-// }
+func (n *Node) HasOutput(outputName OutputName) bool {
+	_, ok := n.Outputs[outputName]
+	return ok
+}
 
-// func (n *Node) SetInputSource(name string, source OutputPort) error {
-// 	for i := range n.Inputs {
-// 		if n.Inputs[i].Name == name {
-// 			n.Inputs[i].Source = &source
-// 			return nil
-// 		}
-// 	}
-//
-// 	return fmt.Errorf(
-// 		"can't set input for node %s: no such input port %s", n.ID, name,
-// 	)
-// }
-//
-// func (n *Node) UnsetInputSource(name string) error {
-// 	for i := range n.Inputs {
-// 		if n.Inputs[i].Name == name {
-// 			n.Inputs[i].Source = nil
-// 			return nil
-// 		}
-// 	}
-//
-// 	return fmt.Errorf(
-// 		"can't unset input for node %s: no such input port %s", n.ID, name,
-// 	)
-// }
-//
-// func (n *Node) GetOutputPort(name string) (OutputPort, error) {
-// 	for i := range n.Outputs {
-// 		if n.Outputs[i].Name == name {
-// 			return n.Outputs[i], nil
-// 		}
-// 	}
-//
-// 	return OutputPort{}, fmt.Errorf(
-// 		"node %q doesn't have output port %q", n.ID, name,
-// 	)
-// }
+func (n *Node) IsOutputConnectedTo(
+	outputName OutputName,
+	toNodeID NodeID,
+	inputName InputName,
+) (
+	bool,
+	error,
+) {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return false, fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	return output.IsConnected(toNodeID, inputName), nil
+}
+
+func (n *Node) ConnectOutputTo(
+	outputName OutputName,
+	toNodeID NodeID,
+	inputName InputName,
+) error {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	return output.Connect(toNodeID, inputName)
+}
+
+func (n *Node) DisconnectOutput(
+	outputName OutputName,
+	toNodeID NodeID,
+	inputName InputName,
+) error {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	return output.Disconnect(toNodeID, inputName)
+}
+
+func (n *Node) HasInput(inputName InputName) bool {
+	_, ok := n.Inputs[inputName]
+	return ok
+}
+
+func (n *Node) ConnectInputFrom(
+	inputName InputName,
+	fromNodeID NodeID,
+	outputName OutputName,
+) error {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	return input.Connect(fromNodeID, outputName)
+}
+
+func (n *Node) IsInputConnected(inputName InputName) (
+	bool,
+	InputConnection,
+	error,
+) {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return false, InputConnection{}, fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	connected, ic := input.IsConnected()
+
+	return connected, ic, nil
+}
+
+func (n *Node) DisconnectInput(inputName InputName) error {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	return := input.Disconnect()
+}

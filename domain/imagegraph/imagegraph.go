@@ -100,63 +100,121 @@ func (ig *ImageGraph) RemoveNode(
 	return nil
 }
 
-/*
-
 // ConnectNodes creates a connection from one node's output to another node's
 // input.
-//
-// A node that has its input connected will be scheduled to be run if its
-// inputs are fully connected.
 func (p *ImageGraph) ConnectNode(
-	outputNodeID NodeID,
-	outputName string,
-	inputNodeID NodeID,
-	inputName string,
+	fromNodeID NodeID,
+	outputName OutputName,
+	toNodeID NodeID,
+	inputName InputName,
 ) error {
 	baseError := fmt.Sprintf(
 		"error connecting node %s:%s to node %s:%s in imagegraph %s",
-		outputNodeID, outputName,
-		inputNodeID, inputName,
+		fromNodeID, outputName,
+		toNodeID, inputName,
 		p.ID,
 	)
 
-	outputNode, err := p.findNode(outputNodeID)
+	//
+	// Ensure that the source node exists and has the output to be connected from
+	//
+	fromNode, exists := p.Nodes.Get(fromNodeID)
 
-	if err != nil {
-		return fmt.Errorf("%s: %w", baseError, err)
+	if !exists {
+		return fmt.Errorf("%s: from node doesn't exist", baseError)
 	}
 
-	outputPort, err := outputNode.GetOutputPort(outputName)
-
-	if err != nil {
-		return fmt.Errorf("%s: %w", baseError, err)
+	if !fromNode.HasOutput(outputName) {
+		return fmt.Errorf(
+			"%s: from node doesn't have output %q", baseError, outputName,
+		)
 	}
 
-	inputNode, err := p.findNode(inputNodeID)
+	//
+	// Ensure that the target node exists and has the input to be connected to
+	//
+	toNode, exists := p.Nodes.Get(toNodeID)
 
-	if err != nil {
-		return fmt.Errorf("%s: %w", baseError, err)
+	if !exists {
+		return fmt.Errorf("%s: to node doesn't exist", baseError)
 	}
 
-	err = inputNode.SetInputSource(inputName, outputPort)
-
-	if err != nil {
-		return fmt.Errorf("%s: %w", baseError, err)
+	if !toNode.HasInput(inputName) {
+		return fmt.Errorf(
+			"%s: from node doesn't have output %q", baseError, outputName,
+		)
 	}
 
-	p.addEvent(
-		&NodeConnectedEvent{
-			InputNodeID:  inputNodeID,
-			InputName:    inputName,
-			OutputNodeID: outputNodeID,
-			OutputName:   outputName,
-		},
+	//
+	// If this connection already exists, do nothing
+	//
+	connected, err := fromNode.IsOutputConnectedTo(
+		outputName,
+		toNodeID,
+		inputName,
 	)
 
-	p.scheduleNode(inputNodeID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", baseError, err)
+	}
+
+	if connected {
+		return nil
+	}
+
+	//
+	// If the input is already connected to another nodes' output, disconnect it
+	//
+	connected, inputConnection, err := toNode.IsInputConnected(inputName)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", baseError, err)
+	}
+
+	if connected {
+		err = toNode.DisconnectInput(inputName)
+
+		if err != nil {
+			return fmt.Errorf(
+				"%s: couldn't disconnect former output: %w", baseError, err,
+			)
+		}
+
+		// emit input disconnected event
+
+		oldFromNode, exists := p.Nodes.Get(inputConnection.NodeID)
+
+		if !exists {
+			return fmt.Errorf("%s: former from node doesn't exist", baseError)
+		}
+
+		err = oldFromNode.DisconnectOutput(
+			inputConnection.OutputName,
+			toNodeID,
+			inputName,
+		)
+
+		if err != nil {
+			return fmt.Errorf(
+				"%s: couldn't disconnect former output: %w", baseError, err,
+			)
+		}
+
+		// emit output disconnected event
+	}
+
+	fromNode.ConnectOutputTo(outputName, toNodeID, inputName)
+
+	// emit output connected event
+
+	toNode.ConnectInputFrom(inputName, fromNodeID, outputName)
+
+	// emit input connected event
 
 	return nil
 }
+
+/*
 
 // DisconnectNode removes a connection from a node's input
 func (p *ImageGraph) DisconnectNode(
