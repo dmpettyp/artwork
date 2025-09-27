@@ -15,6 +15,13 @@ type Output struct {
 	Connections map[OutputConnection]struct{}
 }
 
+func MakeOutput(name OutputName) Output {
+	return Output{
+		Name:        name,
+		Connections: make(map[OutputConnection]struct{}),
+	}
+}
+
 func (o *Output) Connect(nodeID NodeID, inputName InputName) error {
 	oc := OutputConnection{
 		NodeID:    nodeID,

@@ -102,7 +102,7 @@ func (ig *ImageGraph) RemoveNode(
 
 // ConnectNodes creates a connection from one node's output to another node's
 // input.
-func (p *ImageGraph) ConnectNode(
+func (ig *ImageGraph) ConnectNode(
 	fromNodeID NodeID,
 	outputName OutputName,
 	toNodeID NodeID,
@@ -112,13 +112,13 @@ func (p *ImageGraph) ConnectNode(
 		"error connecting node %s:%s to node %s:%s in imagegraph %s",
 		fromNodeID, outputName,
 		toNodeID, inputName,
-		p.ID,
+		ig.ID,
 	)
 
 	//
 	// Ensure that the source node exists and has the output to be connected from
 	//
-	fromNode, exists := p.Nodes.Get(fromNodeID)
+	fromNode, exists := ig.Nodes.Get(fromNodeID)
 
 	if !exists {
 		return fmt.Errorf("%s: from node doesn't exist", baseError)
@@ -133,7 +133,7 @@ func (p *ImageGraph) ConnectNode(
 	//
 	// Ensure that the target node exists and has the input to be connected to
 	//
-	toNode, exists := p.Nodes.Get(toNodeID)
+	toNode, exists := ig.Nodes.Get(toNodeID)
 
 	if !exists {
 		return fmt.Errorf("%s: to node doesn't exist", baseError)
@@ -172,6 +172,9 @@ func (p *ImageGraph) ConnectNode(
 	}
 
 	if connected {
+		//
+		// Disconnect the target node's input and emit an event
+		//
 		err = toNode.DisconnectInput(inputName)
 
 		if err != nil {
@@ -180,15 +183,26 @@ func (p *ImageGraph) ConnectNode(
 			)
 		}
 
-		// emit input disconnected event
+		ig.AddEvent(
+			NewInputDisconnectedEvent(
+				ig,
+				toNode,
+				inputName,
+				inputConnection.NodeID,
+				inputConnection.OutputName,
+			),
+		)
 
-		oldFromNode, exists := p.Nodes.Get(inputConnection.NodeID)
+		//
+		// Disconnect the target node's original source output and emit an event
+		//
+		previousFromNode, exists := ig.Nodes.Get(inputConnection.NodeID)
 
 		if !exists {
 			return fmt.Errorf("%s: former from node doesn't exist", baseError)
 		}
 
-		err = oldFromNode.DisconnectOutput(
+		err = previousFromNode.DisconnectOutput(
 			inputConnection.OutputName,
 			toNodeID,
 			inputName,
@@ -200,16 +214,46 @@ func (p *ImageGraph) ConnectNode(
 			)
 		}
 
-		// emit output disconnected event
+		ig.AddEvent(
+			NewOutputDisconnectedEvent(
+				ig,
+				previousFromNode,
+				inputConnection.OutputName,
+				toNodeID,
+				inputName,
+			),
+		)
 	}
 
-	fromNode.ConnectOutputTo(outputName, toNodeID, inputName)
+	//
+	// Connect the source output to the target input and emit an event
+	//
+	err = fromNode.ConnectOutputTo(outputName, toNodeID, inputName)
 
-	// emit output connected event
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't connect output: %w", baseError, err,
+		)
+	}
 
-	toNode.ConnectInputFrom(inputName, fromNodeID, outputName)
+	ig.AddEvent(
+		NewOutputConnectedEvent(ig, fromNode, outputName, toNodeID, inputName),
+	)
 
-	// emit input connected event
+	//
+	// Connect the target input from the soruces output and emit an event
+	//
+	err = toNode.ConnectInputFrom(inputName, fromNodeID, outputName)
+
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't connect input: %w", baseError, err,
+		)
+	}
+
+	ig.AddEvent(
+		NewInputConnectedEvent(ig, toNode, inputName, fromNodeID, outputName),
+	)
 
 	return nil
 }

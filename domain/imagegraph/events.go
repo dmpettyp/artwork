@@ -59,25 +59,102 @@ func NewNodeCreatedEvent(ig *ImageGraph, n *Node) *NodeCreatedEvent {
 	return e
 }
 
-type NodeConnectedEvent struct {
+type NodeInputConnectedEvent struct {
 	NodeEvent
-	// InputNodeID  NodeID
-	// InputName    string
-	// OutputNodeID NodeID
-	// OutputName   string
+	InputName      InputName
+	FromNodeID     NodeID
+	FromOutputName OutputName
 }
 
-type NodeDisconnectedEvent struct {
-	NodeEvent
-	// Event
-	// NodeID NodeID
-	// InputNodeID NodeID
-	// InputName   string
+func NewInputConnectedEvent(
+	ig *ImageGraph,
+	n *Node,
+	inputName InputName,
+	fromNodeID NodeID,
+	fromOutputName OutputName,
+) *NodeInputConnectedEvent {
+	e := &NodeInputConnectedEvent{
+		InputName:      inputName,
+		FromNodeID:     fromNodeID,
+		FromOutputName: fromOutputName,
+	}
+	e.Init("NodeInputConnected", "ImageGraph", ig.ID.ID)
+	e.applyImageGraph(ig)
+	e.applyNode(n)
+	return e
 }
 
-type NodeRunnableEvent struct {
+type NodeInputDisconnectedEvent struct {
 	NodeEvent
-	// Event
-	// NodeID NodeID
-	// Inputs []Port
+	InputName      InputName
+	FromNodeID     NodeID
+	FromOutputName OutputName
+}
+
+func NewInputDisconnectedEvent(
+	ig *ImageGraph,
+	n *Node,
+	inputName InputName,
+	fromNodeID NodeID,
+	fromOutputName OutputName,
+) *NodeInputDisconnectedEvent {
+	e := &NodeInputDisconnectedEvent{
+		InputName:      inputName,
+		FromNodeID:     fromNodeID,
+		FromOutputName: fromOutputName,
+	}
+	e.Init("NodeInputDisconnected", "ImageGraph", ig.ID.ID)
+	e.applyImageGraph(ig)
+	e.applyNode(n)
+	return e
+}
+
+type NodeOutputConnectedEvent struct {
+	NodeEvent
+	OutputName  OutputName
+	ToNodeID    NodeID
+	ToInputName InputName
+}
+
+func NewOutputConnectedEvent(
+	ig *ImageGraph,
+	n *Node,
+	outputName OutputName,
+	toNodeID NodeID,
+	toInputName InputName,
+) *NodeOutputConnectedEvent {
+	e := &NodeOutputConnectedEvent{
+		OutputName:  outputName,
+		ToNodeID:    toNodeID,
+		ToInputName: toInputName,
+	}
+	e.Init("NodeOutputConnected", "ImageGraph", ig.ID.ID)
+	e.applyImageGraph(ig)
+	e.applyNode(n)
+	return e
+}
+
+type NodeOutputDisconnectedEvent struct {
+	NodeEvent
+	OutputName  OutputName
+	ToNodeID    NodeID
+	ToInputName InputName
+}
+
+func NewOutputDisconnectedEvent(
+	ig *ImageGraph,
+	n *Node,
+	outputName OutputName,
+	toNodeID NodeID,
+	toInputName InputName,
+) *NodeOutputDisconnectedEvent {
+	e := &NodeOutputDisconnectedEvent{
+		OutputName:  outputName,
+		ToNodeID:    toNodeID,
+		ToInputName: toInputName,
+	}
+	e.Init("NodeOutputDisconnected", "ImageGraph", ig.ID.ID)
+	e.applyImageGraph(ig)
+	e.applyNode(n)
+	return e
 }

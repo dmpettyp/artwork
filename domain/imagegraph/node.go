@@ -47,20 +47,22 @@ func NewNode(
 		Version: 0,
 		Type:    nodeType,
 		Name:    name,
+		Inputs:  make(map[InputName]Input),
+		Outputs: make(map[OutputName]Output),
 	}
 
 	for _, inputName := range conf.inputNames {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
 		}
-		n.Inputs[inputName] = Input{Name: inputName}
+		n.Inputs[inputName] = MakeInput(inputName)
 	}
 
 	for _, outputName := range conf.outputNames {
 		if _, ok := n.Outputs[outputName]; ok {
 			return nil, fmt.Errorf("node already has an output named %q", outputName)
 		}
-		n.Outputs[outputName] = Output{Name: outputName}
+		n.Outputs[outputName] = MakeOutput(outputName)
 	}
 
 	return n, nil
@@ -158,5 +160,5 @@ func (n *Node) DisconnectInput(inputName InputName) error {
 		return fmt.Errorf("no input named %q exists", inputName)
 	}
 
-	return := input.Disconnect()
+	return input.Disconnect()
 }

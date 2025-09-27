@@ -7,13 +7,19 @@ type InputName string
 type InputConnection struct {
 	NodeID     NodeID
 	OutputName OutputName
+	ImageID    ImageID
 }
 
 type Input struct {
 	Name            InputName
-	ImageID         ImageID
 	Connected       bool
 	InputConnection InputConnection
+}
+
+func MakeInput(name InputName) Input {
+	return Input{
+		Name: name,
+	}
 }
 
 func (i *Input) Connect(nodeID NodeID, outputName OutputName) error {
@@ -44,13 +50,13 @@ func (i *Input) IsConnected() (bool, InputConnection) {
 }
 
 func (i *Input) SetImage(imageID ImageID) {
-	i.ImageID = imageID
+	i.InputConnection.ImageID = imageID
 }
 
 func (i *Input) ResetImage() {
-	i.ImageID = ImageID{}
+	i.InputConnection.ImageID = ImageID{}
 }
 
 func (i *Input) HasImage() bool {
-	return !i.ImageID.IsNil()
+	return !i.InputConnection.ImageID.IsNil()
 }
