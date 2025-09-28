@@ -45,10 +45,6 @@ func (i *Input) Disconnect() error {
 	return nil
 }
 
-func (i *Input) IsConnected() (bool, InputConnection) {
-	return i.Connected, i.InputConnection
-}
-
 func (i *Input) SetImage(imageID ImageID) {
 	i.InputConnection.ImageID = imageID
 }

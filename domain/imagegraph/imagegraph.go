@@ -32,6 +32,14 @@ type ImageGraph struct {
 	Nodes Nodes
 }
 
+// NewImageGraph ✅
+// AddNode ✅
+// RemoveNode ✅
+// ConnectNodes ✅
+// DisconnectNodes
+// SetNodeOutputImage
+// UnsetNodeOutputImage
+
 // NewImageGraph creates and initializes a new ImageGraph
 func NewImageGraph(
 	id ImageGraphID,
@@ -97,14 +105,67 @@ func (ig *ImageGraph) RemoveNode(
 
 	ig.addEvent(NewNodeRemovedEvent(ig, n))
 
-	// disconnect all of the connected nodes
+	//
+	// Disconnect each upstream node's output that connects to this node
+	//
+	for _, input := range n.Inputs {
+		inputConnection := input.InputConnection
+
+		upstreamNode, exists := ig.Nodes.Get(inputConnection.NodeID)
+
+		if !exists {
+			return fmt.Errorf(
+				"could not remove node %q from ImageGraph %q: input source does not exist",
+				id, ig.ID,
+			)
+		}
+
+		err := upstreamNode.DisconnectOutput(
+			inputConnection.OutputName, n.ID, input.Name,
+		)
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not remove node %q from ImageGraph %q: %w",
+				id, ig.ID, err,
+			)
+		}
+	}
+
+	//
+	// Disconnect each downstream node's input that is connected to this node's
+	// output
+	//
+	for _, output := range n.Outputs {
+		for outputConnection := range output.Connections {
+			downstreamNode, exists := ig.Nodes.Get(outputConnection.NodeID)
+
+			if !exists {
+				return fmt.Errorf(
+					"could not remove node %q from ImageGraph %q: output target does not exist",
+					id, ig.ID,
+				)
+			}
+
+			_, err := downstreamNode.DisconnectInput(
+				outputConnection.InputName,
+			)
+
+			if err != nil {
+				return fmt.Errorf(
+					"could not remove node %q from ImageGraph %q: %w",
+					id, ig.ID, err,
+				)
+			}
+		}
+	}
 
 	return nil
 }
 
 // ConnectNodes creates a connection from one node's output to another node's
 // input.
-func (ig *ImageGraph) ConnectNode(
+func (ig *ImageGraph) ConnectNodes(
 	fromNodeID NodeID,
 	outputName OutputName,
 	toNodeID NodeID,
@@ -167,7 +228,7 @@ func (ig *ImageGraph) ConnectNode(
 	//
 	// If the input is already connected to another nodes' output, disconnect it
 	//
-	connected, inputConnection, err := toNode.IsInputConnected(inputName)
+	connected, err = toNode.IsInputConnected(inputName)
 
 	if err != nil {
 		return fmt.Errorf("%s: %w", baseError, err)
@@ -177,7 +238,7 @@ func (ig *ImageGraph) ConnectNode(
 		//
 		// Disconnect the target node's input and emit an event
 		//
-		err = toNode.DisconnectInput(inputName)
+		inputConnection, err := toNode.DisconnectInput(inputName)
 
 		if err != nil {
 			return fmt.Errorf(

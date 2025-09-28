@@ -177,25 +177,25 @@ func (n *Node) ConnectInputFrom(
 
 func (n *Node) IsInputConnected(inputName InputName) (
 	bool,
+	error,
+) {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return false, fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	return input.Connected, nil
+}
+
+func (n *Node) DisconnectInput(inputName InputName) (
 	InputConnection,
 	error,
 ) {
 	input, ok := n.Inputs[inputName]
 
 	if !ok {
-		return false, InputConnection{}, fmt.Errorf("no input named %q exists", inputName)
-	}
-
-	connected, ic := input.IsConnected()
-
-	return connected, ic, nil
-}
-
-func (n *Node) DisconnectInput(inputName InputName) error {
-	input, ok := n.Inputs[inputName]
-
-	if !ok {
-		return fmt.Errorf("no input named %q exists", inputName)
+		return InputConnection{}, fmt.Errorf("no input named %q exists", inputName)
 	}
 
 	inputConnection := input.InputConnection
@@ -203,7 +203,7 @@ func (n *Node) DisconnectInput(inputName InputName) error {
 	err := input.Disconnect()
 
 	if err != nil {
-		return err
+		return inputConnection, err
 	}
 
 	n.AddEvent(
@@ -215,5 +215,5 @@ func (n *Node) DisconnectInput(inputName InputName) error {
 		),
 	)
 
-	return nil
+	return inputConnection, nil
 }
