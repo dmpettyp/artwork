@@ -9,8 +9,7 @@ func NewCreatedEvent(ig *ImageGraph) *CreatedEvent {
 	e := &CreatedEvent{
 		Name: ig.Name,
 	}
-	e.Init("Created", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("Created")
 	return e
 }
 
@@ -23,8 +22,7 @@ func NewNodeAddedEvent(ig *ImageGraph, n *Node) *NodeAddedEvent {
 	e := &NodeAddedEvent{
 		NodeID: n.ID,
 	}
-	e.Init("NodeAdded", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeAdded")
 	return e
 }
 
@@ -37,8 +35,7 @@ func NewNodeRemovedEvent(ig *ImageGraph, n *Node) *NodeRemovedEvent {
 	e := &NodeRemovedEvent{
 		NodeID: n.ID,
 	}
-	e.Init("NodeRemoved", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeRemoved")
 	return e
 }
 
@@ -48,13 +45,12 @@ type NodeCreatedEvent struct {
 	NodeName string
 }
 
-func NewNodeCreatedEvent(ig *ImageGraph, n *Node) *NodeCreatedEvent {
+func NewNodeCreatedEvent(n *Node) *NodeCreatedEvent {
 	e := &NodeCreatedEvent{
 		NodeType: n.Type,
 		NodeName: n.Name,
 	}
-	e.Init("NodeCreated", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeCreated")
 	e.applyNode(n)
 	return e
 }
@@ -67,7 +63,6 @@ type NodeInputConnectedEvent struct {
 }
 
 func NewInputConnectedEvent(
-	ig *ImageGraph,
 	n *Node,
 	inputName InputName,
 	fromNodeID NodeID,
@@ -78,8 +73,7 @@ func NewInputConnectedEvent(
 		FromNodeID:     fromNodeID,
 		FromOutputName: fromOutputName,
 	}
-	e.Init("NodeInputConnected", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeInputConnected")
 	e.applyNode(n)
 	return e
 }
@@ -92,7 +86,6 @@ type NodeInputDisconnectedEvent struct {
 }
 
 func NewInputDisconnectedEvent(
-	ig *ImageGraph,
 	n *Node,
 	inputName InputName,
 	fromNodeID NodeID,
@@ -103,8 +96,7 @@ func NewInputDisconnectedEvent(
 		FromNodeID:     fromNodeID,
 		FromOutputName: fromOutputName,
 	}
-	e.Init("NodeInputDisconnected", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeInputDisconnected")
 	e.applyNode(n)
 	return e
 }
@@ -117,7 +109,6 @@ type NodeOutputConnectedEvent struct {
 }
 
 func NewOutputConnectedEvent(
-	ig *ImageGraph,
 	n *Node,
 	outputName OutputName,
 	toNodeID NodeID,
@@ -128,8 +119,7 @@ func NewOutputConnectedEvent(
 		ToNodeID:    toNodeID,
 		ToInputName: toInputName,
 	}
-	e.Init("NodeOutputConnected", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeOutputConnected")
 	e.applyNode(n)
 	return e
 }
@@ -142,7 +132,6 @@ type NodeOutputDisconnectedEvent struct {
 }
 
 func NewOutputDisconnectedEvent(
-	ig *ImageGraph,
 	n *Node,
 	outputName OutputName,
 	toNodeID NodeID,
@@ -153,8 +142,7 @@ func NewOutputDisconnectedEvent(
 		ToNodeID:    toNodeID,
 		ToInputName: toInputName,
 	}
-	e.Init("NodeOutputDisconnected", "ImageGraph", ig.ID.ID)
-	e.applyImageGraph(ig)
+	e.Init("NodeOutputDisconnected")
 	e.applyNode(n)
 	return e
 }

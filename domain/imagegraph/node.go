@@ -20,15 +20,17 @@ func (v *NodeVersion) Next() NodeVersion {
 }
 
 type Node struct {
-	ID      NodeID
-	Version NodeVersion
-	Type    NodeType
-	Name    string
-	Inputs  map[InputName]Input
-	Outputs map[OutputName]Output
+	ID       NodeID
+	AddEvent func(Event)
+	Version  NodeVersion
+	Type     NodeType
+	Name     string
+	Inputs   map[InputName]Input
+	Outputs  map[OutputName]Output
 }
 
 func NewNode(
+	addEvent func(Event),
 	id NodeID,
 	nodeType NodeType,
 	name string,
@@ -43,12 +45,13 @@ func NewNode(
 	}
 
 	n := &Node{
-		ID:      id,
-		Version: 0,
-		Type:    nodeType,
-		Name:    name,
-		Inputs:  make(map[InputName]Input),
-		Outputs: make(map[OutputName]Output),
+		ID:       id,
+		AddEvent: addEvent,
+		Version:  0,
+		Type:     nodeType,
+		Name:     name,
+		Inputs:   make(map[InputName]Input),
+		Outputs:  make(map[OutputName]Output),
 	}
 
 	for _, inputName := range conf.inputNames {
@@ -64,6 +67,8 @@ func NewNode(
 		}
 		n.Outputs[outputName] = MakeOutput(outputName)
 	}
+
+	n.AddEvent(NewNodeCreatedEvent(n))
 
 	return n, nil
 }
@@ -101,7 +106,15 @@ func (n *Node) ConnectOutputTo(
 		return fmt.Errorf("no output named %q exists", outputName)
 	}
 
-	return output.Connect(toNodeID, inputName)
+	err := output.Connect(toNodeID, inputName)
+
+	if err != nil {
+		return err
+	}
+
+	n.AddEvent(NewOutputConnectedEvent(n, outputName, toNodeID, inputName))
+
+	return nil
 }
 
 func (n *Node) DisconnectOutput(
@@ -115,7 +128,22 @@ func (n *Node) DisconnectOutput(
 		return fmt.Errorf("no output named %q exists", outputName)
 	}
 
-	return output.Disconnect(toNodeID, inputName)
+	err := output.Disconnect(toNodeID, inputName)
+
+	if err != nil {
+		return err
+	}
+
+	n.AddEvent(
+		NewOutputDisconnectedEvent(
+			n,
+			outputName,
+			toNodeID,
+			inputName,
+		),
+	)
+
+	return nil
 }
 
 func (n *Node) HasInput(inputName InputName) bool {
@@ -134,7 +162,17 @@ func (n *Node) ConnectInputFrom(
 		return fmt.Errorf("no input named %q exists", inputName)
 	}
 
-	return input.Connect(fromNodeID, outputName)
+	err := input.Connect(fromNodeID, outputName)
+
+	if err != nil {
+		return err
+	}
+
+	n.AddEvent(
+		NewInputConnectedEvent(n, inputName, fromNodeID, outputName),
+	)
+
+	return nil
 }
 
 func (n *Node) IsInputConnected(inputName InputName) (
@@ -160,5 +198,22 @@ func (n *Node) DisconnectInput(inputName InputName) error {
 		return fmt.Errorf("no input named %q exists", inputName)
 	}
 
-	return input.Disconnect()
+	inputConnection := input.InputConnection
+
+	err := input.Disconnect()
+
+	if err != nil {
+		return err
+	}
+
+	n.AddEvent(
+		NewInputDisconnectedEvent(
+			n,
+			inputName,
+			inputConnection.NodeID,
+			inputConnection.OutputName,
+		),
+	)
+
+	return nil
 }

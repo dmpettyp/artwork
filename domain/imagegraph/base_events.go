@@ -16,6 +16,11 @@ func (e *ImageGraphEvent) applyImageGraph(ig *ImageGraph) {
 	e.ImageGraphVersion = ig.Version.Next()
 }
 
+type Event interface {
+	dorky.Event
+	applyImageGraph(ig *ImageGraph)
+}
+
 // Base event type that all Node-specific ImageGraph domain events extend
 type NodeEvent struct {
 	ImageGraphEvent

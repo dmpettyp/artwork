@@ -47,9 +47,15 @@ func NewImageGraph(
 		Nodes:   NewNodes(),
 	}
 
-	ig.AddEvent(NewCreatedEvent(ig))
+	ig.addEvent(NewCreatedEvent(ig))
 
 	return ig, nil
+}
+
+func (ig *ImageGraph) addEvent(e Event) {
+	e.SetEntity("ImageGraph", ig.ID.ID)
+	e.applyImageGraph(ig)
+	ig.AddEvent(e)
 }
 
 // AddNode adds a node to an ImageGraph
@@ -57,16 +63,12 @@ func (ig *ImageGraph) AddNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	// inputNames []string,
-	// outputNames []string,
 ) error {
-	n, err := NewNode(id, nodeType, name)
+	n, err := NewNode(ig.addEvent, id, nodeType, name)
 
 	if err != nil {
 		return fmt.Errorf("could not create node for ImageGraph %q: %w", ig.ID, err)
 	}
-
-	ig.AddEvent(NewNodeCreatedEvent(ig, n))
 
 	err = ig.Nodes.Add(n)
 
@@ -74,7 +76,7 @@ func (ig *ImageGraph) AddNode(
 		return fmt.Errorf("could not add node to ImageGraph %q: %w", ig.ID, err)
 	}
 
-	ig.AddEvent(NewNodeAddedEvent(ig, n))
+	ig.addEvent(NewNodeAddedEvent(ig, n))
 
 	return nil
 }
@@ -93,7 +95,7 @@ func (ig *ImageGraph) RemoveNode(
 		)
 	}
 
-	ig.AddEvent(NewNodeRemovedEvent(ig, n))
+	ig.addEvent(NewNodeRemovedEvent(ig, n))
 
 	// disconnect all of the connected nodes
 
@@ -183,16 +185,6 @@ func (ig *ImageGraph) ConnectNode(
 			)
 		}
 
-		ig.AddEvent(
-			NewInputDisconnectedEvent(
-				ig,
-				toNode,
-				inputName,
-				inputConnection.NodeID,
-				inputConnection.OutputName,
-			),
-		)
-
 		//
 		// Disconnect the target node's original source output and emit an event
 		//
@@ -213,16 +205,6 @@ func (ig *ImageGraph) ConnectNode(
 				"%s: couldn't disconnect former output: %w", baseError, err,
 			)
 		}
-
-		ig.AddEvent(
-			NewOutputDisconnectedEvent(
-				ig,
-				previousFromNode,
-				inputConnection.OutputName,
-				toNodeID,
-				inputName,
-			),
-		)
 	}
 
 	//
@@ -236,10 +218,6 @@ func (ig *ImageGraph) ConnectNode(
 		)
 	}
 
-	ig.AddEvent(
-		NewOutputConnectedEvent(ig, fromNode, outputName, toNodeID, inputName),
-	)
-
 	//
 	// Connect the target input from the soruces output and emit an event
 	//
@@ -250,10 +228,6 @@ func (ig *ImageGraph) ConnectNode(
 			"%s: couldn't connect input: %w", baseError, err,
 		)
 	}
-
-	ig.AddEvent(
-		NewInputConnectedEvent(ig, toNode, inputName, fromNodeID, outputName),
-	)
 
 	return nil
 }
