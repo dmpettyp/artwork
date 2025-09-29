@@ -32,15 +32,6 @@ type ImageGraph struct {
 	Nodes Nodes
 }
 
-// NewImageGraph ✅
-// AddNode ✅
-// RemoveNode ✅
-//	- should unset image downstream if it is set ✅
-// ConnectNodes ✅
-// DisconnectNodes
-// SetNodeOutputImage ✅
-// UnsetNodeOutputImage ✅
-
 // NewImageGraph creates and initializes a new ImageGraph
 func NewImageGraph(
 	id ImageGraphID,
@@ -294,13 +285,90 @@ func (ig *ImageGraph) ConnectNodes(
 	return nil
 }
 
-// DisconnectNodes
+// DisconnectNodes removes a connection from one node's output to another
+// node's input.
 func (ig *ImageGraph) DisconnectNodes(
 	fromNodeID NodeID,
 	outputName OutputName,
 	toNodeID NodeID,
 	inputName InputName,
 ) error {
+	baseError := fmt.Sprintf(
+		"error disconnecting node %s:%s from node %s:%s in imagegraph %s",
+		fromNodeID, outputName,
+		toNodeID, inputName,
+		ig.ID,
+	)
+
+	//
+	// Ensure that the source node exists and has the output
+	//
+	fromNode, exists := ig.Nodes.Get(fromNodeID)
+
+	if !exists {
+		return fmt.Errorf("%s: from node doesn't exist", baseError)
+	}
+
+	if !fromNode.HasOutput(outputName) {
+		return fmt.Errorf(
+			"%s: from node doesn't have output %q", baseError, outputName,
+		)
+	}
+
+	//
+	// Ensure that the target node exists and has the input
+	//
+	toNode, exists := ig.Nodes.Get(toNodeID)
+
+	if !exists {
+		return fmt.Errorf("%s: to node doesn't exist", baseError)
+	}
+
+	if !toNode.HasInput(inputName) {
+		return fmt.Errorf(
+			"%s: to node doesn't have input %q", baseError, inputName,
+		)
+	}
+
+	//
+	// If this connection doesn't exist, do nothing (idempotent)
+	//
+	connectionExists, err := fromNode.IsOutputConnectedTo(
+		outputName,
+		toNodeID,
+		inputName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", baseError, err)
+	}
+
+	if !connectionExists {
+		return nil
+	}
+
+	//
+	// Disconnect the source node's output and emit an event
+	//
+	err = fromNode.DisconnectOutput(outputName, toNodeID, inputName)
+
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't disconnect output: %w", baseError, err,
+		)
+	}
+
+	//
+	// Disconnect the target node's input and emit an event
+	//
+	_, err = toNode.DisconnectInput(inputName)
+
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't disconnect input: %w", baseError, err,
+		)
+	}
+
 	return nil
 }
 
