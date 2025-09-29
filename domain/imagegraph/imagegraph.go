@@ -101,6 +101,10 @@ func (ig *ImageGraph) RemoveNode(
 	// Disconnect each upstream node's output that connects to this node
 	//
 	for _, input := range n.Inputs {
+		if !input.Connected {
+			continue
+		}
+
 		inputConnection := input.InputConnection
 
 		upstreamNode, exists := ig.Nodes.Get(inputConnection.NodeID)
@@ -196,7 +200,7 @@ func (ig *ImageGraph) ConnectNodes(
 
 	if !toNode.HasInput(inputName) {
 		return fmt.Errorf(
-			"%s: from node doesn't have output %q", baseError, outputName,
+			"%s: to node %q doesn't have input %q", baseError, toNodeID, inputName,
 		)
 	}
 
@@ -272,7 +276,7 @@ func (ig *ImageGraph) ConnectNodes(
 	}
 
 	//
-	// Connect the target input from the soruces output and emit an event
+	// Connect the target input from the sources output and emit an event
 	//
 	err = toNode.ConnectInputFrom(inputName, fromNodeID, outputName)
 
