@@ -27,8 +27,8 @@ type Node struct {
 	Version  NodeVersion
 	Type     NodeType
 	Name     string
-	Inputs   map[InputName]Input
-	Outputs  map[OutputName]Output
+	Inputs   map[InputName]*Input
+	Outputs  map[OutputName]*Output
 }
 
 func NewNode(
@@ -52,22 +52,24 @@ func NewNode(
 		Version:  0,
 		Type:     nodeType,
 		Name:     name,
-		Inputs:   make(map[InputName]Input),
-		Outputs:  make(map[OutputName]Output),
+		Inputs:   make(map[InputName]*Input),
+		Outputs:  make(map[OutputName]*Output),
 	}
 
 	for _, inputName := range conf.inputNames {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
 		}
-		n.Inputs[inputName] = MakeInput(inputName)
+		input := MakeInput(inputName)
+		n.Inputs[inputName] = &input
 	}
 
 	for _, outputName := range conf.outputNames {
 		if _, ok := n.Outputs[outputName]; ok {
 			return nil, fmt.Errorf("node already has an output named %q", outputName)
 		}
-		n.Outputs[outputName] = MakeOutput(outputName)
+		output := MakeOutput(outputName)
+		n.Outputs[outputName] = &output
 	}
 
 	n.AddEvent(NewNodeCreatedEvent(n))
