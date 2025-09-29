@@ -212,7 +212,7 @@ func (ig *ImageGraph) ConnectNodes(
 	//
 	// If this connection already exists, do nothing
 	//
-	connected, err := fromNode.IsOutputConnectedTo(
+	connectionExists, err := fromNode.IsOutputConnectedTo(
 		outputName,
 		toNodeID,
 		inputName,
@@ -222,14 +222,14 @@ func (ig *ImageGraph) ConnectNodes(
 		return fmt.Errorf("%s: %w", baseError, err)
 	}
 
-	if connected {
+	if connectionExists {
 		return nil
 	}
 
 	//
 	// If the input is already connected to another nodes' output, disconnect it
 	//
-	connected, err = toNode.IsInputConnected(inputName)
+	connected, err := toNode.IsInputConnected(inputName)
 
 	if err != nil {
 		return fmt.Errorf("%s: %w", baseError, err)
@@ -291,6 +291,16 @@ func (ig *ImageGraph) ConnectNodes(
 		)
 	}
 
+	return nil
+}
+
+// DisconnectNodes
+func (ig *ImageGraph) DisconnectNodes(
+	fromNodeID NodeID,
+	outputName OutputName,
+	toNodeID NodeID,
+	inputName InputName,
+) error {
 	return nil
 }
 
