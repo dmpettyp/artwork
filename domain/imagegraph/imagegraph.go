@@ -35,9 +35,10 @@ type ImageGraph struct {
 // NewImageGraph ✅
 // AddNode ✅
 // RemoveNode ✅
+//	- should unset image downstream if it is set
 // ConnectNodes ✅
 // DisconnectNodes
-// SetNodeOutputImage
+// SetNodeOutputImage ✅
 // UnsetNodeOutputImage
 
 // NewImageGraph creates and initializes a new ImageGraph
@@ -288,6 +289,54 @@ func (ig *ImageGraph) ConnectNodes(
 		return fmt.Errorf(
 			"%s: couldn't connect input: %w", baseError, err,
 		)
+	}
+
+	return nil
+}
+
+// ConnectNodes creates a connection from one node's output to another node's
+// input.
+func (ig *ImageGraph) SetNodeOutputImage(
+	nodeID NodeID,
+	outputName OutputName,
+	imageID ImageID,
+) error {
+	node, exists := ig.Nodes.Get(nodeID)
+
+	if !exists {
+		return fmt.Errorf(
+			"couldn't set node %q output image: node doesn't exist",
+			nodeID,
+		)
+	}
+
+	connections, err := node.SetOutputImage(outputName, imageID)
+
+	if err != nil {
+		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
+	}
+
+	//
+	// Set each downstream node's input to the provided ImageID
+	//
+	for _, outputConnection := range connections {
+		downstreamNode, exists := ig.Nodes.Get(outputConnection.NodeID)
+
+		if !exists {
+			return fmt.Errorf(
+				"could not set node %q output image: downstream node %q does not exist",
+				nodeID, outputConnection.NodeID,
+			)
+		}
+
+		err := downstreamNode.SetInputImage(
+			outputConnection.InputName,
+			imageID,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not set node %q output image: %w", nodeID, err)
+		}
 	}
 
 	return nil

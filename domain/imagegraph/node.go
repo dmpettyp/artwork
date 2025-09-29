@@ -2,6 +2,8 @@ package imagegraph
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/dmpettyp/id"
 )
@@ -93,6 +95,26 @@ func (n *Node) IsOutputConnectedTo(
 	}
 
 	return output.IsConnected(toNodeID, inputName), nil
+}
+
+func (n *Node) SetOutputImage(
+	outputName OutputName,
+	imageID ImageID,
+) (
+	[]OutputConnection,
+	error,
+) {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return nil, fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	output.SetImage(imageID)
+
+	n.AddEvent(NewOutputImageSetEvent(n, outputName, imageID))
+
+	return slices.Collect(maps.Keys(output.Connections)), nil
 }
 
 func (n *Node) ConnectOutputTo(
@@ -216,4 +238,21 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	)
 
 	return inputConnection, nil
+}
+
+func (n *Node) SetInputImage(
+	inputName InputName,
+	imageID ImageID,
+) error {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	input.SetImage(imageID)
+
+	n.AddEvent(NewInputImageSetEvent(n, inputName, imageID))
+
+	return nil
 }

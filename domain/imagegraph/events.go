@@ -146,3 +146,43 @@ func NewOutputDisconnectedEvent(
 	e.applyNode(n)
 	return e
 }
+
+type NodeOutputImageSetEvent struct {
+	NodeEvent
+	OutputName OutputName
+	ImageID    ImageID
+}
+
+func NewOutputImageSetEvent(
+	n *Node,
+	outputName OutputName,
+	imageID ImageID,
+) *NodeOutputImageSetEvent {
+	e := &NodeOutputImageSetEvent{
+		OutputName: outputName,
+		ImageID:    imageID,
+	}
+	e.Init("NodeOutputImageSet")
+	e.applyNode(n)
+	return e
+}
+
+type NodeInputImageSetEvent struct {
+	NodeEvent
+	InputName InputName
+	ImageID   ImageID
+}
+
+func NewInputImageSetEvent(
+	n *Node,
+	inputName InputName,
+	imageID ImageID,
+) *NodeInputImageSetEvent {
+	e := &NodeInputImageSetEvent{
+		InputName: inputName,
+		ImageID:   imageID,
+	}
+	e.Init("NodeInputImageSet")
+	e.applyNode(n)
+	return e
+}
