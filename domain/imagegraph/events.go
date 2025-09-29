@@ -179,7 +179,7 @@ func NewOutputImageUnsetEvent(
 	e := &NodeOutputImageUnsetEvent{
 		OutputName: outputName,
 	}
-	e.Init("NodeOutputImageUnet")
+	e.Init("NodeOutputImageUnset")
 	e.applyNode(n)
 	return e
 }
