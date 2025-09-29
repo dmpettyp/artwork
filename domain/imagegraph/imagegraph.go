@@ -35,11 +35,11 @@ type ImageGraph struct {
 // NewImageGraph ✅
 // AddNode ✅
 // RemoveNode ✅
-//	- should unset image downstream if it is set
+//	- should unset image downstream if it is set ✅
 // ConnectNodes ✅
 // DisconnectNodes
 // SetNodeOutputImage ✅
-// UnsetNodeOutputImage
+// UnsetNodeOutputImage ✅
 
 // NewImageGraph creates and initializes a new ImageGraph
 func NewImageGraph(
@@ -294,8 +294,8 @@ func (ig *ImageGraph) ConnectNodes(
 	return nil
 }
 
-// ConnectNodes creates a connection from one node's output to another node's
-// input.
+// SetNodeOutputImage sets the image for a specific node's output and
+// propagates it to all downstream nodes that have it set as an input
 func (ig *ImageGraph) SetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,
@@ -319,18 +319,18 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	//
 	// Set each downstream node's input to the provided ImageID
 	//
-	for _, outputConnection := range connections {
-		downstreamNode, exists := ig.Nodes.Get(outputConnection.NodeID)
+	for _, connection := range connections {
+		downstreamNode, exists := ig.Nodes.Get(connection.NodeID)
 
 		if !exists {
 			return fmt.Errorf(
 				"could not set node %q output image: downstream node %q does not exist",
-				nodeID, outputConnection.NodeID,
+				nodeID, connection.NodeID,
 			)
 		}
 
 		err := downstreamNode.SetInputImage(
-			outputConnection.InputName,
+			connection.InputName,
 			imageID,
 		)
 
@@ -342,106 +342,15 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	return nil
 }
 
-/*
-
-// DisconnectNode removes a connection from a node's input
-func (p *ImageGraph) DisconnectNode(
-	inputNodeID node.ID,
-	inputName string,
+// UnsetNodeOutputImage unsets the image for a specific node's output and
+// propagates it to all downstream nodes that have it set as an input
+func (ig *ImageGraph) UnsetNodeOutputImage(
+	nodeID NodeID,
+	outputName OutputName,
 ) error {
-	inputNode, err := p.findNode(inputNodeID)
-
-	if err != nil {
-		return fmt.Errorf(
-			"can't disconnect %s:%s: %w", inputNodeID, inputName, err,
-		)
-	}
-
-	err = inputNode.UnsetInputSource(inputName)
-
-	if err != nil {
-		return fmt.Errorf(
-			"can't disconnect %s:%s: %w", inputNodeID, inputName, err,
-		)
-	}
-
-	p.addEvent(
-		&NodeDisconnectedEvent{
-			InputNodeID: inputNodeID,
-			InputName:   inputName,
-		},
+	return ig.SetNodeOutputImage(
+		nodeID,
+		outputName,
+		ImageID{},
 	)
-
-	return nil
 }
-
-// TriggerNode acknowledges that a node in the ImageGraph has been run and that
-// its outputs should be scheduled for running
-func (p *ImageGraph) TriggerNode(id node.ID) error {
-	// _, err := p.findNode(id)
-	//
-	// if err != nil {
-	// 	return fmt.Errorf("could not trigger node %s: %w", id, err)
-	// }
-	//
-	// nodesToSchedule := mapset.NewSet[node.ID]()
-	//
-	// for inputPort, outputPort := range p.Connections {
-	// 	if outputPort.NodeID != id {
-	// 		continue
-	// 	}
-	//
-	// 	nodesToSchedule.Add(inputPort.NodeID)
-	// }
-	//
-	// for _, nodeID := range nodesToSchedule.ToSlice() {
-	// 	err := p.scheduleNode(nodeID)
-	//
-	// 	if err != nil {
-	// 		return fmt.Errorf("could not trigger node %s: %w", nodeID, err)
-	// 	}
-	// }
-
-	return nil
-}
-
-// scheduleNode schedules a node to be run if all of its inputs are connected
-// to another node's output
-func (p *ImageGraph) scheduleNode(id node.ID) error {
-	// n, err := p.findNode(id)
-	//
-	// if err != nil {
-	// 	return fmt.Errorf("could not schedule node %s: %w", id, err)
-	// }
-	//
-	// outputPorts := make([]OutputPort, 0, len(n.InputNames))
-	//
-	// for _, inputPort := range n.Inputs {
-	// 	if inputPort.Source == nil {
-	// 		return nil
-	// 	}
-	//
-	// 	outputPorts = append(outputPorts, *inputPort.Source)
-	// }
-	//
-	// p.addEvent(
-	// 	&NodeRunnableEvent{
-	// 		NodeID: id,
-	// 		Inputs: outputPorts,
-	// 	},
-	// )
-
-	return nil
-}
-
-// findNode retrieves a node by its ID if it has been added to the ImageGraph
-func (p *ImageGraph) findNode(id node.ID) (*Node, error) {
-	for i := range p.Nodes {
-		if p.Nodes[i].ID == id {
-			return &p.Nodes[i], nil
-		}
-	}
-
-	return nil, fmt.Errorf("node %s doesn't exist", id)
-}
-*/

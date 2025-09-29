@@ -167,6 +167,23 @@ func NewOutputImageSetEvent(
 	return e
 }
 
+type NodeOutputImageUnsetEvent struct {
+	NodeEvent
+	OutputName OutputName
+}
+
+func NewOutputImageUnsetEvent(
+	n *Node,
+	outputName OutputName,
+) *NodeOutputImageUnsetEvent {
+	e := &NodeOutputImageUnsetEvent{
+		OutputName: outputName,
+	}
+	e.Init("NodeOutputImageUnet")
+	e.applyNode(n)
+	return e
+}
+
 type NodeInputImageSetEvent struct {
 	NodeEvent
 	InputName InputName
@@ -183,6 +200,23 @@ func NewInputImageSetEvent(
 		ImageID:   imageID,
 	}
 	e.Init("NodeInputImageSet")
+	e.applyNode(n)
+	return e
+}
+
+type NodeInputImageUnsetEvent struct {
+	NodeEvent
+	InputName InputName
+}
+
+func NewInputImageUnsetEvent(
+	n *Node,
+	inputName InputName,
+) *NodeInputImageUnsetEvent {
+	e := &NodeInputImageUnsetEvent{
+		InputName: inputName,
+	}
+	e.Init("NodeInputImageUnset")
 	e.applyNode(n)
 	return e
 }

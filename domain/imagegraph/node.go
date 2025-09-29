@@ -97,6 +97,8 @@ func (n *Node) IsOutputConnectedTo(
 	return output.IsConnected(toNodeID, inputName), nil
 }
 
+// SetOutputImage updates a node's output to the provided ImageID. If the
+// ImageID is nil, the image is considered to be unset.
 func (n *Node) SetOutputImage(
 	outputName OutputName,
 	imageID ImageID,
@@ -112,7 +114,11 @@ func (n *Node) SetOutputImage(
 
 	output.SetImage(imageID)
 
-	n.AddEvent(NewOutputImageSetEvent(n, outputName, imageID))
+	if !imageID.IsNil() {
+		n.AddEvent(NewOutputImageSetEvent(n, outputName, imageID))
+	} else {
+		n.AddEvent(NewOutputImageUnsetEvent(n, outputName))
+	}
 
 	return slices.Collect(maps.Keys(output.Connections)), nil
 }
@@ -237,9 +243,19 @@ func (n *Node) DisconnectInput(inputName InputName) (
 		),
 	)
 
+	//
+	// If the input has an image set, reset it and emit an appropriate event
+	//
+	if input.HasImage() {
+		input.ResetImage()
+		n.AddEvent(NewInputImageUnsetEvent(n, inputName))
+	}
+
 	return inputConnection, nil
 }
 
+// SetInputImage updates an node's input to the provided ImageID. If the
+// ImageID is nil, the image is considered to be unset.
 func (n *Node) SetInputImage(
 	inputName InputName,
 	imageID ImageID,
@@ -252,7 +268,11 @@ func (n *Node) SetInputImage(
 
 	input.SetImage(imageID)
 
-	n.AddEvent(NewInputImageSetEvent(n, inputName, imageID))
+	if !imageID.IsNil() {
+		n.AddEvent(NewInputImageSetEvent(n, inputName, imageID))
+	} else {
+		n.AddEvent(NewInputImageUnsetEvent(n, inputName))
+	}
 
 	return nil
 }
