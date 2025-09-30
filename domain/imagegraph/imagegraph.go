@@ -40,6 +40,10 @@ func NewImageGraph(
 	*ImageGraph,
 	error,
 ) {
+	if len(name) == 0 {
+		return nil, fmt.Errorf("cannot create ImageGraph with empty name")
+	}
+
 	ig := &ImageGraph{
 		ID:      id,
 		Name:    name,
