@@ -531,3 +531,138 @@ func TestImageGraph_UnsetNodePreview(t *testing.T) {
 		}
 	})
 }
+
+func TestImageGraph_RemoveNode(t *testing.T) {
+	t.Run("removes node from graph", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		err := ig.RemoveNode(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if len(ig.Nodes) != 0 {
+			t.Errorf("expected 0 nodes, got %d", len(ig.Nodes))
+		}
+
+		_, exists := ig.Nodes.Get(nodeID)
+		if exists {
+			t.Error("expected node to not exist after removal")
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+
+		err := ig.RemoveNode(nodeID)
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("emits NodeRemoved event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+		ig.ResetEvents()
+
+		err := ig.RemoveNode(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeRemovedEvent); !ok {
+			t.Errorf("expected NodeRemovedEvent, got %T", events[0])
+		}
+	})
+
+	t.Run("increments version", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+		initialVersion := ig.Version
+
+		err := ig.RemoveNode(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if ig.Version != initialVersion+1 {
+			t.Errorf("expected version %v, got %v", initialVersion+1, ig.Version)
+		}
+	})
+
+	t.Run("disconnects upstream connections", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeAID := imagegraph.MustNewNodeID()
+		nodeBID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeAID, imagegraph.NodeTypeInput, "nodeA", "{}")
+		ig.AddNode(nodeBID, imagegraph.NodeTypeInput, "nodeB", "{}")
+
+		// Note: NodeTypeInput has no inputs, only outputs, so we can't test this scenario
+		// This test is kept as a placeholder for when we have nodes with inputs
+		t.Skip("NodeTypeInput has no inputs, cannot test upstream disconnection")
+	})
+
+	t.Run("disconnects downstream connections", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeAID := imagegraph.MustNewNodeID()
+		nodeBID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeAID, imagegraph.NodeTypeInput, "nodeA", "{}")
+		ig.AddNode(nodeBID, imagegraph.NodeTypeInput, "nodeB", "{}")
+
+		// Note: NodeTypeInput has no inputs, only outputs, so we can't connect them
+		// This test is kept as a placeholder for when we have nodes with inputs
+		t.Skip("NodeTypeInput has no inputs, cannot test downstream disconnection")
+	})
+
+	t.Run("handles node with no connections", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		err := ig.RemoveNode(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error for standalone node, got %v", err)
+		}
+
+		if len(ig.Nodes) != 0 {
+			t.Errorf("expected 0 nodes, got %d", len(ig.Nodes))
+		}
+	})
+
+	t.Run("can remove multiple nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeAID := imagegraph.MustNewNodeID()
+		nodeBID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeAID, imagegraph.NodeTypeInput, "nodeA", "{}")
+		ig.AddNode(nodeBID, imagegraph.NodeTypeInput, "nodeB", "{}")
+
+		err := ig.RemoveNode(nodeAID)
+		if err != nil {
+			t.Fatalf("expected no error removing nodeA, got %v", err)
+		}
+
+		err = ig.RemoveNode(nodeBID)
+		if err != nil {
+			t.Fatalf("expected no error removing nodeB, got %v", err)
+		}
+
+		if len(ig.Nodes) != 0 {
+			t.Errorf("expected 0 nodes, got %d", len(ig.Nodes))
+		}
+	})
+}
