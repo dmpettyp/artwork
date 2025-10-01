@@ -317,3 +317,189 @@ func TestNode_SetConfig(t *testing.T) {
 	})
 
 }
+
+func TestImageGraph_SetNodePreview(t *testing.T) {
+	t.Run("sets preview image for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodePreview(nodeID, imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Preview != imageID {
+			t.Errorf("expected preview %v, got %v", imageID, node.Preview)
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodePreview(nodeID, imageID)
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("emits NodePreviewSet event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+		ig.ResetEvents()
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodePreview(nodeID, imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+	})
+
+	t.Run("can update preview to different image", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID1 := imagegraph.MustNewImageID()
+		imageID2 := imagegraph.MustNewImageID()
+
+		ig.SetNodePreview(nodeID, imageID1)
+		err := ig.SetNodePreview(nodeID, imageID2)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Preview != imageID2 {
+			t.Errorf("expected preview %v, got %v", imageID2, node.Preview)
+		}
+	})
+
+	t.Run("UnsetNodePreview clears preview", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodePreview(nodeID, imageID)
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if !node.Preview.IsNil() {
+			t.Errorf("expected nil preview, got %v", node.Preview)
+		}
+	})
+
+	t.Run("emits NodePreviewUnset event when unsetting", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodePreview(nodeID, imageID)
+		ig.ResetEvents()
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+	})
+}
+
+func TestImageGraph_UnsetNodePreview(t *testing.T) {
+	t.Run("unsets preview for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodePreview(nodeID, imageID)
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if !node.Preview.IsNil() {
+			t.Errorf("expected nil preview, got %v", node.Preview)
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("emits NodePreviewUnset event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodePreview(nodeID, imageID)
+		ig.ResetEvents()
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+	})
+
+	t.Run("works on node without preview set", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		err := ig.UnsetNodePreview(nodeID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if !node.Preview.IsNil() {
+			t.Errorf("expected nil preview, got %v", node.Preview)
+		}
+	})
+}

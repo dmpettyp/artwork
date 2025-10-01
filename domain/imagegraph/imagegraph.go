@@ -477,7 +477,15 @@ func (ig *ImageGraph) SetNodePreview(
 func (ig *ImageGraph) UnsetNodePreview(
 	nodeID NodeID,
 ) error {
-	return ig.SetNodePreview(nodeID, ImageID{})
+	return ig.Nodes.WithNode(nodeID, func(node *Node) error {
+		err := node.SetPreview(ImageID{})
+
+		if err != nil {
+			return fmt.Errorf("couldn't unset node %q preview: %w", nodeID, err)
+		}
+
+		return nil
+	})
 }
 
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
