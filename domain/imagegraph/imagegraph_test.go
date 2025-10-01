@@ -738,3 +738,225 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 		}
 	})
 }
+
+func TestImageGraph_ConnectNodes(t *testing.T) {
+	t.Run("connects nodes successfully", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify output connection
+		inputNode, _ := ig.Nodes.Get(inputID)
+		output := inputNode.Outputs["original"]
+		if len(output.Connections) != 1 {
+			t.Errorf("expected 1 output connection, got %d", len(output.Connections))
+		}
+
+		// Verify input connection
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		input := scaleNode.Inputs["original"]
+		if !input.Connected {
+			t.Error("expected input to be connected")
+		}
+		if input.InputConnection.NodeID != inputID {
+			t.Errorf("expected input connected to %v, got %v", inputID, input.InputConnection.NodeID)
+		}
+	})
+
+	t.Run("returns error for self-connection", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "node", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(nodeID, "scaled", nodeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for self-connection, got nil")
+		}
+	})
+
+	t.Run("returns error for cycle", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		node1ID := imagegraph.MustNewNodeID()
+		node2ID := imagegraph.MustNewNodeID()
+		ig.AddNode(node1ID, imagegraph.NodeTypeScale, "node1", `{"factor": 2.0}`)
+		ig.AddNode(node2ID, imagegraph.NodeTypeScale, "node2", `{"factor": 2.0}`)
+
+		// Create A → B
+		ig.ConnectNodes(node1ID, "scaled", node2ID, "original")
+
+		// Try B → A (would create cycle)
+		err := ig.ConnectNodes(node2ID, "scaled", node1ID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for cycle, got nil")
+		}
+	})
+
+	t.Run("returns error for non-existent from node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		fakeID := imagegraph.MustNewNodeID()
+		err := ig.ConnectNodes(fakeID, "original", scaleID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent from node, got nil")
+		}
+	})
+
+	t.Run("returns error for non-existent to node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+
+		fakeID := imagegraph.MustNewNodeID()
+		err := ig.ConnectNodes(inputID, "original", fakeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent to node, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid output name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(inputID, "invalid", scaleID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for invalid output name, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid input name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(inputID, "original", scaleID, "invalid")
+
+		if err == nil {
+			t.Fatal("expected error for invalid input name, got nil")
+		}
+	})
+
+	t.Run("is idempotent", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(inputID, "original", scaleID, "original")
+		if err != nil {
+			t.Fatalf("expected no error on first connect, got %v", err)
+		}
+
+		ig.ResetEvents()
+		err = ig.ConnectNodes(inputID, "original", scaleID, "original")
+		if err != nil {
+			t.Fatalf("expected no error on second connect, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 0 {
+			t.Errorf("expected 0 events on duplicate connect, got %d", len(events))
+		}
+	})
+
+	t.Run("replaces existing connection", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		input1ID := imagegraph.MustNewNodeID()
+		input2ID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(input1ID, imagegraph.NodeTypeInput, "input1", "{}")
+		ig.AddNode(input2ID, imagegraph.NodeTypeInput, "input2", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect input1 → scale
+		ig.ConnectNodes(input1ID, "original", scaleID, "original")
+
+		// Connect input2 → scale (should disconnect input1)
+		err := ig.ConnectNodes(input2ID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify input1 is disconnected
+		input1Node, _ := ig.Nodes.Get(input1ID)
+		if len(input1Node.Outputs["original"].Connections) != 0 {
+			t.Error("expected input1 to be disconnected")
+		}
+
+		// Verify input2 is connected
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		if scaleNode.Inputs["original"].InputConnection.NodeID != input2ID {
+			t.Error("expected scale to be connected to input2")
+		}
+	})
+
+	t.Run("emits connection events", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+		ig.ResetEvents()
+
+		err := ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputConnectedEvent); !ok {
+			t.Errorf("expected first event to be NodeOutputConnectedEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeInputConnectedEvent); !ok {
+			t.Errorf("expected second event to be NodeInputConnectedEvent, got %T", events[1])
+		}
+	})
+
+	t.Run("emits disconnection events when replacing", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		input1ID := imagegraph.MustNewNodeID()
+		input2ID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(input1ID, imagegraph.NodeTypeInput, "input1", "{}")
+		ig.AddNode(input2ID, imagegraph.NodeTypeInput, "input2", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		ig.ConnectNodes(input1ID, "original", scaleID, "original")
+		ig.ResetEvents()
+
+		ig.ConnectNodes(input2ID, "original", scaleID, "original")
+
+		events := ig.GetEvents()
+		// Should have: InputDisconnected, OutputDisconnected, OutputConnected, InputConnected
+		if len(events) != 4 {
+			t.Fatalf("expected 4 events, got %d", len(events))
+		}
+	})
+}
