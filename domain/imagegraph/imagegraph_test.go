@@ -1027,3 +1027,240 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		}
 	})
 }
+
+func TestImageGraph_DisconnectNodes(t *testing.T) {
+	t.Run("disconnects nodes successfully", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect nodes first
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		// Disconnect them
+		err := ig.DisconnectNodes(inputID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify output connection removed
+		inputNode, _ := ig.Nodes.Get(inputID)
+		output := inputNode.Outputs["original"]
+		if len(output.Connections) != 0 {
+			t.Errorf("expected 0 output connections, got %d", len(output.Connections))
+		}
+
+		// Verify input connection removed
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		input := scaleNode.Inputs["original"]
+		if input.Connected {
+			t.Error("expected input to be disconnected")
+		}
+	})
+
+	t.Run("returns error for non-existent from node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		fakeID := imagegraph.MustNewNodeID()
+		err := ig.DisconnectNodes(fakeID, "original", scaleID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent from node, got nil")
+		}
+	})
+
+	t.Run("returns error for non-existent to node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+
+		fakeID := imagegraph.MustNewNodeID()
+		err := ig.DisconnectNodes(inputID, "original", fakeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent to node, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid output name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.DisconnectNodes(inputID, "invalid", scaleID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for invalid output name, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid input name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.DisconnectNodes(inputID, "original", scaleID, "invalid")
+
+		if err == nil {
+			t.Fatal("expected error for invalid input name, got nil")
+		}
+	})
+
+	t.Run("is idempotent", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect nodes
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		// Disconnect once
+		err := ig.DisconnectNodes(inputID, "original", scaleID, "original")
+		if err != nil {
+			t.Fatalf("expected no error on first disconnect, got %v", err)
+		}
+
+		// Disconnect again (should be no-op)
+		ig.ResetEvents()
+		err = ig.DisconnectNodes(inputID, "original", scaleID, "original")
+		if err != nil {
+			t.Fatalf("expected no error on second disconnect, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 0 {
+			t.Errorf("expected 0 events on duplicate disconnect, got %d", len(events))
+		}
+	})
+
+	t.Run("emits disconnection events", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect nodes first
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+		ig.ResetEvents()
+
+		// Disconnect them
+		err := ig.DisconnectNodes(inputID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputDisconnectedEvent); !ok {
+			t.Errorf("expected first event to be NodeOutputDisconnectedEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeInputDisconnectedEvent); !ok {
+			t.Errorf("expected second event to be NodeInputDisconnectedEvent, got %T", events[1])
+		}
+	})
+
+	t.Run("unsets input image when disconnecting", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect nodes
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		// Set an image on the output (which propagates to input)
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		// Verify image was set
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		if !scaleNode.Inputs["original"].HasImage() {
+			t.Fatal("expected input to have image set")
+		}
+
+		ig.ResetEvents()
+
+		// Disconnect nodes
+		err := ig.DisconnectNodes(inputID, "original", scaleID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify input image was unset
+		scaleNode, _ = ig.Nodes.Get(scaleID)
+		if scaleNode.Inputs["original"].HasImage() {
+			t.Error("expected input image to be unset after disconnection")
+		}
+
+		// Verify image unset event was emitted
+		events := ig.GetEvents()
+		foundImageUnset := false
+		for _, event := range events {
+			if _, ok := event.(*imagegraph.NodeInputImageUnsetEvent); ok {
+				foundImageUnset = true
+				break
+			}
+		}
+		if !foundImageUnset {
+			t.Error("expected NodeInputImageUnsetEvent to be emitted")
+		}
+	})
+
+	t.Run("handles multiple connections from same output", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scale1ID := imagegraph.MustNewNodeID()
+		scale2ID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scale1ID, imagegraph.NodeTypeScale, "scale1", `{"factor": 2.0}`)
+		ig.AddNode(scale2ID, imagegraph.NodeTypeScale, "scale2", `{"factor": 3.0}`)
+
+		// Connect input to both scale nodes
+		ig.ConnectNodes(inputID, "original", scale1ID, "original")
+		ig.ConnectNodes(inputID, "original", scale2ID, "original")
+
+		// Disconnect one connection
+		err := ig.DisconnectNodes(inputID, "original", scale1ID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify scale1 is disconnected
+		scale1Node, _ := ig.Nodes.Get(scale1ID)
+		if scale1Node.Inputs["original"].Connected {
+			t.Error("expected scale1 input to be disconnected")
+		}
+
+		// Verify scale2 is still connected
+		scale2Node, _ := ig.Nodes.Get(scale2ID)
+		if !scale2Node.Inputs["original"].Connected {
+			t.Error("expected scale2 input to still be connected")
+		}
+
+		// Verify input node still has one connection
+		inputNode, _ := ig.Nodes.Get(inputID)
+		if len(inputNode.Outputs["original"].Connections) != 1 {
+			t.Errorf("expected 1 output connection remaining, got %d", len(inputNode.Outputs["original"].Connections))
+		}
+	})
+}
