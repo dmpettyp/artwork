@@ -19,7 +19,6 @@ const (
 )
 
 type nodeConfigField struct {
-	name      string
 	fieldType NodeConfigFieldType
 	required  bool
 }
@@ -27,7 +26,7 @@ type nodeConfigField struct {
 type nodeConfig struct {
 	inputs  []InputName
 	outputs []OutputName
-	fields  []nodeConfigField
+	fields  map[string]nodeConfigField
 }
 
 var nodeConfigs = map[NodeType]nodeConfig{
@@ -37,8 +36,8 @@ var nodeConfigs = map[NodeType]nodeConfig{
 	NodeTypeScale: {
 		inputs:  []InputName{"original"},
 		outputs: []OutputName{"scaled"},
-		fields: []nodeConfigField{
-			{"factor", NodeConfigTypeFloat, true},
+		fields: map[string]nodeConfigField{
+			"factor": {NodeConfigTypeFloat, true},
 		},
 	},
 }

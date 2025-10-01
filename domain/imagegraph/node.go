@@ -146,24 +146,18 @@ func (n *Node) SetConfig(config string) error {
 		return fmt.Errorf("node type %q does not have config", n.Type)
 	}
 
-	// Build a map of field definitions for quick lookup
-	fieldDefs := make(map[string]nodeConfigField)
-	for _, field := range nodeConfig.fields {
-		fieldDefs[field.name] = field
-	}
-
 	// Validate required fields are present
-	for _, field := range nodeConfig.fields {
-		if field.required {
-			if _, exists := obj[field.name]; !exists {
-				return fmt.Errorf("required field %q is missing", field.name)
+	for fieldName, fieldDef := range nodeConfig.fields {
+		if fieldDef.required {
+			if _, exists := obj[fieldName]; !exists {
+				return fmt.Errorf("required field %q is missing", fieldName)
 			}
 		}
 	}
 
 	// Validate field types and reject unknown fields
 	for key, value := range obj {
-		fieldDef, exists := fieldDefs[key]
+		fieldDef, exists := nodeConfig.fields[key]
 		if !exists {
 			return fmt.Errorf("unknown field %q", key)
 		}
