@@ -457,6 +457,36 @@ func (ig *ImageGraph) UnsetNodeOutputImage(
 	)
 }
 
+// SetNodePreview sets the preview image for a specific node
+func (ig *ImageGraph) SetNodePreview(
+	nodeID NodeID,
+	imageID ImageID,
+) error {
+	node, exists := ig.Nodes.Get(nodeID)
+
+	if !exists {
+		return fmt.Errorf(
+			"couldn't set node %q preview: node doesn't exist",
+			nodeID,
+		)
+	}
+
+	err := node.SetPreview(imageID)
+
+	if err != nil {
+		return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
+	}
+
+	return nil
+}
+
+// UnsetNodePreview unsets the preview image for a specific node
+func (ig *ImageGraph) UnsetNodePreview(
+	nodeID NodeID,
+) error {
+	return ig.SetNodePreview(nodeID, ImageID{})
+}
+
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
 func (ig *ImageGraph) wouldCreateCycle(fromNodeID, toNodeID NodeID) bool {
 	// If we connect fromNode -> toNode, check if there's already a path

@@ -14,8 +14,8 @@ to process images in a non-destructive way.
 - SetNodeOutputImage ✅
 - UnsetNodeOutputImage ✅
 - DisconnectNodes ✅
-- Node configuration
-  - json blob, parse it and verify contents
+- Node configuration ✅
+  - json blob, parse it and verify contents ✅
 - Node Preview Image
 
 ## Overview

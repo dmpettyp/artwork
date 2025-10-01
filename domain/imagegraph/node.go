@@ -47,6 +47,9 @@ type Node struct {
 	// json that is provided to the image processor.
 	Config string
 
+	// The preview image for the node
+	Preview ImageID
+
 	// The inputs that provide images to the node that are processed and
 	// then set as outputs
 	Inputs map[InputName]*Input
@@ -139,6 +142,18 @@ func (n *Node) SetConfig(config string) error {
 
 	n.Config = config
 	n.addEvent(NewNodeConfigSetEvent(n, config))
+
+	return nil
+}
+
+func (n *Node) SetPreview(imageID ImageID) error {
+	n.Preview = imageID
+
+	if !imageID.IsNil() {
+		n.addEvent(NewNodePreviewSetEvent(n, imageID))
+	} else {
+		n.addEvent(NewNodePreviewUnsetEvent(n))
+	}
 
 	return nil
 }

@@ -237,3 +237,33 @@ func NewNodeConfigSetEvent(
 	e.applyNode(n)
 	return e
 }
+
+type NodePreviewSetEvent struct {
+	NodeEvent
+	ImageID ImageID
+}
+
+func NewNodePreviewSetEvent(
+	n *Node,
+	imageID ImageID,
+) *NodePreviewSetEvent {
+	e := &NodePreviewSetEvent{
+		ImageID: imageID,
+	}
+	e.Init("NodePreviewSet")
+	e.applyNode(n)
+	return e
+}
+
+type NodePreviewUnsetEvent struct {
+	NodeEvent
+}
+
+func NewNodePreviewUnsetEvent(
+	n *Node,
+) *NodePreviewUnsetEvent {
+	e := &NodePreviewUnsetEvent{}
+	e.Init("NodePreviewUnset")
+	e.applyNode(n)
+	return e
+}
