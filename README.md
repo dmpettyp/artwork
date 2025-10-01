@@ -16,7 +16,8 @@ to process images in a non-destructive way.
 - DisconnectNodes ✅
 - Node configuration ✅
   - json blob, parse it and verify contents ✅
-- Node Preview Image
+- Node Preview Image ✅
+- Add a new node type that supports inputs!
 
 ## Overview
 

@@ -226,7 +226,7 @@ func TestNode_SetConfig(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
 
 		node, _ := ig.Nodes.Get(nodeID)
-		config := `{"key": "value", "number": 42}`
+		config := `{}`
 
 		err := node.SetConfig(config)
 
@@ -314,7 +314,7 @@ func TestNode_SetConfig(t *testing.T) {
 		ig.ResetEvents()
 
 		node, _ := ig.Nodes.Get(nodeID)
-		config := `{"key": "value"}`
+		config := `{}`
 
 		err := node.SetConfig(config)
 
@@ -329,6 +329,78 @@ func TestNode_SetConfig(t *testing.T) {
 
 		if _, ok := events[0].(*imagegraph.NodeConfigSetEvent); !ok {
 			t.Errorf("expected NodeConfigSetEvent, got %T", events[0])
+		}
+	})
+
+	t.Run("validates required fields for NodeTypeScale", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "node", `{"factor": 2.0}`)
+
+		node, _ := ig.Nodes.Get(nodeID)
+
+		// Missing required field
+		err := node.SetConfig(`{}`)
+		if err == nil {
+			t.Fatal("expected error for missing required field, got nil")
+		}
+
+		// Valid config
+		err = node.SetConfig(`{"factor": 2.5}`)
+		if err != nil {
+			t.Fatalf("expected no error for valid config, got %v", err)
+		}
+	})
+
+	t.Run("validates field types for NodeTypeScale", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "node", `{"factor": 2.0}`)
+
+		node, _ := ig.Nodes.Get(nodeID)
+
+		// Wrong type - string instead of float
+		err := node.SetConfig(`{"factor": "2.0"}`)
+		if err == nil {
+			t.Fatal("expected error for wrong field type, got nil")
+		}
+
+		// Valid float
+		err = node.SetConfig(`{"factor": 1.5}`)
+		if err != nil {
+			t.Fatalf("expected no error for valid float, got %v", err)
+		}
+
+		// Valid integer (also acceptable as float)
+		err = node.SetConfig(`{"factor": 2}`)
+		if err != nil {
+			t.Fatalf("expected no error for integer as float, got %v", err)
+		}
+	})
+
+	t.Run("rejects unknown fields", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "node", `{"factor": 2.0}`)
+
+		node, _ := ig.Nodes.Get(nodeID)
+
+		err := node.SetConfig(`{"factor": 2.0, "unknown": "value"}`)
+		if err == nil {
+			t.Fatal("expected error for unknown field, got nil")
+		}
+	})
+
+	t.Run("allows empty config for NodeTypeInput", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		node, _ := ig.Nodes.Get(nodeID)
+
+		err := node.SetConfig(`{}`)
+		if err != nil {
+			t.Fatalf("expected no error for empty config on NodeTypeInput, got %v", err)
 		}
 	})
 

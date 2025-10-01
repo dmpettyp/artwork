@@ -89,7 +89,7 @@ func NewNode(
 		Outputs:  make(map[OutputName]*Output),
 	}
 
-	for _, inputName := range nodeConfig.inputNames {
+	for _, inputName := range nodeConfig.inputs {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
 		}
@@ -97,7 +97,7 @@ func NewNode(
 		n.Inputs[inputName] = &input
 	}
 
-	for _, outputName := range nodeConfig.outputNames {
+	for _, outputName := range nodeConfig.outputs {
 		if _, ok := n.Outputs[outputName]; ok {
 			return nil, fmt.Errorf("node already has an output named %q", outputName)
 		}
@@ -138,6 +138,58 @@ func (n *Node) SetConfig(config string) error {
 	var obj map[string]interface{}
 	if err := json.Unmarshal([]byte(config), &obj); err != nil {
 		return fmt.Errorf("config must be a JSON object")
+	}
+
+	// Get node type configuration
+	nodeConfig, ok := nodeConfigs[n.Type]
+	if !ok {
+		return fmt.Errorf("node type %q does not have config", n.Type)
+	}
+
+	// Build a map of field definitions for quick lookup
+	fieldDefs := make(map[string]nodeConfigField)
+	for _, field := range nodeConfig.fields {
+		fieldDefs[field.name] = field
+	}
+
+	// Validate required fields are present
+	for _, field := range nodeConfig.fields {
+		if field.required {
+			if _, exists := obj[field.name]; !exists {
+				return fmt.Errorf("required field %q is missing", field.name)
+			}
+		}
+	}
+
+	// Validate field types and reject unknown fields
+	for key, value := range obj {
+		fieldDef, exists := fieldDefs[key]
+		if !exists {
+			return fmt.Errorf("unknown field %q", key)
+		}
+
+		// Validate field type
+		switch fieldDef.fieldType {
+		case NodeConfigTypeString:
+			if _, ok := value.(string); !ok {
+				return fmt.Errorf("field %q must be a string", key)
+			}
+		case NodeConfigTypeInt:
+			// JSON numbers are float64, check if it's a whole number
+			if num, ok := value.(float64); !ok {
+				return fmt.Errorf("field %q must be an integer", key)
+			} else if num != float64(int(num)) {
+				return fmt.Errorf("field %q must be an integer", key)
+			}
+		case NodeConfigTypeFloat:
+			if _, ok := value.(float64); !ok {
+				return fmt.Errorf("field %q must be a number", key)
+			}
+		case NodeConfigTypeBool:
+			if _, ok := value.(bool); !ok {
+				return fmt.Errorf("field %q must be a boolean", key)
+			}
+		}
 	}
 
 	n.Config = config

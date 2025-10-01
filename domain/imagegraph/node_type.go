@@ -5,15 +5,40 @@ type NodeType int
 const (
 	NodeTypeNone NodeType = iota
 	NodeTypeInput
+	NodeTypeScale
 )
 
+type NodeConfigFieldType int
+
+const (
+	NodeConfigTypeNone NodeConfigFieldType = iota
+	NodeConfigTypeString
+	NodeConfigTypeInt
+	NodeConfigTypeFloat
+	NodeConfigTypeBool
+)
+
+type nodeConfigField struct {
+	name      string
+	fieldType NodeConfigFieldType
+	required  bool
+}
+
 type nodeConfig struct {
-	inputNames  []InputName
-	outputNames []OutputName
+	inputs  []InputName
+	outputs []OutputName
+	fields  []nodeConfigField
 }
 
 var nodeConfigs = map[NodeType]nodeConfig{
 	NodeTypeInput: {
-		outputNames: []OutputName{"source"},
+		outputs: []OutputName{"original"},
+	},
+	NodeTypeScale: {
+		inputs:  []InputName{"original"},
+		outputs: []OutputName{"scaled"},
+		fields: []nodeConfigField{
+			{"factor", NodeConfigTypeFloat, true},
+		},
 	},
 }
