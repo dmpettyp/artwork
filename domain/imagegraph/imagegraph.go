@@ -462,22 +462,15 @@ func (ig *ImageGraph) SetNodePreview(
 	nodeID NodeID,
 	imageID ImageID,
 ) error {
-	node, exists := ig.Nodes.Get(nodeID)
+	return ig.Nodes.WithNode(nodeID, func(node *Node) error {
+		err := node.SetPreview(imageID)
 
-	if !exists {
-		return fmt.Errorf(
-			"couldn't set node %q preview: node doesn't exist",
-			nodeID,
-		)
-	}
+		if err != nil {
+			return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
+		}
 
-	err := node.SetPreview(imageID)
-
-	if err != nil {
-		return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // UnsetNodePreview unsets the preview image for a specific node
