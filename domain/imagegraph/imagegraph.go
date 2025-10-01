@@ -398,22 +398,18 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	// Set each downstream node's input to the provided ImageID
 	//
 	for _, connection := range connections {
-		downstreamNode, exists := ig.Nodes.Get(connection.NodeID)
-
-		if !exists {
-			return fmt.Errorf(
-				"could not set node %q output image: downstream node %q does not exist",
-				nodeID, connection.NodeID,
+		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
+			return n.SetInputImage(
+				connection.InputName,
+				imageID,
 			)
-		}
-
-		err := downstreamNode.SetInputImage(
-			connection.InputName,
-			imageID,
-		)
+		})
 
 		if err != nil {
-			return fmt.Errorf("could not set node %q output image: %w", nodeID, err)
+			return fmt.Errorf(
+				"could not set node %q output image to %q: %w",
+				nodeID, imageID, err,
+			)
 		}
 	}
 
@@ -443,7 +439,10 @@ func (ig *ImageGraph) SetNodePreview(
 	})
 
 	if err != nil {
-		return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
+		return fmt.Errorf(
+			"couldn't set node %q preview image to %q: %w",
+			nodeID, imageID, err,
+		)
 	}
 
 	return nil
@@ -453,15 +452,7 @@ func (ig *ImageGraph) SetNodePreview(
 func (ig *ImageGraph) UnsetNodePreview(
 	nodeID NodeID,
 ) error {
-	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetPreview(ImageID{})
-	})
-
-	if err != nil {
-		return fmt.Errorf("couldn't unset node %q preview: %w", nodeID, err)
-	}
-
-	return nil
+	return ig.SetNodePreview(nodeID, ImageID{})
 }
 
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
