@@ -86,12 +86,6 @@ func NewNode(
 		Outputs:  make(map[OutputName]*Output),
 	}
 
-	err := n.SetConfig(config)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create node: %w", err)
-	}
-
 	for _, inputName := range nodeConfig.inputNames {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
@@ -110,6 +104,12 @@ func NewNode(
 
 	n.addEvent(NewNodeCreatedEvent(n))
 
+	err := n.SetConfig(config)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create node: %w", err)
+	}
+
 	return n, nil
 }
 
@@ -118,15 +118,23 @@ func (n *Node) SetEventAdder(eventAdder func(Event)) {
 }
 
 func (n *Node) SetConfig(config string) error {
-	// Empty config is allowed
 	if config == "" {
-		n.Config = ""
-		return nil
+		return fmt.Errorf("config cannot be empty")
+	}
+
+	if config == "null" {
+		return fmt.Errorf("config cannot be null")
 	}
 
 	// Validate that config is valid JSON
 	if !json.Valid([]byte(config)) {
 		return fmt.Errorf("config must be valid JSON")
+	}
+
+	// Validate that config is a JSON object
+	var obj map[string]interface{}
+	if err := json.Unmarshal([]byte(config), &obj); err != nil {
+		return fmt.Errorf("config must be a JSON object")
 	}
 
 	n.Config = config
