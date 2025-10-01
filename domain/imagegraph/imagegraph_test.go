@@ -678,26 +678,93 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 
 	t.Run("disconnects upstream connections", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
-		nodeAID := imagegraph.MustNewNodeID()
-		nodeBID := imagegraph.MustNewNodeID()
-		ig.AddNode(nodeAID, imagegraph.NodeTypeInput, "nodeA", "{}")
-		ig.AddNode(nodeBID, imagegraph.NodeTypeInput, "nodeB", "{}")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
 
-		// Note: NodeTypeInput has no inputs, only outputs, so we can't test this scenario
-		// This test is kept as a placeholder for when we have nodes with inputs
-		t.Skip("NodeTypeInput has no inputs, cannot test upstream disconnection")
+		// Connect input → scale
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		// Remove scale node
+		ig.ResetEvents()
+		err := ig.RemoveNode(scaleID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify upstream node's output is disconnected
+		inputNode, _ := ig.Nodes.Get(inputID)
+		if len(inputNode.Outputs["original"].Connections) != 0 {
+			t.Error("expected upstream output to be disconnected")
+		}
+
+		// Verify disconnection event was emitted
+		events := ig.GetEvents()
+		foundDisconnectEvent := false
+		for _, event := range events {
+			if _, ok := event.(*imagegraph.NodeOutputDisconnectedEvent); ok {
+				foundDisconnectEvent = true
+				break
+			}
+		}
+		if !foundDisconnectEvent {
+			t.Error("expected NodeOutputDisconnectedEvent to be emitted")
+		}
 	})
 
 	t.Run("disconnects downstream connections", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
-		nodeAID := imagegraph.MustNewNodeID()
-		nodeBID := imagegraph.MustNewNodeID()
-		ig.AddNode(nodeAID, imagegraph.NodeTypeInput, "nodeA", "{}")
-		ig.AddNode(nodeBID, imagegraph.NodeTypeInput, "nodeB", "{}")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
 
-		// Note: NodeTypeInput has no inputs, only outputs, so we can't connect them
-		// This test is kept as a placeholder for when we have nodes with inputs
-		t.Skip("NodeTypeInput has no inputs, cannot test downstream disconnection")
+		// Connect input → scale
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		// Set an image on the connection to verify it gets unset
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		// Remove input node
+		ig.ResetEvents()
+		err := ig.RemoveNode(inputID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify downstream node's input is disconnected
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		if scaleNode.Inputs["original"].Connected {
+			t.Error("expected downstream input to be disconnected")
+		}
+
+		// Verify downstream node's input image is unset
+		if scaleNode.Inputs["original"].HasImage() {
+			t.Error("expected downstream input image to be unset")
+		}
+
+		// Verify disconnection events were emitted
+		events := ig.GetEvents()
+		foundInputDisconnect := false
+		foundImageUnset := false
+		for _, event := range events {
+			if _, ok := event.(*imagegraph.NodeInputDisconnectedEvent); ok {
+				foundInputDisconnect = true
+			}
+			if _, ok := event.(*imagegraph.NodeInputImageUnsetEvent); ok {
+				foundImageUnset = true
+			}
+		}
+		if !foundInputDisconnect {
+			t.Error("expected NodeInputDisconnectedEvent to be emitted")
+		}
+		if !foundImageUnset {
+			t.Error("expected NodeInputImageUnsetEvent to be emitted")
+		}
 	})
 
 	t.Run("handles node with no connections", func(t *testing.T) {
