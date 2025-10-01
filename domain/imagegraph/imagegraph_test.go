@@ -157,9 +157,21 @@ func TestImageGraph_AddNode(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		// Should emit NodeCreatedEvent and NodeAddedEvent
-		if len(events) < 2 {
-			t.Fatalf("expected at least 2 events, got %d", len(events))
+		// Should emit NodeCreatedEvent, NodeConfigSetEvent, and NodeAddedEvent
+		if len(events) != 3 {
+			t.Fatalf("expected 3 events, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeCreatedEvent); !ok {
+			t.Errorf("expected first event to be NodeCreatedEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeConfigSetEvent); !ok {
+			t.Errorf("expected second event to be NodeConfigSetEvent, got %T", events[1])
+		}
+
+		if _, ok := events[2].(*imagegraph.NodeAddedEvent); !ok {
+			t.Errorf("expected third event to be NodeAddedEvent, got %T", events[2])
 		}
 	})
 
@@ -314,6 +326,10 @@ func TestNode_SetConfig(t *testing.T) {
 		if len(events) != 1 {
 			t.Fatalf("expected 1 event, got %d", len(events))
 		}
+
+		if _, ok := events[0].(*imagegraph.NodeConfigSetEvent); !ok {
+			t.Errorf("expected NodeConfigSetEvent, got %T", events[0])
+		}
 	})
 
 }
@@ -367,6 +383,10 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		events := ig.GetEvents()
 		if len(events) != 1 {
 			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodePreviewSetEvent); !ok {
+			t.Errorf("expected NodePreviewSetEvent, got %T", events[0])
 		}
 	})
 
@@ -430,6 +450,10 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		if len(events) != 1 {
 			t.Fatalf("expected 1 event, got %d", len(events))
 		}
+
+		if _, ok := events[0].(*imagegraph.NodePreviewUnsetEvent); !ok {
+			t.Errorf("expected NodePreviewUnsetEvent, got %T", events[0])
+		}
 	})
 }
 
@@ -483,6 +507,10 @@ func TestImageGraph_UnsetNodePreview(t *testing.T) {
 		events := ig.GetEvents()
 		if len(events) != 1 {
 			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodePreviewUnsetEvent); !ok {
+			t.Errorf("expected NodePreviewUnsetEvent, got %T", events[0])
 		}
 	})
 
