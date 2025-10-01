@@ -34,7 +34,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = ig.AddNode(nodeID1, imagegraph.NodeTypeInput, "My Input Node")
+	err = ig.AddNode(nodeID1, imagegraph.NodeTypeInput, "My Input Node", "")
 
 	if err != nil {
 		log.Fatal(err)

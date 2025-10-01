@@ -220,3 +220,20 @@ func NewInputImageUnsetEvent(
 	e.applyNode(n)
 	return e
 }
+
+type NodeConfigSetEvent struct {
+	NodeEvent
+	Config string
+}
+
+func NewNodeConfigSetEvent(
+	n *Node,
+	config string,
+) *NodeConfigSetEvent {
+	e := &NodeConfigSetEvent{
+		Config: config,
+	}
+	e.Init("NodeConfigSet")
+	e.applyNode(n)
+	return e
+}

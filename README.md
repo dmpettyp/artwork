@@ -13,8 +13,10 @@ to process images in a non-destructive way.
 - ConnectNodes ✅
 - SetNodeOutputImage ✅
 - UnsetNodeOutputImage ✅
-- DisconnectNodes
+- DisconnectNodes ✅
 - Node configuration
+  - json blob, parse it and verify contents
+- Node Preview Image
 
 ## Overview
 

@@ -1,6 +1,7 @@
 package imagegraph
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -8,12 +9,15 @@ import (
 	"github.com/dmpettyp/id"
 )
 
+// NodeID is the type that represents node IDs
 type NodeID struct{ id.ID }
 
 var NewNodeID, MustNewNodeID, ParseNodeID = id.Intitalizers(
 	func(id id.ID) NodeID { return NodeID{ID: id} },
 )
 
+// NodeVersion models the version of a node. Node versions are incremented
+// every time an event is emitted by the node.
 type NodeVersion int
 
 func (v *NodeVersion) Next() NodeVersion {
@@ -21,26 +25,52 @@ func (v *NodeVersion) Next() NodeVersion {
 	return *v
 }
 
+// Node represents a node in the ImageGraph that define the image pipeline.
+// Node are connected to upstream nodes through thier inputs, and to their
+// downstream nodes through their outputs.
 type Node struct {
-	ID       NodeID
-	AddEvent func(Event)
-	Version  NodeVersion
-	Type     NodeType
-	Name     string
-	Inputs   map[InputName]*Input
-	Outputs  map[OutputName]*Output
+	// The globally unique identifier for the Node
+	ID NodeID
+
+	// The curent version of the Node. Every time the node emits a new event
+	// the node's version is incremented by one
+	Version NodeVersion
+
+	// The type of the node, representing the kind of transformations it
+	// performs on its inputs to generate its outputs
+	Type NodeType
+
+	// The name assigned to the node, chosen by the ImageGraph author
+	Name string
+
+	// The configuration for the node. The configuration is a string containing
+	// json that is provided to the image processor.
+	Config string
+
+	// The inputs that provide images to the node that are processed and
+	// then set as outputs
+	Inputs map[InputName]*Input
+
+	// The outputs of the node that are passed to downstream nodes as inputs to
+	// be processed.
+	Outputs map[OutputName]*Output
+
+	// addEvent is a function that can be used by the node to add an event
+	// to its ImageGraph parent
+	addEvent func(Event)
 }
 
 func NewNode(
-	addEvent func(Event),
+	eventAdder func(Event),
 	id NodeID,
 	nodeType NodeType,
 	name string,
+	config string,
 ) (
 	*Node,
 	error,
 ) {
-	conf, ok := nodeConfigs[nodeType]
+	nodeConfig, ok := nodeConfigs[nodeType]
 
 	if !ok {
 		return nil, fmt.Errorf("node type %q does not have config", nodeType)
@@ -48,7 +78,7 @@ func NewNode(
 
 	n := &Node{
 		ID:       id,
-		AddEvent: addEvent,
+		addEvent: eventAdder,
 		Version:  0,
 		Type:     nodeType,
 		Name:     name,
@@ -56,7 +86,13 @@ func NewNode(
 		Outputs:  make(map[OutputName]*Output),
 	}
 
-	for _, inputName := range conf.inputNames {
+	err := n.SetConfig(config)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create node: %w", err)
+	}
+
+	for _, inputName := range nodeConfig.inputNames {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
 		}
@@ -64,7 +100,7 @@ func NewNode(
 		n.Inputs[inputName] = &input
 	}
 
-	for _, outputName := range conf.outputNames {
+	for _, outputName := range nodeConfig.outputNames {
 		if _, ok := n.Outputs[outputName]; ok {
 			return nil, fmt.Errorf("node already has an output named %q", outputName)
 		}
@@ -72,9 +108,31 @@ func NewNode(
 		n.Outputs[outputName] = &output
 	}
 
-	n.AddEvent(NewNodeCreatedEvent(n))
+	n.addEvent(NewNodeCreatedEvent(n))
 
 	return n, nil
+}
+
+func (n *Node) SetEventAdder(eventAdder func(Event)) {
+	n.addEvent = eventAdder
+}
+
+func (n *Node) SetConfig(config string) error {
+	// Empty config is allowed
+	if config == "" {
+		n.Config = ""
+		return nil
+	}
+
+	// Validate that config is valid JSON
+	if !json.Valid([]byte(config)) {
+		return fmt.Errorf("config must be valid JSON")
+	}
+
+	n.Config = config
+	n.addEvent(NewNodeConfigSetEvent(n, config))
+
+	return nil
 }
 
 func (n *Node) HasOutput(outputName OutputName) bool {
@@ -117,9 +175,9 @@ func (n *Node) SetOutputImage(
 	output.SetImage(imageID)
 
 	if !imageID.IsNil() {
-		n.AddEvent(NewOutputImageSetEvent(n, outputName, imageID))
+		n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
 	} else {
-		n.AddEvent(NewOutputImageUnsetEvent(n, outputName))
+		n.addEvent(NewOutputImageUnsetEvent(n, outputName))
 	}
 
 	return slices.Collect(maps.Keys(output.Connections)), nil
@@ -142,7 +200,7 @@ func (n *Node) ConnectOutputTo(
 		return err
 	}
 
-	n.AddEvent(NewOutputConnectedEvent(n, outputName, toNodeID, inputName))
+	n.addEvent(NewOutputConnectedEvent(n, outputName, toNodeID, inputName))
 
 	return nil
 }
@@ -164,7 +222,7 @@ func (n *Node) DisconnectOutput(
 		return err
 	}
 
-	n.AddEvent(
+	n.addEvent(
 		NewOutputDisconnectedEvent(
 			n,
 			outputName,
@@ -198,7 +256,7 @@ func (n *Node) ConnectInputFrom(
 		return err
 	}
 
-	n.AddEvent(
+	n.addEvent(
 		NewInputConnectedEvent(n, inputName, fromNodeID, outputName),
 	)
 
@@ -236,7 +294,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 		return inputConnection, err
 	}
 
-	n.AddEvent(
+	n.addEvent(
 		NewInputDisconnectedEvent(
 			n,
 			inputName,
@@ -250,7 +308,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	//
 	if input.HasImage() {
 		input.ResetImage()
-		n.AddEvent(NewInputImageUnsetEvent(n, inputName))
+		n.addEvent(NewInputImageUnsetEvent(n, inputName))
 	}
 
 	return inputConnection, nil
@@ -271,9 +329,9 @@ func (n *Node) SetInputImage(
 	input.SetImage(imageID)
 
 	if !imageID.IsNil() {
-		n.AddEvent(NewInputImageSetEvent(n, inputName, imageID))
+		n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
 	} else {
-		n.AddEvent(NewInputImageUnsetEvent(n, inputName))
+		n.addEvent(NewInputImageUnsetEvent(n, inputName))
 	}
 
 	return nil
