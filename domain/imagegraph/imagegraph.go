@@ -91,45 +91,34 @@ func (ig *ImageGraph) AddNode(
 func (ig *ImageGraph) RemoveNode(
 	id NodeID,
 ) error {
+	removeNodeError := fmt.Sprintf(
+		"could not remove node %q from ImageGraph %q", id, ig.ID,
+	)
 
-	n, err := ig.Nodes.Remove(id)
+	node, err := ig.Nodes.Remove(id)
 
 	if err != nil {
-		return fmt.Errorf(
-			"could not remove node %q from ImageGraph %q: %w", id, ig.ID, err,
-		)
+		return fmt.Errorf("%s: %w", removeNodeError, err)
 	}
 
-	ig.addEvent(NewNodeRemovedEvent(ig, n))
+	ig.addEvent(NewNodeRemovedEvent(ig, node))
 
 	//
 	// Disconnect each upstream node's output that connects to this node
 	//
-	for _, input := range n.Inputs {
+	for _, input := range node.Inputs {
 		if !input.Connected {
 			continue
 		}
 
-		inputConnection := input.InputConnection
-
-		upstreamNode, exists := ig.Nodes.Get(inputConnection.NodeID)
-
-		if !exists {
-			return fmt.Errorf(
-				"could not remove node %q from ImageGraph %q: input source does not exist",
-				id, ig.ID,
+		err := ig.Nodes.WithNode(input.InputConnection.NodeID, func(n *Node) error {
+			return n.DisconnectOutput(
+				input.InputConnection.OutputName, node.ID, input.Name,
 			)
-		}
-
-		err := upstreamNode.DisconnectOutput(
-			inputConnection.OutputName, n.ID, input.Name,
-		)
+		})
 
 		if err != nil {
-			return fmt.Errorf(
-				"could not remove node %q from ImageGraph %q: %w",
-				id, ig.ID, err,
-			)
+			return fmt.Errorf("%s: %w", removeNodeError, err)
 		}
 	}
 
@@ -137,26 +126,17 @@ func (ig *ImageGraph) RemoveNode(
 	// Disconnect each downstream node's input that is connected to this node's
 	// output
 	//
-	for _, output := range n.Outputs {
+	for _, output := range node.Outputs {
 		for outputConnection := range output.Connections {
-			downstreamNode, exists := ig.Nodes.Get(outputConnection.NodeID)
-
-			if !exists {
-				return fmt.Errorf(
-					"could not remove node %q from ImageGraph %q: output target does not exist",
-					id, ig.ID,
+			err := ig.Nodes.WithNode(outputConnection.NodeID, func(n *Node) error {
+				_, err := n.DisconnectInput(
+					outputConnection.InputName,
 				)
-			}
-
-			_, err := downstreamNode.DisconnectInput(
-				outputConnection.InputName,
-			)
+				return err
+			})
 
 			if err != nil {
-				return fmt.Errorf(
-					"could not remove node %q from ImageGraph %q: %w",
-					id, ig.ID, err,
-				)
+				return fmt.Errorf("%s: %w", removeNodeError, err)
 			}
 		}
 	}
@@ -265,17 +245,13 @@ func (ig *ImageGraph) ConnectNodes(
 		//
 		// Disconnect the target node's original source output and emit an event
 		//
-		previousFromNode, exists := ig.Nodes.Get(inputConnection.NodeID)
-
-		if !exists {
-			return fmt.Errorf("%s: former from node doesn't exist", baseError)
-		}
-
-		err = previousFromNode.DisconnectOutput(
-			inputConnection.OutputName,
-			toNodeID,
-			inputName,
-		)
+		err = ig.Nodes.WithNode(inputConnection.NodeID, func(n *Node) error {
+			return n.DisconnectOutput(
+				inputConnection.OutputName,
+				toNodeID,
+				inputName,
+			)
+		})
 
 		if err != nil {
 			return fmt.Errorf(
@@ -462,30 +438,30 @@ func (ig *ImageGraph) SetNodePreview(
 	nodeID NodeID,
 	imageID ImageID,
 ) error {
-	return ig.Nodes.WithNode(nodeID, func(node *Node) error {
-		err := node.SetPreview(imageID)
-
-		if err != nil {
-			return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
-		}
-
-		return nil
+	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		return n.SetPreview(imageID)
 	})
+
+	if err != nil {
+		return fmt.Errorf("couldn't set node %q preview: %w", nodeID, err)
+	}
+
+	return nil
 }
 
 // UnsetNodePreview unsets the preview image for a specific node
 func (ig *ImageGraph) UnsetNodePreview(
 	nodeID NodeID,
 ) error {
-	return ig.Nodes.WithNode(nodeID, func(node *Node) error {
-		err := node.SetPreview(ImageID{})
-
-		if err != nil {
-			return fmt.Errorf("couldn't unset node %q preview: %w", nodeID, err)
-		}
-
-		return nil
+	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		return n.SetPreview(ImageID{})
 	})
+
+	if err != nil {
+		return fmt.Errorf("couldn't unset node %q preview: %w", nodeID, err)
+	}
+
+	return nil
 }
 
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
