@@ -1,16 +1,38 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"log/slog"
+	"os"
+
 	// "image"
-	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"log"
+
+	"github.com/dmpettyp/artwork/application"
+	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/dorky"
 	// "github.com/dmpettyp/pixelator/domain/node"
 	// "github.com/dmpettyp/pixelator/lib/fileimagestore"
 )
 
 func main() {
-	fmt.Println("this is artwork")
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	logger.Info("this is artwork")
+
+	messageBus := dorky.NewMessageBus(logger)
+
+	_, err := application.NewImageGraphCommandHandlers(messageBus)
+
+	if err != nil {
+		logger.Error("could not create image graph command handlers", "error", err)
+		return
+	}
+
+	go messageBus.Start(context.Background())
+
+	messageBus.Stop()
+
 	// imageStore, err := fileimagestore.New("data/images")
 	//
 	// if err != nil {
@@ -34,7 +56,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = ig.AddNode(nodeID1, imagegraph.NodeTypeInput, "My Input Node", "")
+	err = ig.AddNode(nodeID1, imagegraph.NodeTypeInput, "My Input Node", "{}")
 
 	if err != nil {
 		log.Fatal(err)

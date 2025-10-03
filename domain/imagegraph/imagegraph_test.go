@@ -1264,3 +1264,391 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		}
 	})
 }
+
+func TestImageGraph_SetNodeOutputImage(t *testing.T) {
+	t.Run("sets output image for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		output := node.Outputs["original"]
+		if output.ImageID != imageID {
+			t.Errorf("expected output image %v, got %v", imageID, output.ImageID)
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		fakeID := imagegraph.MustNewNodeID()
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(fakeID, "original", imageID)
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid output name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(nodeID, "invalid", imageID)
+
+		if err == nil {
+			t.Fatal("expected error for invalid output name, got nil")
+		}
+	})
+
+	t.Run("propagates image to connected downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect input → scale
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify downstream input has the image
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		input := scaleNode.Inputs["original"]
+		if !input.HasImage() {
+			t.Fatal("expected downstream input to have image")
+		}
+		if input.ImageID != imageID {
+			t.Errorf("expected downstream input image %v, got %v", imageID, input.ImageID)
+		}
+	})
+
+	t.Run("propagates to multiple downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scale1ID := imagegraph.MustNewNodeID()
+		scale2ID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scale1ID, imagegraph.NodeTypeScale, "scale1", `{"factor": 2.0}`)
+		ig.AddNode(scale2ID, imagegraph.NodeTypeScale, "scale2", `{"factor": 3.0}`)
+
+		// Connect input to both scale nodes
+		ig.ConnectNodes(inputID, "original", scale1ID, "original")
+		ig.ConnectNodes(inputID, "original", scale2ID, "original")
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify both downstream inputs have the image
+		scale1Node, _ := ig.Nodes.Get(scale1ID)
+		if scale1Node.Inputs["original"].ImageID != imageID {
+			t.Error("expected scale1 input to have image")
+		}
+
+		scale2Node, _ := ig.Nodes.Get(scale2ID)
+		if scale2Node.Inputs["original"].ImageID != imageID {
+			t.Error("expected scale2 input to have image")
+		}
+	})
+
+	t.Run("emits NodeOutputImageSet event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.ResetEvents()
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputImageSetEvent); !ok {
+			t.Errorf("expected NodeOutputImageSetEvent, got %T", events[0])
+		}
+	})
+
+	t.Run("emits NodeInputImageSet events for downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+		ig.ResetEvents()
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputImageSetEvent); !ok {
+			t.Errorf("expected first event to be NodeOutputImageSetEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeInputImageSetEvent); !ok {
+			t.Errorf("expected second event to be NodeInputImageSetEvent, got %T", events[1])
+		}
+	})
+
+	t.Run("can update output image to different image", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		imageID1 := imagegraph.MustNewImageID()
+		imageID2 := imagegraph.MustNewImageID()
+
+		ig.SetNodeOutputImage(nodeID, "original", imageID1)
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID2)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Outputs["original"].ImageID != imageID2 {
+			t.Errorf("expected output image %v, got %v", imageID2, node.Outputs["original"].ImageID)
+		}
+	})
+
+	t.Run("does not affect unconnected nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Do NOT connect the nodes
+
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify unconnected node doesn't have the image
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		if scaleNode.Inputs["original"].HasImage() {
+			t.Error("expected unconnected input to not have image")
+		}
+	})
+}
+
+func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
+	t.Run("unsets output image for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(nodeID, "original", imageID)
+
+		err := ig.UnsetNodeOutputImage(nodeID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Outputs["original"].HasImage() {
+			t.Error("expected output image to be unset")
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		fakeID := imagegraph.MustNewNodeID()
+
+		err := ig.UnsetNodeOutputImage(fakeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid output name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		err := ig.UnsetNodeOutputImage(nodeID, "invalid")
+
+		if err == nil {
+			t.Fatal("expected error for invalid output name, got nil")
+		}
+	})
+
+	t.Run("propagates unset to connected downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		// Connect and set image
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		err := ig.UnsetNodeOutputImage(inputID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify downstream input image is unset
+		scaleNode, _ := ig.Nodes.Get(scaleID)
+		if scaleNode.Inputs["original"].HasImage() {
+			t.Error("expected downstream input image to be unset")
+		}
+	})
+
+	t.Run("propagates unset to multiple downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scale1ID := imagegraph.MustNewNodeID()
+		scale2ID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scale1ID, imagegraph.NodeTypeScale, "scale1", `{"factor": 2.0}`)
+		ig.AddNode(scale2ID, imagegraph.NodeTypeScale, "scale2", `{"factor": 3.0}`)
+
+		// Connect to both nodes and set image
+		ig.ConnectNodes(inputID, "original", scale1ID, "original")
+		ig.ConnectNodes(inputID, "original", scale2ID, "original")
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		err := ig.UnsetNodeOutputImage(inputID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Verify both downstream inputs are unset
+		scale1Node, _ := ig.Nodes.Get(scale1ID)
+		if scale1Node.Inputs["original"].HasImage() {
+			t.Error("expected scale1 input image to be unset")
+		}
+
+		scale2Node, _ := ig.Nodes.Get(scale2ID)
+		if scale2Node.Inputs["original"].HasImage() {
+			t.Error("expected scale2 input image to be unset")
+		}
+	})
+
+	t.Run("emits NodeOutputImageUnset event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(nodeID, "original", imageID)
+		ig.ResetEvents()
+
+		err := ig.UnsetNodeOutputImage(nodeID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputImageUnsetEvent); !ok {
+			t.Errorf("expected NodeOutputImageUnsetEvent, got %T", events[0])
+		}
+	})
+
+	t.Run("emits NodeInputImageUnset events for downstream nodes", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		inputID := imagegraph.MustNewNodeID()
+		scaleID := imagegraph.MustNewNodeID()
+		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", "{}")
+		ig.AddNode(scaleID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		ig.ConnectNodes(inputID, "original", scaleID, "original")
+		imageID := imagegraph.MustNewImageID()
+		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.ResetEvents()
+
+		err := ig.UnsetNodeOutputImage(inputID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(events))
+		}
+
+		if _, ok := events[0].(*imagegraph.NodeOutputImageUnsetEvent); !ok {
+			t.Errorf("expected first event to be NodeOutputImageUnsetEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeInputImageUnsetEvent); !ok {
+			t.Errorf("expected second event to be NodeInputImageUnsetEvent, got %T", events[1])
+		}
+	})
+
+	t.Run("works on node without image set", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		err := ig.UnsetNodeOutputImage(nodeID, "original")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Outputs["original"].HasImage() {
+			t.Error("expected output to not have image")
+		}
+	})
+}
