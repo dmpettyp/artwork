@@ -30,12 +30,164 @@ func NewImageGraphCommandHandlers(
 		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
 	}
 
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleAddImageGraphNodeCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleRemoveImageGraphNodeCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleConnectImageGraphNodesCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleDisconnectImageGraphNodesCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleSetImageGraphNodeOutputImageCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleUnsetImageGraphNodeOutputImageCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleSetImageGraphNodePreviewCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
+	err = dorky.RegisterCommandHandler(
+		messageBus,
+		handlers.HandleUnsetImageGraphNodePreviewCommand,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
+	}
+
 	return handlers, nil
 }
 
 func (h *ImageGraphCommandHandlers) HandleCreateImageGraphCommand(
 	context.Context,
 	*CreateImageGraphCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
+	context.Context,
+	*AddImageGraphNodeCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleRemoveImageGraphNodeCommand(
+	context.Context,
+	*RemoveImageGraphNodeCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleConnectImageGraphNodesCommand(
+	context.Context,
+	*ConnectImageGraphNodesCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleDisconnectImageGraphNodesCommand(
+	context.Context,
+	*DisconnectImageGraphNodesCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
+	context.Context,
+	*SetImageGraphNodeOutputImageCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodeOutputImageCommand(
+	context.Context,
+	*UnsetImageGraphNodeOutputImageCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
+	context.Context,
+	*SetImageGraphNodePreviewCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return nil, nil
+}
+
+func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodePreviewCommand(
+	context.Context,
+	*UnsetImageGraphNodePreviewCommand,
 ) (
 	[]dorky.Event,
 	error,
