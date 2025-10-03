@@ -106,12 +106,13 @@ func NewImageGraphCommandHandlers(
 }
 
 func (h *ImageGraphCommandHandlers) HandleCreateImageGraphCommand(
-	context.Context,
-	*CreateImageGraphCommand,
+	_ context.Context,
+	command *CreateImageGraphCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
+	fmt.Println("creating a new image graph", command)
 	return nil, nil
 }
 

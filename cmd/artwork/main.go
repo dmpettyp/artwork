@@ -31,7 +31,11 @@ func main() {
 
 	go messageBus.Start(context.Background())
 
-	messageBus.Stop()
+	defer messageBus.Stop()
+
+	command, _ := application.NewCreateImageGraphCommand("super awesome new image")
+
+	messageBus.HandleCommand(context.TODO(), command)
 
 	// imageStore, err := fileimagestore.New("data/images")
 	//
