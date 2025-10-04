@@ -63,8 +63,8 @@ func TestNewImageGraph(t *testing.T) {
 			t.Fatalf("expected CreatedEvent")
 		}
 
-		if createdEvent.EventType != "Created" {
-			t.Fatalf("expected Created event, got %s", createdEvent.EventType)
+		if createdEvent.Type != "Created" {
+			t.Fatalf("expected Created event, got %s", createdEvent.Type)
 		}
 	})
 

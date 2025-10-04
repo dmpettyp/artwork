@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/dorky"
 )
 
 type ImageGraphCommandHandlers struct {
+	uow UnitOfWork
 }
 
 // NewImageGraphCommandHandlers initializes the handlers struct that processes
@@ -15,6 +17,7 @@ type ImageGraphCommandHandlers struct {
 // message bus
 func NewImageGraphCommandHandlers(
 	messageBus *dorky.MessageBus,
+	uow UnitOfWork,
 ) (
 	*ImageGraphCommandHandlers,
 	error,
@@ -106,92 +109,242 @@ func NewImageGraphCommandHandlers(
 }
 
 func (h *ImageGraphCommandHandlers) HandleCreateImageGraphCommand(
-	_ context.Context,
+	ctx context.Context,
 	command *CreateImageGraphCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	fmt.Println("creating a new image graph", command)
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := imagegraph.NewImageGraph(command.ImageGraphID, command.Name)
+
+		if err != nil {
+			return fmt.Errorf("could not process CreateImageGraphCommand: %w", err)
+		}
+
+		err = repos.ImageGraphRepository.Add(ig)
+
+		if err != nil {
+			return fmt.Errorf("could not process CreateImageGraphCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
-	context.Context,
-	*AddImageGraphNodeCommand,
+	ctx context.Context,
+	command *AddImageGraphNodeCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process AddImageGraphNodeCommand: %w", err)
+		}
+
+		err = ig.AddNode(
+			command.NodeID,
+			command.NodeType,
+			command.Name,
+			command.Config,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process AddImageGraphNodeCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleRemoveImageGraphNodeCommand(
-	context.Context,
-	*RemoveImageGraphNodeCommand,
+	ctx context.Context,
+	command *RemoveImageGraphNodeCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process RemoveImageGraphNodeCommand: %w", err)
+		}
+
+		err = ig.RemoveNode(command.NodeID)
+
+		if err != nil {
+			return fmt.Errorf("could not process RemoveImageGraphNodeCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleConnectImageGraphNodesCommand(
-	context.Context,
-	*ConnectImageGraphNodesCommand,
+	ctx context.Context,
+	command *ConnectImageGraphNodesCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process ConnectImageGraphNodesCommand: %w", err)
+		}
+
+		err = ig.ConnectNodes(
+			command.FromNodeID,
+			command.OutputName,
+			command.ToNodeID,
+			command.InputName,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process ConnectImageGraphNodesCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleDisconnectImageGraphNodesCommand(
-	context.Context,
-	*DisconnectImageGraphNodesCommand,
+	ctx context.Context,
+	command *DisconnectImageGraphNodesCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand: %w", err)
+		}
+
+		err = ig.DisconnectNodes(
+			command.FromNodeID,
+			command.OutputName,
+			command.ToNodeID,
+			command.InputName,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
-	context.Context,
-	*SetImageGraphNodeOutputImageCommand,
+	ctx context.Context,
+	command *SetImageGraphNodeOutputImageCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand: %w", err)
+		}
+
+		err = ig.SetNodeOutputImage(
+			command.NodeID,
+			command.OutputName,
+			command.ImageID,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodeOutputImageCommand(
-	context.Context,
-	*UnsetImageGraphNodeOutputImageCommand,
+	ctx context.Context,
+	command *UnsetImageGraphNodeOutputImageCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand: %w", err)
+		}
+
+		err = ig.UnsetNodeOutputImage(
+			command.NodeID,
+			command.OutputName,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
-	context.Context,
-	*SetImageGraphNodePreviewCommand,
+	ctx context.Context,
+	command *SetImageGraphNodePreviewCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand: %w", err)
+		}
+
+		err = ig.SetNodePreview(
+			command.NodeID,
+			command.ImageID,
+		)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodePreviewCommand(
-	context.Context,
-	*UnsetImageGraphNodePreviewCommand,
+	ctx context.Context,
+	command *UnsetImageGraphNodePreviewCommand,
 ) (
 	[]dorky.Event,
 	error,
 ) {
-	return nil, nil
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand: %w", err)
+		}
+
+		err = ig.UnsetNodePreview(command.NodeID)
+
+		if err != nil {
+			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand: %w", err)
+		}
+
+		return nil
+	})
 }
