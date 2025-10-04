@@ -22,7 +22,7 @@ func NewImageGraphCommandHandlers(
 	*ImageGraphCommandHandlers,
 	error,
 ) {
-	handlers := &ImageGraphCommandHandlers{}
+	handlers := &ImageGraphCommandHandlers{uow: uow}
 
 	err := dorky.RegisterCommandHandler(
 		messageBus,
@@ -119,13 +119,13 @@ func (h *ImageGraphCommandHandlers) HandleCreateImageGraphCommand(
 		ig, err := imagegraph.NewImageGraph(command.ImageGraphID, command.Name)
 
 		if err != nil {
-			return fmt.Errorf("could not process CreateImageGraphCommand: %w", err)
+			return fmt.Errorf("could not process CreateImageGraphCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = repos.ImageGraphRepository.Add(ig)
 
 		if err != nil {
-			return fmt.Errorf("could not process CreateImageGraphCommand: %w", err)
+			return fmt.Errorf("could not process CreateImageGraphCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -143,7 +143,7 @@ func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process AddImageGraphNodeCommand: %w", err)
+			return fmt.Errorf("could not process AddImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.AddNode(
@@ -154,7 +154,7 @@ func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process AddImageGraphNodeCommand: %w", err)
+			return fmt.Errorf("could not process AddImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -172,13 +172,13 @@ func (h *ImageGraphCommandHandlers) HandleRemoveImageGraphNodeCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process RemoveImageGraphNodeCommand: %w", err)
+			return fmt.Errorf("could not process RemoveImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.RemoveNode(command.NodeID)
 
 		if err != nil {
-			return fmt.Errorf("could not process RemoveImageGraphNodeCommand: %w", err)
+			return fmt.Errorf("could not process RemoveImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -196,7 +196,7 @@ func (h *ImageGraphCommandHandlers) HandleConnectImageGraphNodesCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process ConnectImageGraphNodesCommand: %w", err)
+			return fmt.Errorf("could not process ConnectImageGraphNodesCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.ConnectNodes(
@@ -207,7 +207,7 @@ func (h *ImageGraphCommandHandlers) HandleConnectImageGraphNodesCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process ConnectImageGraphNodesCommand: %w", err)
+			return fmt.Errorf("could not process ConnectImageGraphNodesCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -225,7 +225,7 @@ func (h *ImageGraphCommandHandlers) HandleDisconnectImageGraphNodesCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand: %w", err)
+			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.DisconnectNodes(
@@ -236,7 +236,7 @@ func (h *ImageGraphCommandHandlers) HandleDisconnectImageGraphNodesCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand: %w", err)
+			return fmt.Errorf("could not process DisconnectImageGraphNodesCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -254,7 +254,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand: %w", err)
+			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.SetNodeOutputImage(
@@ -264,7 +264,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand: %w", err)
+			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -282,7 +282,7 @@ func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodeOutputImageCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand: %w", err)
+			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.UnsetNodeOutputImage(
@@ -291,7 +291,7 @@ func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodeOutputImageCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand: %w", err)
+			return fmt.Errorf("could not process UnsetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -309,7 +309,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand: %w", err)
+			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.SetNodePreview(
@@ -318,7 +318,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 		)
 
 		if err != nil {
-			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand: %w", err)
+			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
@@ -336,13 +336,13 @@ func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodePreviewCommand(
 		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
 
 		if err != nil {
-			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand: %w", err)
+			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		err = ig.UnsetNodePreview(command.NodeID)
 
 		if err != nil {
-			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand: %w", err)
+			return fmt.Errorf("could not process UnsetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil
