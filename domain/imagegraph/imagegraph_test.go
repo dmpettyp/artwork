@@ -95,6 +95,18 @@ func TestNewImageGraph(t *testing.T) {
 			t.Errorf("expected nil image graph, got %v", ig)
 		}
 	})
+
+	t.Run("returns error for nil ID", func(t *testing.T) {
+		ig, err := imagegraph.NewImageGraph(imagegraph.ImageGraphID{}, "test-graph")
+
+		if err == nil {
+			t.Fatal("expected error for nil ID, got nil")
+		}
+
+		if ig != nil {
+			t.Errorf("expected nil image graph, got %v", ig)
+		}
+	})
 }
 
 func TestImageGraph_AddNode(t *testing.T) {
@@ -197,6 +209,26 @@ func TestImageGraph_AddNode(t *testing.T) {
 
 		if err == nil {
 			t.Fatal("expected error for invalid node type, got nil")
+		}
+	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.AddNode(imagegraph.NodeID{}, imagegraph.NodeTypeInput, "node", "{}")
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
+
+	t.Run("returns error for empty node name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.AddNode(imagegraph.MustNewNodeID(), imagegraph.NodeTypeInput, "", "{}")
+
+		if err == nil {
+			t.Fatal("expected error for empty node name, got nil")
 		}
 	})
 
@@ -527,6 +559,17 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 			t.Errorf("expected NodePreviewUnsetEvent, got %T", events[0])
 		}
 	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodePreview(imagegraph.NodeID{}, imageID)
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
 }
 
 func TestImageGraph_UnsetNodePreview(t *testing.T) {
@@ -602,6 +645,16 @@ func TestImageGraph_UnsetNodePreview(t *testing.T) {
 			t.Errorf("expected nil preview, got %v", node.Preview)
 		}
 	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.UnsetNodePreview(imagegraph.NodeID{})
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
 }
 
 func TestImageGraph_RemoveNode(t *testing.T) {
@@ -634,6 +687,16 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 
 		if err == nil {
 			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.RemoveNode(imagegraph.NodeID{})
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
 		}
 	})
 
@@ -1026,6 +1089,30 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 			t.Fatalf("expected 4 events, got %d", len(events))
 		}
 	})
+
+	t.Run("returns error for nil fromNodeID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.ConnectNodes(imagegraph.NodeID{}, "original", nodeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for nil fromNodeID, got nil")
+		}
+	})
+
+	t.Run("returns error for nil toNodeID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		err := ig.ConnectNodes(nodeID, "original", imagegraph.NodeID{}, "original")
+
+		if err == nil {
+			t.Fatal("expected error for nil toNodeID, got nil")
+		}
+	})
 }
 
 func TestImageGraph_DisconnectNodes(t *testing.T) {
@@ -1263,6 +1350,30 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 			t.Errorf("expected 1 output connection remaining, got %d", len(inputNode.Outputs["original"].Connections))
 		}
 	})
+
+	t.Run("returns error for nil fromNodeID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeScale, "scale", `{"factor": 2.0}`)
+
+		err := ig.DisconnectNodes(imagegraph.NodeID{}, "original", nodeID, "original")
+
+		if err == nil {
+			t.Fatal("expected error for nil fromNodeID, got nil")
+		}
+	})
+
+	t.Run("returns error for nil toNodeID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input", "{}")
+
+		err := ig.DisconnectNodes(nodeID, "original", imagegraph.NodeID{}, "original")
+
+		if err == nil {
+			t.Fatal("expected error for nil toNodeID, got nil")
+		}
+	})
 }
 
 func TestImageGraph_SetNodeOutputImage(t *testing.T) {
@@ -1474,6 +1585,17 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 			t.Error("expected unconnected input to not have image")
 		}
 	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		imageID := imagegraph.MustNewImageID()
+
+		err := ig.SetNodeOutputImage(imagegraph.NodeID{}, "original", imageID)
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
 }
 
 func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
@@ -1649,6 +1771,16 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		node, _ := ig.Nodes.Get(nodeID)
 		if node.Outputs["original"].HasImage() {
 			t.Error("expected output to not have image")
+		}
+	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.UnsetNodeOutputImage(imagegraph.NodeID{}, "original")
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
 		}
 	})
 }
