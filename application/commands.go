@@ -14,22 +14,15 @@ type CreateImageGraphCommand struct {
 }
 
 func NewCreateImageGraphCommand(
+	imageGraphID imagegraph.ImageGraphID,
 	name string,
 ) (*CreateImageGraphCommand, error) {
-	imageGraphID, err := imagegraph.NewImageGraphID()
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new CreateImageGraphCommand: %w",
-			err,
-		)
-	}
 	command := &CreateImageGraphCommand{
 		ImageGraphID: imageGraphID,
 		Name:         name,
 	}
 
-	err = command.Init("CreateImageGraphCommand")
+	err := command.Init("CreateImageGraphCommand")
 
 	if err != nil {
 		return nil, fmt.Errorf(
