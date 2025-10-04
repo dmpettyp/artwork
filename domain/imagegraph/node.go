@@ -73,6 +73,14 @@ func NewNode(
 	*Node,
 	error,
 ) {
+	if id.IsNil() {
+		return nil, fmt.Errorf("cannot create Node with nil ID")
+	}
+
+	if len(name) == 0 {
+		return nil, fmt.Errorf("cannot create Node with empty name")
+	}
+
 	nodeConfig, ok := nodeConfigs[nodeType]
 
 	if !ok {

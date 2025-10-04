@@ -80,3 +80,7 @@ func (o *Output) SetImage(imageID ImageID) {
 func (o *Output) ResetImage() {
 	o.ImageID = ImageID{}
 }
+
+func (o *Output) HasImage() bool {
+	return !o.ImageID.IsNil()
+}

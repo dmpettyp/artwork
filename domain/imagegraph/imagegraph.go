@@ -40,6 +40,10 @@ func NewImageGraph(
 	*ImageGraph,
 	error,
 ) {
+	if id.IsNil() {
+		return nil, fmt.Errorf("cannot create ImageGraph with nil ID")
+	}
+
 	if len(name) == 0 {
 		return nil, fmt.Errorf("cannot create ImageGraph with empty name")
 	}
@@ -91,6 +95,10 @@ func (ig *ImageGraph) AddNode(
 func (ig *ImageGraph) RemoveNode(
 	id NodeID,
 ) error {
+	if id.IsNil() {
+		return fmt.Errorf("cannot remove node with nil ID from ImageGraph %q", ig.ID)
+	}
+
 	removeNodeError := fmt.Sprintf(
 		"could not remove node %q from ImageGraph %q", id, ig.ID,
 	)
@@ -152,6 +160,14 @@ func (ig *ImageGraph) ConnectNodes(
 	toNodeID NodeID,
 	inputName InputName,
 ) error {
+	if fromNodeID.IsNil() {
+		return fmt.Errorf("cannot connect from node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	if toNodeID.IsNil() {
+		return fmt.Errorf("cannot connect to node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	baseError := fmt.Sprintf(
 		"error connecting node %s:%s to node %s:%s in imagegraph %s",
 		fromNodeID, outputName,
@@ -293,6 +309,14 @@ func (ig *ImageGraph) DisconnectNodes(
 	toNodeID NodeID,
 	inputName InputName,
 ) error {
+	if fromNodeID.IsNil() {
+		return fmt.Errorf("cannot disconnect from node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	if toNodeID.IsNil() {
+		return fmt.Errorf("cannot disconnect to node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	baseError := fmt.Sprintf(
 		"error disconnecting node %s:%s from node %s:%s in imagegraph %s",
 		fromNodeID, outputName,
@@ -379,6 +403,10 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	outputName OutputName,
 	imageID ImageID,
 ) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot set output image for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	node, exists := ig.Nodes.Get(nodeID)
 
 	if !exists {
@@ -422,6 +450,10 @@ func (ig *ImageGraph) UnsetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,
 ) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot unset output image for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	return ig.SetNodeOutputImage(
 		nodeID,
 		outputName,
@@ -434,6 +466,10 @@ func (ig *ImageGraph) SetNodePreview(
 	nodeID NodeID,
 	imageID ImageID,
 ) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot set preview for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
 		return n.SetPreview(imageID)
 	})
@@ -452,6 +488,10 @@ func (ig *ImageGraph) SetNodePreview(
 func (ig *ImageGraph) UnsetNodePreview(
 	nodeID NodeID,
 ) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot unset preview for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
 	return ig.SetNodePreview(nodeID, ImageID{})
 }
 
