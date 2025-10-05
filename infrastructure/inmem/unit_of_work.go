@@ -8,17 +8,16 @@ import (
 )
 
 // UnitOfWork is an in-memory version of the service's UnitOfWork
-// that uses lib.ddd's InmemUnitOfWorkDeprecated to drive the uow lifecycle
+// that uses lib.dorky's inmem.UnitOfWork to drive the uow lifecycle
 type UnitOfWork struct {
 	*inmem.UnitOfWork[*application.Repos]
-	// showingViews          *ShowingViews
 }
 
 func NewUnitOfWork() (*UnitOfWork, error) {
 	imageGraphRepository, err := NewImageGraphRepository()
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create tour request repository: %w", err)
+		return nil, fmt.Errorf("failed to create ImageGraph repository: %w", err)
 	}
 
 	repos := &application.Repos{
@@ -26,13 +25,11 @@ func NewUnitOfWork() (*UnitOfWork, error) {
 	}
 
 	uow := &UnitOfWork{
-		// showingViews:          NewShowingViews(showings),
-		UnitOfWork: inmem.NewUnitOfWork(repos, imageGraphRepository),
+		UnitOfWork: inmem.NewUnitOfWork(
+			repos,
+			imageGraphRepository,
+		),
 	}
 
 	return uow, nil
 }
-
-// func (uow *UnitOfWork) ShowingViews() (*ShowingViews, error) {
-// 	return uow.showingViews, nil
-// }
