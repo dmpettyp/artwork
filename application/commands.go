@@ -1,8 +1,6 @@
 package application
 
 import (
-	"fmt"
-
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/dorky"
 )
@@ -16,22 +14,13 @@ type CreateImageGraphCommand struct {
 func NewCreateImageGraphCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	name string,
-) (*CreateImageGraphCommand, error) {
+) *CreateImageGraphCommand {
 	command := &CreateImageGraphCommand{
 		ImageGraphID: imageGraphID,
 		Name:         name,
 	}
-
-	err := command.Init("CreateImageGraphCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new CreateImageGraphCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("CreateImageGraphCommand")
+	return command
 }
 
 type AddImageGraphNodeCommand struct {
@@ -49,7 +38,7 @@ func NewAddImageGraphNodeCommand(
 	nodeType imagegraph.NodeType,
 	name string,
 	config string,
-) (*AddImageGraphNodeCommand, error) {
+) *AddImageGraphNodeCommand {
 	command := &AddImageGraphNodeCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
@@ -57,17 +46,8 @@ func NewAddImageGraphNodeCommand(
 		Name:         name,
 		Config:       config,
 	}
-
-	err := command.Init("AddImageGraphNodeCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new AddImageGraphNodeCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("AddImageGraphNodeCommand")
+	return command
 }
 
 type RemoveImageGraphNodeCommand struct {
@@ -79,22 +59,13 @@ type RemoveImageGraphNodeCommand struct {
 func NewRemoveImageGraphNodeCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
-) (*RemoveImageGraphNodeCommand, error) {
+) *RemoveImageGraphNodeCommand {
 	command := &RemoveImageGraphNodeCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 	}
-
-	err := command.Init("RemoveImageGraphNodeCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new RemoveImageGraphNodeCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("RemoveImageGraphNodeCommand")
+	return command
 }
 
 type ConnectImageGraphNodesCommand struct {
@@ -112,7 +83,7 @@ func NewConnectImageGraphNodesCommand(
 	outputName imagegraph.OutputName,
 	toNodeID imagegraph.NodeID,
 	inputName imagegraph.InputName,
-) (*ConnectImageGraphNodesCommand, error) {
+) *ConnectImageGraphNodesCommand {
 	command := &ConnectImageGraphNodesCommand{
 		ImageGraphID: imageGraphID,
 		FromNodeID:   fromNodeID,
@@ -120,17 +91,8 @@ func NewConnectImageGraphNodesCommand(
 		ToNodeID:     toNodeID,
 		InputName:    inputName,
 	}
-
-	err := command.Init("ConnectImageGraphNodesCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new ConnectImageGraphNodesCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("ConnectImageGraphNodesCommand")
+	return command
 }
 
 type DisconnectImageGraphNodesCommand struct {
@@ -148,7 +110,7 @@ func NewDisconnectImageGraphNodesCommand(
 	outputName imagegraph.OutputName,
 	toNodeID imagegraph.NodeID,
 	inputName imagegraph.InputName,
-) (*DisconnectImageGraphNodesCommand, error) {
+) *DisconnectImageGraphNodesCommand {
 	command := &DisconnectImageGraphNodesCommand{
 		ImageGraphID: imageGraphID,
 		FromNodeID:   fromNodeID,
@@ -156,17 +118,8 @@ func NewDisconnectImageGraphNodesCommand(
 		ToNodeID:     toNodeID,
 		InputName:    inputName,
 	}
-
-	err := command.Init("DisconnectImageGraphNodesCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new DisconnectImageGraphNodesCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("DisconnectImageGraphNodesCommand")
+	return command
 }
 
 type SetImageGraphNodeOutputImageCommand struct {
@@ -182,24 +135,15 @@ func NewSetImageGraphNodeOutputImageCommand(
 	nodeID imagegraph.NodeID,
 	outputName imagegraph.OutputName,
 	imageID imagegraph.ImageID,
-) (*SetImageGraphNodeOutputImageCommand, error) {
+) *SetImageGraphNodeOutputImageCommand {
 	command := &SetImageGraphNodeOutputImageCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 		OutputName:   outputName,
 		ImageID:      imageID,
 	}
-
-	err := command.Init("SetImageGraphNodeOutputImageCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new SetImageGraphNodeOutputImageCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("SetImageGraphNodeOutputImageCommand")
+	return command
 }
 
 type UnsetImageGraphNodeOutputImageCommand struct {
@@ -213,23 +157,14 @@ func NewUnsetImageGraphNodeOutputImageCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	outputName imagegraph.OutputName,
-) (*UnsetImageGraphNodeOutputImageCommand, error) {
+) *UnsetImageGraphNodeOutputImageCommand {
 	command := &UnsetImageGraphNodeOutputImageCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 		OutputName:   outputName,
 	}
-
-	err := command.Init("UnsetImageGraphNodeOutputImageCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new UnsetImageGraphNodeOutputImageCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("UnsetImageGraphNodeOutputImageCommand")
+	return command
 }
 
 type SetImageGraphNodePreviewCommand struct {
@@ -243,23 +178,14 @@ func NewSetImageGraphNodePreviewCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	imageID imagegraph.ImageID,
-) (*SetImageGraphNodePreviewCommand, error) {
+) *SetImageGraphNodePreviewCommand {
 	command := &SetImageGraphNodePreviewCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 		ImageID:      imageID,
 	}
-
-	err := command.Init("SetImageGraphNodePreviewCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new SetImageGraphNodePreviewCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("SetImageGraphNodePreviewCommand")
+	return command
 }
 
 type UnsetImageGraphNodePreviewCommand struct {
@@ -271,20 +197,11 @@ type UnsetImageGraphNodePreviewCommand struct {
 func NewUnsetImageGraphNodePreviewCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
-) (*UnsetImageGraphNodePreviewCommand, error) {
+) *UnsetImageGraphNodePreviewCommand {
 	command := &UnsetImageGraphNodePreviewCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 	}
-
-	err := command.Init("UnsetImageGraphNodePreviewCommand")
-
-	if err != nil {
-		return nil, fmt.Errorf(
-			"could not create new UnsetImageGraphNodePreviewCommand: %w",
-			err,
-		)
-	}
-
-	return command, nil
+	command.Init("UnsetImageGraphNodePreviewCommand")
+	return command
 }

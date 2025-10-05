@@ -22,7 +22,7 @@ func main() {
 
 	messageBus := dorky.NewMessageBus(logger)
 
-	_, err := application.NewImageGraphCommandHandlers(messageBus)
+	_, err := application.NewImageGraphCommandHandlers(messageBus, nil)
 
 	if err != nil {
 		logger.Error("could not create image graph command handlers", "error", err)
@@ -33,7 +33,8 @@ func main() {
 
 	defer messageBus.Stop()
 
-	command, _ := application.NewCreateImageGraphCommand("super awesome new image")
+	id := imagegraph.MustNewImageGraphID()
+	command := application.NewCreateImageGraphCommand(id, "super awesome new image")
 
 	messageBus.HandleCommand(context.TODO(), command)
 
