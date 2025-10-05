@@ -12,7 +12,7 @@ import (
 // NodeID is the type that represents node IDs
 type NodeID struct{ id.ID }
 
-var NewNodeID, MustNewNodeID, ParseNodeID = id.Intitalizers(
+var NewNodeID, MustNewNodeID, ParseNodeID = id.Inititalizers(
 	func(id id.ID) NodeID { return NodeID{ID: id} },
 )
 

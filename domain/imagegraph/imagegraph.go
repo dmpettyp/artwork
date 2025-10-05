@@ -9,7 +9,7 @@ import (
 
 type ImageGraphID struct{ id.ID }
 
-var NewImageGraphID, MustNewImageGraphID, ParseImageGraphID = id.Intitalizers(
+var NewImageGraphID, MustNewImageGraphID, ParseImageGraphID = id.Inititalizers(
 	func(id id.ID) ImageGraphID { return ImageGraphID{ID: id} },
 )
 
@@ -58,6 +58,11 @@ func NewImageGraph(
 	ig.addEvent(NewCreatedEvent(ig))
 
 	return ig, nil
+}
+
+func (ig *ImageGraph) Clone() *ImageGraph {
+	clone := *ig
+	return &clone
 }
 
 func (ig *ImageGraph) addEvent(e Event) {

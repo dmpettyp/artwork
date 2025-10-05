@@ -10,6 +10,7 @@ import (
 
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/dorky"
 	// "github.com/dmpettyp/pixelator/domain/node"
 	// "github.com/dmpettyp/pixelator/lib/fileimagestore"
@@ -20,9 +21,16 @@ func main() {
 
 	logger.Info("this is artwork")
 
+	uow, err := inmem.NewUnitOfWork()
+
+	if err != nil {
+		logger.Error("could not create image graph unit of work", "error", err)
+		return
+	}
+
 	messageBus := dorky.NewMessageBus(logger)
 
-	_, err := application.NewImageGraphCommandHandlers(messageBus, nil)
+	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 
 	if err != nil {
 		logger.Error("could not create image graph command handlers", "error", err)
