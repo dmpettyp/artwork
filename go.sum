@@ -1,6 +1,12 @@
 github.com/dmpettyp/dorky v0.0.0-20250924224851-5e5b1d772a43 h1:u7dRcPEdLuVYBfDVSpXNASPyhLqd82weTppmuRIooxY=
 github.com/dmpettyp/dorky v0.0.0-20250924224851-5e5b1d772a43/go.mod h1:anMLn70iVHM860nAWx0cH6gFJ4eEb2Ic8aYpK/82BNU=
+github.com/dmpettyp/dorky v0.0.0-20251005144453-fdc257b3d921 h1:gjgUL9Ui0ZowkV6odWNFI6tm+oq/qq9IlCN7r3JDbT0=
+github.com/dmpettyp/dorky v0.0.0-20251005144453-fdc257b3d921/go.mod h1:O7tyhaittFCbCjAaZJRAlLug8fZMueQRCnW3BpcoACY=
 github.com/dmpettyp/id v0.0.0-20250924005442-39a8fbad71e1 h1:733mlz8h52YbrfDl9/VFbK2r1T/G9m5i4qhJGc6lIn0=
 github.com/dmpettyp/id v0.0.0-20250924005442-39a8fbad71e1/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
+github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5 h1:6DQzjDB7YVYUkq7K1FwmX1WVMYXthLvPRucfSd7gVYM=
+github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
+github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057 h1:b6iJxHMvVeIcC9skNrt89Vs9uC1taZag+d9XR5LqPeE=
+github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057/go.mod h1:imuAA0fD1Cb8CZlCDGtqT8w3YPvwDwtcHGQDySmeZUQ=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

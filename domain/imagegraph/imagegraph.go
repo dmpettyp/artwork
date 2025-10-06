@@ -459,11 +459,37 @@ func (ig *ImageGraph) UnsetNodeOutputImage(
 		return fmt.Errorf("cannot unset output image for node with nil ID in ImageGraph %q", ig.ID)
 	}
 
-	return ig.SetNodeOutputImage(
-		nodeID,
-		outputName,
-		ImageID{},
-	)
+	node, exists := ig.Nodes.Get(nodeID)
+
+	if !exists {
+		return fmt.Errorf(
+			"couldn't set node %q output image: node doesn't exist",
+			nodeID,
+		)
+	}
+
+	connections, err := node.UnsetOutputImage(outputName)
+
+	if err != nil {
+		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
+	}
+
+	//
+	// Set each downstream node's input to the provided ImageID
+	//
+	for _, connection := range connections {
+		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
+			return n.UnsetInputImage(connection.InputName)
+		})
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not unset node %q output image: %w", nodeID, err,
+			)
+		}
+	}
+
+	return nil
 }
 
 // SetNodePreview sets the preview image for a specific node

@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/dmpettyp/id"
+	"github.com/dmpettyp/state"
 )
 
 // NodeID is the type that represents node IDs
@@ -42,6 +43,8 @@ type Node struct {
 
 	// The name assigned to the node, chosen by the ImageGraph author
 	Name string
+
+	State state.State[State]
 
 	// The configuration for the node. The configuration is a string containing
 	// json that is provided to the image processor.
@@ -87,8 +90,15 @@ func NewNode(
 		return nil, fmt.Errorf("node type %q does not have config", nodeType)
 	}
 
+	initState, err := state.NewState(WaitingForInputs)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create node: %w", err)
+	}
+
 	n := &Node{
 		ID:       id,
+		State:    initState,
 		addEvent: eventAdder,
 		Version:  0,
 		Type:     nodeType,
@@ -115,7 +125,7 @@ func NewNode(
 
 	n.addEvent(NewNodeCreatedEvent(n))
 
-	err := n.SetConfig(config)
+	err = n.SetConfig(config)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
@@ -195,7 +205,16 @@ func (n *Node) SetConfig(config string) error {
 	}
 
 	n.Config = config
-	n.addEvent(NewNodeConfigSetEvent(n, config))
+
+	if n.State.Get() == OutputsGenerated {
+		err := n.State.Transition(GeneratingOutputs)
+		if err != nil {
+			return fmt.Errorf("could not set config for node %q: %w", n.ID, err)
+		}
+		n.addEvent(NewNodeNeedsOutputsEvent(n))
+	}
+
+	n.addEvent(NewNodeConfigSetEvent(n))
 
 	return nil
 }
@@ -204,7 +223,7 @@ func (n *Node) SetPreview(imageID ImageID) error {
 	n.Preview = imageID
 
 	if !imageID.IsNil() {
-		n.addEvent(NewNodePreviewSetEvent(n, imageID))
+		n.addEvent(NewNodePreviewSetEvent(n))
 	} else {
 		n.addEvent(NewNodePreviewUnsetEvent(n))
 	}
@@ -243,6 +262,12 @@ func (n *Node) SetOutputImage(
 	[]OutputConnection,
 	error,
 ) {
+	if imageID.IsNil() {
+		return nil, fmt.Errorf(
+			"cannot set output %q for node %q to nil", outputName, n.ID,
+		)
+	}
+
 	output, ok := n.Outputs[outputName]
 
 	if !ok {
@@ -251,11 +276,25 @@ func (n *Node) SetOutputImage(
 
 	output.SetImage(imageID)
 
-	if !imageID.IsNil() {
-		n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
-	} else {
-		n.addEvent(NewOutputImageUnsetEvent(n, outputName))
+	n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
+
+	return slices.Collect(maps.Keys(output.Connections)), nil
+}
+
+// UnsetOutputImage updates a node's output ImageID to nil
+func (n *Node) UnsetOutputImage(outputName OutputName) (
+	[]OutputConnection,
+	error,
+) {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return nil, fmt.Errorf("no output named %q exists", outputName)
 	}
+
+	output.SetImage(ImageID{})
+
+	n.addEvent(NewOutputImageUnsetEvent(n, outputName))
 
 	return slices.Collect(maps.Keys(output.Connections)), nil
 }
@@ -397,6 +436,10 @@ func (n *Node) SetInputImage(
 	inputName InputName,
 	imageID ImageID,
 ) error {
+	if imageID.IsNil() {
+		return fmt.Errorf("cannot set input %q for node %q to nil", inputName, n.ID)
+	}
+
 	input, ok := n.Inputs[inputName]
 
 	if !ok {
@@ -405,11 +448,32 @@ func (n *Node) SetInputImage(
 
 	input.SetImage(imageID)
 
-	if !imageID.IsNil() {
-		n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
-	} else {
-		n.addEvent(NewInputImageUnsetEvent(n, inputName))
-	}
+	n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
 
 	return nil
 }
+
+// UnsetInputImage updates an node's input to be a nil ImageID.
+func (n *Node) UnsetInputImage(
+	inputName InputName,
+) error {
+	input, ok := n.Inputs[inputName]
+
+	if !ok {
+		return fmt.Errorf("no input named %q exists", inputName)
+	}
+
+	input.SetImage(ImageID{})
+
+	n.addEvent(NewInputImageUnsetEvent(n, inputName))
+
+	return nil
+}
+
+// if n.State.Get() == OutputsGenerated {
+// 	err := n.State.Transition(GeneratingOutputs)
+// 	if err != nil {
+// 		return fmt.Errorf("could not set config for node %q: %w", n.ID, err)
+// 	}
+// 	n.addEvent(NewNodeNeedsOutputsEvent(n))
+// }

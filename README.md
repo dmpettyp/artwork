@@ -18,6 +18,14 @@ to process images in a non-destructive way.
   - json blob, parse it and verify contents ✅
 - Node Preview Image ✅
 - Add a new node type that supports inputs!
+- Inmem repository and unit of work ✅
+- command, handlers and messagebus ✅
+- regenerate events
+- node states
+- http APIlayer
+- swagger documentation?
+- websocket implementation for events
+- durable repository/unit of work implementation: postgres?
 
 ## Overview
 

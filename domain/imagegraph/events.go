@@ -226,12 +226,9 @@ type NodeConfigSetEvent struct {
 	Config string
 }
 
-func NewNodeConfigSetEvent(
-	n *Node,
-	config string,
-) *NodeConfigSetEvent {
+func NewNodeConfigSetEvent(n *Node) *NodeConfigSetEvent {
 	e := &NodeConfigSetEvent{
-		Config: config,
+		Config: n.Config,
 	}
 	e.Init("NodeConfigSet")
 	e.applyNode(n)
@@ -243,12 +240,9 @@ type NodePreviewSetEvent struct {
 	ImageID ImageID
 }
 
-func NewNodePreviewSetEvent(
-	n *Node,
-	imageID ImageID,
-) *NodePreviewSetEvent {
+func NewNodePreviewSetEvent(n *Node) *NodePreviewSetEvent {
 	e := &NodePreviewSetEvent{
-		ImageID: imageID,
+		ImageID: n.Preview,
 	}
 	e.Init("NodePreviewSet")
 	e.applyNode(n)
@@ -259,11 +253,36 @@ type NodePreviewUnsetEvent struct {
 	NodeEvent
 }
 
-func NewNodePreviewUnsetEvent(
-	n *Node,
-) *NodePreviewUnsetEvent {
+func NewNodePreviewUnsetEvent(n *Node) *NodePreviewUnsetEvent {
 	e := &NodePreviewUnsetEvent{}
 	e.Init("NodePreviewUnset")
 	e.applyNode(n)
+	return e
+}
+
+type nodeInput struct {
+	Name    InputName
+	ImageID ImageID
+}
+
+type NodeNeedsOutputsEvent struct {
+	NodeEvent
+	Inputs []nodeInput
+}
+
+func NewNodeNeedsOutputsEvent(n *Node) *NodeNeedsOutputsEvent {
+	e := &NodeNeedsOutputsEvent{}
+	e.Init("NodeNeedsOutputs")
+	e.applyNode(n)
+
+	for name, input := range n.Inputs {
+		e.Inputs = append(
+			e.Inputs,
+			nodeInput{
+				Name:    name,
+				ImageID: input.ImageID,
+			},
+		)
+	}
 	return e
 }
