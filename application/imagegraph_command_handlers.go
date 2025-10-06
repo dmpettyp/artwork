@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -16,7 +17,7 @@ type ImageGraphCommandHandlers struct {
 // all ImageGraph Commands and registers all handlers with the provided
 // message bus
 func NewImageGraphCommandHandlers(
-	messageBus *dorky.MessageBus,
+	mb *dorky.MessageBus,
 	uow UnitOfWork,
 ) (
 	*ImageGraphCommandHandlers,
@@ -24,81 +25,16 @@ func NewImageGraphCommandHandlers(
 ) {
 	handlers := &ImageGraphCommandHandlers{uow: uow}
 
-	err := dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleCreateImageGraphCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleAddImageGraphNodeCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleRemoveImageGraphNodeCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleConnectImageGraphNodesCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleDisconnectImageGraphNodesCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleSetImageGraphNodeOutputImageCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleUnsetImageGraphNodeOutputImageCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleSetImageGraphNodePreviewCommand,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("could not create image graph command handlers: %w", err)
-	}
-
-	err = dorky.RegisterCommandHandler(
-		messageBus,
-		handlers.HandleUnsetImageGraphNodePreviewCommand,
+	err := errors.Join(
+		dorky.RegisterCommandHandler(mb, handlers.HandleCreateImageGraphCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleAddImageGraphNodeCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleRemoveImageGraphNodeCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleConnectImageGraphNodesCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleDisconnectImageGraphNodesCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeOutputImageCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodeOutputImageCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodePreviewCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodePreviewCommand),
 	)
 
 	if err != nil {

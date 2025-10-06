@@ -470,6 +470,21 @@ func (n *Node) UnsetInputImage(
 	return nil
 }
 
+// Test to see that all inputs are connected and have an image set
+func (n *Node) allInputsSet() bool {
+	for _, input := range n.Inputs {
+		if !input.Connected {
+			return false
+		}
+
+		if input.ImageID.IsNil() {
+			return false
+		}
+	}
+
+	return true
+}
+
 // if n.State.Get() == OutputsGenerated {
 // 	err := n.State.Transition(GeneratingOutputs)
 // 	if err != nil {
