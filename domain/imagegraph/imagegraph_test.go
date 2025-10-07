@@ -152,8 +152,8 @@ func TestImageGraph_AddNode(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if ig.Version != initialVersion+3 {
-			t.Errorf("expected version %v, got %v", initialVersion+3, ig.Version)
+		if ig.Version != initialVersion+4 {
+			t.Errorf("expected version %v, got %v", initialVersion+4, ig.Version)
 		}
 	})
 
@@ -169,9 +169,9 @@ func TestImageGraph_AddNode(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		// Should emit NodeCreatedEvent, NodeConfigSetEvent, and NodeAddedEvent
-		if len(events) != 3 {
-			t.Fatalf("expected 3 events, got %d", len(events))
+		// Should emit NodeCreatedEvent, NodeConfigSetEvent, NodeNeedsOutputsEvent, and NodeAddedEvent
+		if len(events) != 4 {
+			t.Fatalf("expected 4 events, got %d", len(events))
 		}
 
 		if _, ok := events[0].(*imagegraph.NodeCreatedEvent); !ok {
@@ -182,8 +182,12 @@ func TestImageGraph_AddNode(t *testing.T) {
 			t.Errorf("expected second event to be NodeConfigSetEvent, got %T", events[1])
 		}
 
-		if _, ok := events[2].(*imagegraph.NodeAddedEvent); !ok {
-			t.Errorf("expected third event to be NodeAddedEvent, got %T", events[2])
+		if _, ok := events[2].(*imagegraph.NodeNeedsOutputsEvent); !ok {
+			t.Errorf("expected third event to be NodeNeedsOutputsEvent, got %T", events[2])
+		}
+
+		if _, ok := events[3].(*imagegraph.NodeAddedEvent); !ok {
+			t.Errorf("expected fourth event to be NodeAddedEvent, got %T", events[3])
 		}
 	})
 
@@ -355,12 +359,17 @@ func TestNode_SetConfig(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		if len(events) != 1 {
-			t.Fatalf("expected 1 event, got %d", len(events))
+		// Should emit NodeConfigSetEvent and NodeNeedsOutputsEvent (since Input nodes have no inputs)
+		if len(events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(events))
 		}
 
 		if _, ok := events[0].(*imagegraph.NodeConfigSetEvent); !ok {
-			t.Errorf("expected NodeConfigSetEvent, got %T", events[0])
+			t.Errorf("expected first event to be NodeConfigSetEvent, got %T", events[0])
+		}
+
+		if _, ok := events[1].(*imagegraph.NodeNeedsOutputsEvent); !ok {
+			t.Errorf("expected second event to be NodeNeedsOutputsEvent, got %T", events[1])
 		}
 	})
 
@@ -1528,8 +1537,9 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		if len(events) != 2 {
-			t.Fatalf("expected 2 events, got %d", len(events))
+		// Should emit NodeOutputImageSetEvent, NodeInputImageSetEvent, and NodeNeedsOutputsEvent
+		if len(events) != 3 {
+			t.Fatalf("expected 3 events, got %d", len(events))
 		}
 
 		if _, ok := events[0].(*imagegraph.NodeOutputImageSetEvent); !ok {
@@ -1538,6 +1548,10 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		if _, ok := events[1].(*imagegraph.NodeInputImageSetEvent); !ok {
 			t.Errorf("expected second event to be NodeInputImageSetEvent, got %T", events[1])
+		}
+
+		if _, ok := events[2].(*imagegraph.NodeNeedsOutputsEvent); !ok {
+			t.Errorf("expected third event to be NodeNeedsOutputsEvent, got %T", events[2])
 		}
 	})
 
@@ -1642,7 +1656,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		}
 	})
 
-	t.Run("propagates unset to connected downstream nodes", func(t *testing.T) {
+	t.Run("unsets output image without propagating to downstream", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		scaleID := imagegraph.MustNewNodeID()
@@ -1660,14 +1674,20 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		// Verify downstream input image is unset
+		// Verify output is unset but downstream is NOT propagated (event-driven propagation will handle it)
+		inputNode, _ := ig.Nodes.Get(inputID)
+		if inputNode.Outputs["original"].HasImage() {
+			t.Error("expected output image to be unset")
+		}
+
+		// Downstream should still have the image (propagation will be event-driven)
 		scaleNode, _ := ig.Nodes.Get(scaleID)
-		if scaleNode.Inputs["original"].HasImage() {
-			t.Error("expected downstream input image to be unset")
+		if !scaleNode.Inputs["original"].HasImage() {
+			t.Error("expected downstream input to still have image (propagation is event-driven)")
 		}
 	})
 
-	t.Run("propagates unset to multiple downstream nodes", func(t *testing.T) {
+	t.Run("unsets output without propagating to multiple downstream nodes", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		scale1ID := imagegraph.MustNewNodeID()
@@ -1688,15 +1708,15 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		// Verify both downstream inputs are unset
+		// Verify both downstream inputs still have images (propagation is event-driven)
 		scale1Node, _ := ig.Nodes.Get(scale1ID)
-		if scale1Node.Inputs["original"].HasImage() {
-			t.Error("expected scale1 input image to be unset")
+		if !scale1Node.Inputs["original"].HasImage() {
+			t.Error("expected scale1 input to still have image (propagation is event-driven)")
 		}
 
 		scale2Node, _ := ig.Nodes.Get(scale2ID)
-		if scale2Node.Inputs["original"].HasImage() {
-			t.Error("expected scale2 input image to be unset")
+		if !scale2Node.Inputs["original"].HasImage() {
+			t.Error("expected scale2 input to still have image (propagation is event-driven)")
 		}
 	})
 
@@ -1725,7 +1745,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		}
 	})
 
-	t.Run("emits NodeInputImageUnset events for downstream nodes", func(t *testing.T) {
+	t.Run("emits only NodeOutputImageUnset event without downstream propagation", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		scaleID := imagegraph.MustNewNodeID()
@@ -1744,16 +1764,13 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		if len(events) != 2 {
-			t.Fatalf("expected 2 events, got %d", len(events))
+		// Should only emit NodeOutputImageUnsetEvent, no downstream propagation
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
 		}
 
 		if _, ok := events[0].(*imagegraph.NodeOutputImageUnsetEvent); !ok {
-			t.Errorf("expected first event to be NodeOutputImageUnsetEvent, got %T", events[0])
-		}
-
-		if _, ok := events[1].(*imagegraph.NodeInputImageUnsetEvent); !ok {
-			t.Errorf("expected second event to be NodeInputImageUnsetEvent, got %T", events[1])
+			t.Errorf("expected NodeOutputImageUnsetEvent, got %T", events[0])
 		}
 	})
 
