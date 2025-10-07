@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -44,7 +43,7 @@ func (s *HTTPServer) handleCreateImageGraph(w http.ResponseWriter, r *http.Reque
 	command := application.NewCreateImageGraphCommand(imageGraphID, req.Name)
 
 	// Send command to message bus
-	if err := s.messageBus.HandleCommand(context.TODO(), command); err != nil {
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
 		s.logger.Error("failed to handle CreateImageGraphCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to create image graph"})
 		return
