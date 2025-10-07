@@ -37,6 +37,13 @@ func main() {
 		return
 	}
 
+	_, err = application.NewImageGraphEventHandlers(messageBus, uow)
+
+	if err != nil {
+		logger.Error("could not create image graph event handlers", "error", err)
+		return
+	}
+
 	go messageBus.Start(context.Background())
 
 	defer messageBus.Stop()
