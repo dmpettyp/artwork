@@ -206,15 +206,13 @@ func (n *Node) SetConfig(config string) error {
 
 	n.Config = config
 
-	if n.State.Get() == OutputsGenerated {
-		err := n.State.Transition(GeneratingOutputs)
-		if err != nil {
-			return fmt.Errorf("could not set config for node %q: %w", n.ID, err)
-		}
-		n.addEvent(NewNodeNeedsOutputsEvent(n))
-	}
-
 	n.addEvent(NewNodeConfigSetEvent(n))
+
+	if err := n.maybeTriggerOutputGeneration(); err != nil {
+		return fmt.Errorf(
+			"could not set config for node %q: %w", n.ID, err,
+		)
+	}
 
 	return nil
 }
@@ -282,7 +280,22 @@ func (n *Node) SetOutputImage(
 }
 
 // UnsetOutputImage updates a node's output ImageID to nil
-func (n *Node) UnsetOutputImage(outputName OutputName) (
+func (n *Node) UnsetOutputImage(outputName OutputName) error {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	output.ResetImage()
+
+	n.addEvent(NewOutputImageUnsetEvent(n, outputName))
+
+	return nil
+}
+
+// UnsetOutputImage updates a node's output ImageID to nil
+func (n *Node) OutputConnections(outputName OutputName) (
 	[]OutputConnection,
 	error,
 ) {
@@ -291,10 +304,6 @@ func (n *Node) UnsetOutputImage(outputName OutputName) (
 	if !ok {
 		return nil, fmt.Errorf("no output named %q exists", outputName)
 	}
-
-	output.SetImage(ImageID{})
-
-	n.addEvent(NewOutputImageUnsetEvent(n, outputName))
 
 	return slices.Collect(maps.Keys(output.Connections)), nil
 }
@@ -419,13 +428,27 @@ func (n *Node) DisconnectInput(inputName InputName) (
 		),
 	)
 
-	//
-	// If the input has an image set, reset it and emit an appropriate event
-	//
-	if input.HasImage() {
-		input.ResetImage()
-		n.addEvent(NewInputImageUnsetEvent(n, inputName))
+	if !input.HasImage() {
+		return inputConnection, nil
 	}
+
+	// If the node previously had all inputs set, revert the state to
+	// WaitingForInputs
+	if n.allInputsSet() {
+		err := n.State.Transition(WaitingForInputs)
+
+		if err != nil {
+			return inputConnection, fmt.Errorf(
+				"could not disconnect input %q from node %q: %w", inputName, n.ID, err,
+			)
+		}
+	}
+
+	input.ResetImage()
+
+	n.addEvent(NewInputImageUnsetEvent(n, inputName))
+
+	n.maybeUnsetAllOutputImages()
 
 	return inputConnection, nil
 }
@@ -450,6 +473,12 @@ func (n *Node) SetInputImage(
 
 	n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
 
+	if err := n.maybeTriggerOutputGeneration(); err != nil {
+		return fmt.Errorf(
+			"could not set input %q for node %q: %w", inputName, n.ID, err,
+		)
+	}
+
 	return nil
 }
 
@@ -463,11 +492,41 @@ func (n *Node) UnsetInputImage(
 		return fmt.Errorf("no input named %q exists", inputName)
 	}
 
-	input.SetImage(ImageID{})
+	input.ResetImage()
 
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
+	n.maybeUnsetAllOutputImages()
+
 	return nil
+}
+
+func (n *Node) maybeTriggerOutputGeneration() error {
+	if !n.allInputsSet() {
+		return nil
+	}
+
+	err := n.State.Transition(GeneratingOutputs)
+
+	if err != nil {
+		return err
+	}
+
+	n.addEvent(NewNodeNeedsOutputsEvent(n))
+
+	return nil
+}
+
+func (n *Node) maybeUnsetAllOutputImages() {
+	for outputName, output := range n.Outputs {
+		if output.ImageID.IsNil() {
+			continue
+		}
+
+		output.SetImage(ImageID{})
+
+		n.addEvent(NewOutputImageUnsetEvent(n, outputName))
+	}
 }
 
 // Test to see that all inputs are connected and have an image set
@@ -484,11 +543,3 @@ func (n *Node) allInputsSet() bool {
 
 	return true
 }
-
-// if n.State.Get() == OutputsGenerated {
-// 	err := n.State.Transition(GeneratingOutputs)
-// 	if err != nil {
-// 		return fmt.Errorf("could not set config for node %q: %w", n.ID, err)
-// 	}
-// 	n.addEvent(NewNodeNeedsOutputsEvent(n))
-// }

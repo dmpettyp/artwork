@@ -11,7 +11,7 @@ const (
 func (s State) Transitions() map[State][]State {
 	return map[State][]State{
 		WaitingForInputs:  {GeneratingOutputs},
-		GeneratingOutputs: {OutputsGenerated, WaitingForInputs},
+		GeneratingOutputs: {OutputsGenerated, WaitingForInputs, GeneratingOutputs},
 		OutputsGenerated:  {WaitingForInputs, GeneratingOutputs},
 	}
 }

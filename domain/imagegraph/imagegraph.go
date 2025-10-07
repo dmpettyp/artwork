@@ -463,19 +463,45 @@ func (ig *ImageGraph) UnsetNodeOutputImage(
 
 	if !exists {
 		return fmt.Errorf(
-			"couldn't set node %q output image: node doesn't exist",
+			"couldn't unset node %q output image: node doesn't exist",
 			nodeID,
 		)
 	}
 
-	connections, err := node.UnsetOutputImage(outputName)
+	err := node.UnsetOutputImage(outputName)
+
+	if err != nil {
+		return fmt.Errorf("couldn't unset node %q output image: %w", nodeID, err)
+	}
+
+	return nil
+}
+
+func (ig *ImageGraph) UnsetNodeOutputConnections(
+	nodeID NodeID,
+	outputName OutputName,
+) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot unset output image for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	node, exists := ig.Nodes.Get(nodeID)
+
+	if !exists {
+		return fmt.Errorf(
+			"couldn't unset node %q output image: node doesn't exist",
+			nodeID,
+		)
+	}
+
+	connections, err := node.OutputConnections(outputName)
 
 	if err != nil {
 		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
 	}
 
 	//
-	// Set each downstream node's input to the provided ImageID
+	// Unset each downstream node's input
 	//
 	for _, connection := range connections {
 		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
