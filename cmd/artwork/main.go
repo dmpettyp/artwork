@@ -4,9 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/dmpettyp/artwork/application"
-	"github.com/dmpettyp/artwork/domain/imagegraph"
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/dorky"
@@ -42,14 +44,28 @@ func main() {
 
 	httpServer := httpgateway.NewHTTPServer(messageBus, logger)
 	httpServer.Start()
-	defer httpServer.Stop(context.Background())
 
 	go messageBus.Start(context.Background())
 
-	defer messageBus.Stop()
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// id := imagegraph.MustNewImageGraphID()
-	// command := application.NewCreateImageGraphCommand(id, "super awesome new image")
-	//
-	// messageBus.HandleCommand(context.TODO(), command)
+	// Block until we receive a signal
+	<-sigChan
+
+	logger.Info("shutting down gracefully...")
+
+	// Stop the message bus
+	messageBus.Stop()
+
+	// Stop the HTTP server with timeout context
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpServer.Stop(shutdownCtx); err != nil {
+		logger.Error("error stopping HTTP server", "error", err)
+	}
+
+	logger.Info("shutdown complete")
 }
