@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info:
+  title: Artwork API
+  description: HTTP API for managing image graphs and their processing pipelines
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /imagegraphs:
+    post:
+      summary: Create a new ImageGraph
+      description: Creates a new ImageGraph with the specified name
+      operationId: createImageGraph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: The name of the ImageGraph
+                  example: "My Image Pipeline"
+      responses:
+        '201':
+          description: ImageGraph created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: The unique identifier of the created ImageGraph
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "name is required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to create image graph"
