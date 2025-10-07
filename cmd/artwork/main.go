@@ -15,7 +15,18 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	// Set log level based on LOG_LEVEL environment variable (default: INFO)
+	logLevel := slog.LevelInfo
+	if levelStr := os.Getenv("LOG_LEVEL"); levelStr != "" {
+		if err := logLevel.UnmarshalText([]byte(levelStr)); err != nil {
+			// Invalid level, stick with default
+			logLevel = slog.LevelInfo
+		}
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
 
 	logger.Info("this is artwork")
 
