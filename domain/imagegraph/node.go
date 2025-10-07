@@ -208,7 +208,7 @@ func (n *Node) SetConfig(config string) error {
 
 	n.addEvent(NewNodeConfigSetEvent(n))
 
-	if err := n.maybeTriggerOutputGeneration(); err != nil {
+	if err := n.triggerOutputsIfReady(); err != nil {
 		return fmt.Errorf(
 			"could not set config for node %q: %w", n.ID, err,
 		)
@@ -448,7 +448,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
-	n.maybeUnsetAllOutputImages()
+	n.resetOutputImages()
 
 	return inputConnection, nil
 }
@@ -473,7 +473,7 @@ func (n *Node) SetInputImage(
 
 	n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
 
-	if err := n.maybeTriggerOutputGeneration(); err != nil {
+	if err := n.triggerOutputsIfReady(); err != nil {
 		return fmt.Errorf(
 			"could not set input %q for node %q: %w", inputName, n.ID, err,
 		)
@@ -496,12 +496,12 @@ func (n *Node) UnsetInputImage(
 
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
-	n.maybeUnsetAllOutputImages()
+	n.resetOutputImages()
 
 	return nil
 }
 
-func (n *Node) maybeTriggerOutputGeneration() error {
+func (n *Node) triggerOutputsIfReady() error {
 	if !n.allInputsSet() {
 		return nil
 	}
@@ -517,13 +517,13 @@ func (n *Node) maybeTriggerOutputGeneration() error {
 	return nil
 }
 
-func (n *Node) maybeUnsetAllOutputImages() {
+func (n *Node) resetOutputImages() {
 	for outputName, output := range n.Outputs {
 		if output.ImageID.IsNil() {
 			continue
 		}
 
-		output.SetImage(ImageID{})
+		output.ResetImage()
 
 		n.addEvent(NewOutputImageUnsetEvent(n, outputName))
 	}
