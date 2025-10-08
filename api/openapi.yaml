@@ -447,3 +447,149 @@ paths:
                   error:
                     type: string
                     example: "failed to disconnect nodes"
+
+  /imagegraphs/{id}/nodes/{node_id}/config:
+    patch:
+      summary: Update a node's configuration
+      description: Sets the configuration for a specific node in the ImageGraph
+      operationId: setNodeConfig
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: node_id
+          in: path
+          required: true
+          description: The unique identifier of the node
+          schema:
+            type: string
+            format: uuid
+            example: "660e8400-e29b-41d4-a716-446655440001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - config
+              properties:
+                config:
+                  type: string
+                  description: JSON configuration for the node
+                  example: "{\"path\": \"/some/path\"}"
+      responses:
+        '204':
+          description: Node config updated successfully (no content)
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "config is required"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to set node config"
+
+  /imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}:
+    patch:
+      summary: Set a node's output image
+      description: Sets the image ID for a specific output of a node
+      operationId: setNodeOutputImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: node_id
+          in: path
+          required: true
+          description: The unique identifier of the node
+          schema:
+            type: string
+            format: uuid
+            example: "660e8400-e29b-41d4-a716-446655440001"
+        - name: output_name
+          in: path
+          required: true
+          description: The name of the output
+          schema:
+            type: string
+            example: "output"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - image_id
+              properties:
+                image_id:
+                  type: string
+                  format: uuid
+                  description: The unique identifier of the image
+                  example: "770e8400-e29b-41d4-a716-446655440003"
+      responses:
+        '204':
+          description: Output image set successfully (no content)
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image_id is required"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to set node output image"

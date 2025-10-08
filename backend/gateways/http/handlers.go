@@ -35,6 +35,14 @@ type connectionRequest struct {
 	InputName  string `json:"input_name"`
 }
 
+type setNodeConfigRequest struct {
+	Config string `json:"config"`
+}
+
+type setNodeOutputImageRequest struct {
+	ImageID string `json:"image_id"`
+}
+
 type imageGraphResponse struct {
 	ID      string         `json:"id"`
 	Name    string         `json:"name"`
@@ -399,6 +407,137 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 		}
 		s.logger.Error("failed to handle DisconnectImageGraphNodesCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to disconnect nodes"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *HTTPServer) handleSetNodeConfig(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Extract Node ID from path
+	nodeIDStr := r.PathValue("node_id")
+
+	// Parse NodeID
+	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
+		return
+	}
+
+	// Parse request body
+	var req setNodeConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Validate config
+	if req.Config == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "config is required"})
+		return
+	}
+
+	// Create command
+	command := application.NewSetImageGraphNodeConfigCommand(
+		imageGraphID,
+		nodeID,
+		req.Config,
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle SetImageGraphNodeConfigCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to set node config"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *HTTPServer) handleSetNodeOutputImage(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Extract Node ID from path
+	nodeIDStr := r.PathValue("node_id")
+
+	// Parse NodeID
+	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
+		return
+	}
+
+	// Extract output name from path
+	outputName := r.PathValue("output_name")
+	if outputName == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "output_name is required"})
+		return
+	}
+
+	// Parse request body
+	var req setNodeOutputImageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Validate image_id
+	if req.ImageID == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "image_id is required"})
+		return
+	}
+
+	// Parse ImageID
+	imageID, err := imagegraph.ParseImageID(req.ImageID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image_id"})
+		return
+	}
+
+	// Create command
+	command := application.NewSetImageGraphNodeOutputImageCommand(
+		imageGraphID,
+		nodeID,
+		imagegraph.OutputName(outputName),
+		imageID,
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle SetImageGraphNodeOutputImageCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to set node output image"})
 		return
 	}
 
