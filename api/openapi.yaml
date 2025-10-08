@@ -153,3 +153,85 @@ paths:
                   error:
                     type: string
                     example: "failed to retrieve image graph"
+
+  /imagegraphs/{id}/nodes:
+    post:
+      summary: Add a node to an ImageGraph
+      description: Creates a new node in the specified ImageGraph
+      operationId: addNode
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - config
+              properties:
+                name:
+                  type: string
+                  description: The name of the node
+                  example: "My Input Node"
+                type:
+                  type: string
+                  description: The type of the node
+                  example: "input"
+                  enum: [input, scale]
+                config:
+                  type: string
+                  description: JSON configuration for the node
+                  example: "{}"
+      responses:
+        '201':
+          description: Node created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: The unique identifier of the created node
+                    example: "660e8400-e29b-41d4-a716-446655440001"
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "name is required"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to add node"

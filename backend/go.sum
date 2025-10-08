@@ -6,6 +6,8 @@ github.com/dmpettyp/id v0.0.0-20250924005442-39a8fbad71e1 h1:733mlz8h52YbrfDl9/V
 github.com/dmpettyp/id v0.0.0-20250924005442-39a8fbad71e1/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
 github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5 h1:6DQzjDB7YVYUkq7K1FwmX1WVMYXthLvPRucfSd7gVYM=
 github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
+github.com/dmpettyp/mapper v0.0.0-20251008224010-89f1817dea21 h1:DQBtcT0NbeQSTcN6dKQkZumT2EmcrpbrK4sTQ3lwtPM=
+github.com/dmpettyp/mapper v0.0.0-20251008224010-89f1817dea21/go.mod h1:ltaK3kUF8PxSnR76tK4s/e7cvshf+Dm+0v/tv4e+3Lg=
 github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057 h1:b6iJxHMvVeIcC9skNrt89Vs9uC1taZag+d9XR5LqPeE=
 github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057/go.mod h1:imuAA0fD1Cb8CZlCDGtqT8w3YPvwDwtcHGQDySmeZUQ=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=

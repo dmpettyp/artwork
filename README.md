@@ -23,7 +23,9 @@ to process images in a non-destructive way.
 - regenerate events✅
 - node states✅
 - http APIlayer - IN PROGRESS
-- swagger documentation?✅
+- swagger documentation? ✅
+- mapper ✅
+- worker infrastructure to generate images
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?
 

@@ -84,6 +84,10 @@ func NewNode(
 		return nil, fmt.Errorf("cannot create Node with empty name")
 	}
 
+	if nodeType == NodeTypeNone {
+		return nil, fmt.Errorf("cannot create Node of type none")
+	}
+
 	nodeConfig, ok := nodeConfigs[nodeType]
 
 	if !ok {
