@@ -1,8 +1,10 @@
 package inmem
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/dorky/inmem"
 )
@@ -36,7 +38,14 @@ func (repo *ImageGraphRepository) Get(
 	*imagegraph.ImageGraph,
 	error,
 ) {
-	return repo.FindOne(
+	result, err := repo.FindOne(
 		func(a *imagegraph.ImageGraph) bool { return a.ID == id },
 	)
+	if err != nil {
+		if errors.Is(err, inmem.ErrNotFound) {
+			return nil, application.ErrImageGraphNotFound
+		}
+		return nil, err
+	}
+	return result, nil
 }

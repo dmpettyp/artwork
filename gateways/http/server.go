@@ -51,6 +51,7 @@ func NewHTTPServer(
 	// Set up routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /imagegraphs", s.handleCreateImageGraph)
+	mux.HandleFunc("GET /imagegraphs/{id}", s.handleGetImageGraph)
 
 	s.server = &http.Server{
 		Addr:    ":" + s.port,
