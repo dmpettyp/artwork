@@ -291,3 +291,159 @@ paths:
                   error:
                     type: string
                     example: "failed to delete node"
+
+  /imagegraphs/{id}/connectNodes:
+    put:
+      summary: Connect two nodes in an ImageGraph
+      description: Creates a connection from one node's output to another node's input
+      operationId: connectNodes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_node_id
+                - output_name
+                - to_node_id
+                - input_name
+              properties:
+                from_node_id:
+                  type: string
+                  format: uuid
+                  description: The node providing the output
+                  example: "660e8400-e29b-41d4-a716-446655440001"
+                output_name:
+                  type: string
+                  description: The name of the output on the source node
+                  example: "output"
+                to_node_id:
+                  type: string
+                  format: uuid
+                  description: The node receiving the input
+                  example: "770e8400-e29b-41d4-a716-446655440002"
+                input_name:
+                  type: string
+                  description: The name of the input on the target node
+                  example: "input"
+      responses:
+        '204':
+          description: Nodes connected successfully (no content)
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "from_node_id is required"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to connect nodes"
+
+  /imagegraphs/{id}/disconnectNodes:
+    put:
+      summary: Disconnect two nodes in an ImageGraph
+      description: Removes a connection from one node's output to another node's input
+      operationId: disconnectNodes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_node_id
+                - output_name
+                - to_node_id
+                - input_name
+              properties:
+                from_node_id:
+                  type: string
+                  format: uuid
+                  description: The node providing the output
+                  example: "660e8400-e29b-41d4-a716-446655440001"
+                output_name:
+                  type: string
+                  description: The name of the output on the source node
+                  example: "output"
+                to_node_id:
+                  type: string
+                  format: uuid
+                  description: The node receiving the input
+                  example: "770e8400-e29b-41d4-a716-446655440002"
+                input_name:
+                  type: string
+                  description: The name of the input on the target node
+                  example: "input"
+      responses:
+        '204':
+          description: Nodes disconnected successfully (no content)
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "from_node_id is required"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to disconnect nodes"

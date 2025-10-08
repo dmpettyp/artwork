@@ -28,6 +28,13 @@ type addNodeResponse struct {
 	ID string `json:"id"`
 }
 
+type connectionRequest struct {
+	FromNodeID string `json:"from_node_id"`
+	OutputName string `json:"output_name"`
+	ToNodeID   string `json:"to_node_id"`
+	InputName  string `json:"input_name"`
+}
+
 type imageGraphResponse struct {
 	ID      string         `json:"id"`
 	Name    string         `json:"name"`
@@ -240,6 +247,158 @@ func (s *HTTPServer) handleDeleteNode(w http.ResponseWriter, r *http.Request) {
 		}
 		s.logger.Error("failed to handle RemoveImageGraphNodeCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to delete node"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Parse request body
+	var req connectionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Validate inputs
+	if req.FromNodeID == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "from_node_id is required"})
+		return
+	}
+	if req.OutputName == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "output_name is required"})
+		return
+	}
+	if req.ToNodeID == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "to_node_id is required"})
+		return
+	}
+	if req.InputName == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "input_name is required"})
+		return
+	}
+
+	// Parse FromNodeID
+	fromNodeID, err := imagegraph.ParseNodeID(req.FromNodeID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid from_node_id"})
+		return
+	}
+
+	// Parse ToNodeID
+	toNodeID, err := imagegraph.ParseNodeID(req.ToNodeID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid to_node_id"})
+		return
+	}
+
+	// Create command
+	command := application.NewConnectImageGraphNodesCommand(
+		imageGraphID,
+		fromNodeID,
+		imagegraph.OutputName(req.OutputName),
+		toNodeID,
+		imagegraph.InputName(req.InputName),
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle ConnectImageGraphNodesCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to connect nodes"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Parse request body
+	var req connectionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Validate inputs
+	if req.FromNodeID == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "from_node_id is required"})
+		return
+	}
+	if req.OutputName == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "output_name is required"})
+		return
+	}
+	if req.ToNodeID == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "to_node_id is required"})
+		return
+	}
+	if req.InputName == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "input_name is required"})
+		return
+	}
+
+	// Parse FromNodeID
+	fromNodeID, err := imagegraph.ParseNodeID(req.FromNodeID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid from_node_id"})
+		return
+	}
+
+	// Parse ToNodeID
+	toNodeID, err := imagegraph.ParseNodeID(req.ToNodeID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid to_node_id"})
+		return
+	}
+
+	// Create command
+	command := application.NewDisconnectImageGraphNodesCommand(
+		imageGraphID,
+		fromNodeID,
+		imagegraph.OutputName(req.OutputName),
+		toNodeID,
+		imagegraph.InputName(req.InputName),
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle DisconnectImageGraphNodesCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to disconnect nodes"})
 		return
 	}
 

@@ -54,6 +54,8 @@ func NewHTTPServer(
 	mux.HandleFunc("GET /imagegraphs/{id}", s.handleGetImageGraph)
 	mux.HandleFunc("POST /imagegraphs/{id}/nodes", s.handleAddNode)
 	mux.HandleFunc("DELETE /imagegraphs/{id}/nodes/{node_id}", s.handleDeleteNode)
+	mux.HandleFunc("PUT /imagegraphs/{id}/connectNodes", s.handleConnectNodes)
+	mux.HandleFunc("PUT /imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
 
 	s.server = &http.Server{
 		Addr:    ":" + s.port,
