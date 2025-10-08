@@ -207,6 +207,46 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, addNodeResponse{ID: nodeID.String()})
 }
 
+func (s *HTTPServer) handleDeleteNode(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Extract Node ID from path
+	nodeIDStr := r.PathValue("node_id")
+
+	// Parse NodeID
+	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
+		return
+	}
+
+	// Create command
+	command := application.NewRemoveImageGraphNodeCommand(imageGraphID, nodeID)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle RemoveImageGraphNodeCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to delete node"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // respondJSON writes a JSON response with the given status code
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")

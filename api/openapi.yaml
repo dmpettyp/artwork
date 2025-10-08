@@ -235,3 +235,59 @@ paths:
                   error:
                     type: string
                     example: "failed to add node"
+
+  /imagegraphs/{id}/nodes/{node_id}:
+    delete:
+      summary: Delete a node from an ImageGraph
+      description: Removes the specified node from the ImageGraph
+      operationId: deleteNode
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the ImageGraph
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: node_id
+          in: path
+          required: true
+          description: The unique identifier of the node to delete
+          schema:
+            type: string
+            format: uuid
+            example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '204':
+          description: Node deleted successfully (no content)
+        '400':
+          description: Bad request - invalid UUID format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "invalid image graph ID"
+        '404':
+          description: ImageGraph not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "image graph not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to delete node"
