@@ -552,6 +552,29 @@ func (ig *ImageGraph) UnsetNodePreview(
 	return ig.SetNodePreview(nodeID, ImageID{})
 }
 
+// SetNodeConfig sets the configuration for a specific node
+func (ig *ImageGraph) SetNodeConfig(
+	nodeID NodeID,
+	config string,
+) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot set config for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		return n.SetConfig(config)
+	})
+
+	if err != nil {
+		return fmt.Errorf(
+			"couldn't set node %q config: %w",
+			nodeID, err,
+		)
+	}
+
+	return nil
+}
+
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
 func (ig *ImageGraph) wouldCreateCycle(fromNodeID, toNodeID NodeID) bool {
 	// If we connect fromNode -> toNode, check if there's already a path

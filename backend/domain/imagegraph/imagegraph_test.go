@@ -1801,3 +1801,82 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		}
 	})
 }
+
+func TestImageGraph_SetNodeConfig(t *testing.T) {
+	t.Run("sets config for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		newConfig := `{}`
+
+		err := ig.SetNodeConfig(nodeID, newConfig)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Config != newConfig {
+			t.Errorf("expected config %q, got %q", newConfig, node.Config)
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+
+		err := ig.SetNodeConfig(nodeID, `{"path": "/test"}`)
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.SetNodeConfig(imagegraph.NodeID{}, `{"path": "/test"}`)
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
+
+	t.Run("returns error for invalid config", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+
+		err := ig.SetNodeConfig(nodeID, "invalid json")
+
+		if err == nil {
+			t.Fatal("expected error for invalid config, got nil")
+		}
+	})
+
+	t.Run("emits NodeConfigSet event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node", "{}")
+		ig.ResetEvents()
+
+		newConfig := `{}`
+
+		err := ig.SetNodeConfig(nodeID, newConfig)
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 2 {
+			t.Fatalf("expected 2 event, got %d", len(events))
+		}
+
+		_, ok := events[0].(*imagegraph.NodeConfigSetEvent)
+		if !ok {
+			t.Errorf("expected NodeConfigSetEvent, got %T", events[0])
+		}
+	})
+}

@@ -205,3 +205,24 @@ func NewUnsetImageGraphNodePreviewCommand(
 	command.Init("UnsetImageGraphNodePreviewCommand")
 	return command
 }
+
+type SetImageGraphNodeConfigCommand struct {
+	dorky.BaseCommand
+	ImageGraphID imagegraph.ImageGraphID
+	NodeID       imagegraph.NodeID
+	Config       string
+}
+
+func NewSetImageGraphNodeConfigCommand(
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	config string,
+) *SetImageGraphNodeConfigCommand {
+	command := &SetImageGraphNodeConfigCommand{
+		ImageGraphID: imageGraphID,
+		NodeID:       nodeID,
+		Config:       config,
+	}
+	command.Init("SetImageGraphNodeConfigCommand")
+	return command
+}
