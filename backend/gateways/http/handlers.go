@@ -130,7 +130,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 		nodes = append(nodes, nodeResponse{
 			ID:      node.ID.String(),
 			Name:    node.Name,
-			Type:    string(node.Type),
+			Type:    nodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Version: int(node.Version),
 			Config:  node.Config,
 		})
