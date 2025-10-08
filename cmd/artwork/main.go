@@ -53,7 +53,12 @@ func main() {
 		return
 	}
 
-	httpServer := httpgateway.NewHTTPServer(messageBus, logger)
+	httpServer := httpgateway.NewHTTPServer(
+		logger,
+		messageBus,
+		uow.ImageGraphViews,
+	)
+
 	httpServer.Start()
 
 	go messageBus.Start(context.Background())

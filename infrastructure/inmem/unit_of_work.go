@@ -11,6 +11,7 @@ import (
 // that uses lib.dorky's inmem.UnitOfWork to drive the uow lifecycle
 type UnitOfWork struct {
 	*inmem.UnitOfWork[*application.Repos]
+	ImageGraphViews *ImageGraphViews
 }
 
 func NewUnitOfWork() (*UnitOfWork, error) {
@@ -29,6 +30,7 @@ func NewUnitOfWork() (*UnitOfWork, error) {
 			repos,
 			imageGraphRepository,
 		),
+		ImageGraphViews: NewImageGraphViews(imageGraphRepository),
 	}
 
 	return uow, nil

@@ -20,10 +20,10 @@ to process images in a non-destructive way.
 - Add a new node type that supports inputs!
 - Inmem repository and unit of work ✅
 - command, handlers and messagebus ✅
-- regenerate events
-- node states
-- http APIlayer
-- swagger documentation?
+- regenerate events✅
+- node states✅
+- http APIlayer - IN PROGRESS
+- swagger documentation?✅
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?
 

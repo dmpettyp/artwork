@@ -6,14 +6,16 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/dorky"
 )
 
 type HTTPServer struct {
-	messageBus *dorky.MessageBus
-	server     *http.Server
-	logger     *slog.Logger
-	port       string
+	logger          *slog.Logger
+	messageBus      *dorky.MessageBus
+	imageGraphViews application.ImageGraphViews
+	server          *http.Server
+	port            string
 }
 
 // ServerOption is a functional option for configuring the HTTPServer
@@ -29,14 +31,16 @@ func WithPort(port string) ServerOption {
 // NewHTTPServer creates a new HTTP server that handles requests by sending
 // commands to the provided message bus
 func NewHTTPServer(
-	mb *dorky.MessageBus,
 	logger *slog.Logger,
+	mb *dorky.MessageBus,
+	imageGraphViews application.ImageGraphViews,
 	opts ...ServerOption,
 ) *HTTPServer {
 	s := &HTTPServer{
-		messageBus: mb,
-		logger:     logger,
-		port:       "8080", // default port
+		logger:          logger,
+		messageBus:      mb,
+		imageGraphViews: imageGraphViews,
+		port:            "8080", // default port
 	}
 
 	// Apply options
