@@ -6,25 +6,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/dmpettyp/id"
 	"github.com/dmpettyp/state"
 )
-
-// NodeID is the type that represents node IDs
-type NodeID struct{ id.ID }
-
-var NewNodeID, MustNewNodeID, ParseNodeID = id.Inititalizers(
-	func(id id.ID) NodeID { return NodeID{ID: id} },
-)
-
-// NodeVersion models the version of a node. Node versions are incremented
-// every time an event is emitted by the node.
-type NodeVersion int
-
-func (v *NodeVersion) Next() NodeVersion {
-	*v = *v + 1
-	return *v
-}
 
 // Node represents a node in the ImageGraph that define the image pipeline.
 // Node are connected to upstream nodes through thier inputs, and to their

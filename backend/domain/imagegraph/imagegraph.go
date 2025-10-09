@@ -4,13 +4,6 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/dorky"
-	"github.com/dmpettyp/id"
-)
-
-type ImageGraphID struct{ id.ID }
-
-var NewImageGraphID, MustNewImageGraphID, ParseImageGraphID = id.Inititalizers(
-	func(id id.ID) ImageGraphID { return ImageGraphID{ID: id} },
 )
 
 // A ImageGraph models an graph that consists of Nodes connected together to
