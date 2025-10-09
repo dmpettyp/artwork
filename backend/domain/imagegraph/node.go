@@ -44,7 +44,7 @@ type Node struct {
 	// The name assigned to the node, chosen by the ImageGraph author
 	Name string
 
-	State state.State[State]
+	State state.State[NodeState]
 
 	// The configuration for the node. The configuration is a string containing
 	// json that is provided to the image processor.
@@ -94,7 +94,7 @@ func NewNode(
 		return nil, fmt.Errorf("node type %q does not have config", nodeType)
 	}
 
-	initState, err := state.NewState(WaitingForInputs)
+	initState, err := state.NewState(Waiting)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
@@ -439,7 +439,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	// If the node previously had all inputs set, revert the state to
 	// WaitingForInputs
 	if n.allInputsSet() {
-		err := n.State.Transition(WaitingForInputs)
+		err := n.State.Transition(Waiting)
 
 		if err != nil {
 			return inputConnection, fmt.Errorf(
@@ -510,7 +510,7 @@ func (n *Node) triggerOutputsIfReady() error {
 		return nil
 	}
 
-	err := n.State.Transition(GeneratingOutputs)
+	err := n.State.Transition(Generating)
 
 	if err != nil {
 		return err

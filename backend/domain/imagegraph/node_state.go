@@ -1,17 +1,17 @@
 package imagegraph
 
-type State string
+type NodeState int
 
 const (
-	WaitingForInputs  State = "WaitingForInputs"
-	GeneratingOutputs       = "GeneratingOutputs"
-	OutputsGenerated        = "OutputsGenerated"
+	Waiting NodeState = iota
+	Generating
+	Generated
 )
 
-func (s State) Transitions() map[State][]State {
-	return map[State][]State{
-		WaitingForInputs:  {GeneratingOutputs},
-		GeneratingOutputs: {OutputsGenerated, WaitingForInputs, GeneratingOutputs},
-		OutputsGenerated:  {WaitingForInputs, GeneratingOutputs},
+func (s NodeState) Transitions() map[NodeState][]NodeState {
+	return map[NodeState][]NodeState{
+		Waiting:    {Generating},
+		Generating: {Generated, Waiting, Generating},
+		Generated:  {Waiting, Generating},
 	}
 }

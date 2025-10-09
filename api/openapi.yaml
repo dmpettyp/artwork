@@ -115,6 +115,7 @@ paths:
                           type: string
                           description: The type of the node
                           example: "input"
+                          enum: [input, scale]
                         version:
                           type: integer
                           description: The version number of the node
@@ -123,6 +124,78 @@ paths:
                           type: string
                           description: JSON configuration for the node
                           example: "{}"
+                        state:
+                          type: string
+                          description: The current state of the node
+                          example: "waiting"
+                          enum: [waiting, generating, generated]
+                        preview:
+                          type: string
+                          format: uuid
+                          description: The preview image ID (omitted if not set)
+                          example: "880e8400-e29b-41d4-a716-446655440005"
+                        inputs:
+                          type: array
+                          description: The input ports of the node
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                description: The name of the input
+                                example: "input"
+                              image_id:
+                                type: string
+                                format: uuid
+                                description: The image ID currently on this input (omitted if not set)
+                                example: "990e8400-e29b-41d4-a716-446655440006"
+                              connected:
+                                type: boolean
+                                description: Whether this input is connected to an output
+                                example: true
+                              connection:
+                                type: object
+                                description: Connection details (null if not connected)
+                                properties:
+                                  node_id:
+                                    type: string
+                                    format: uuid
+                                    description: The node providing the output
+                                    example: "aa0e8400-e29b-41d4-a716-446655440007"
+                                  output_name:
+                                    type: string
+                                    description: The name of the output on the source node
+                                    example: "output"
+                        outputs:
+                          type: array
+                          description: The output ports of the node
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                description: The name of the output
+                                example: "output"
+                              image_id:
+                                type: string
+                                format: uuid
+                                description: The image ID currently on this output (omitted if not set)
+                                example: "bb0e8400-e29b-41d4-a716-446655440008"
+                              connections:
+                                type: array
+                                description: Downstream nodes connected to this output
+                                items:
+                                  type: object
+                                  properties:
+                                    node_id:
+                                      type: string
+                                      format: uuid
+                                      description: The downstream node
+                                      example: "cc0e8400-e29b-41d4-a716-446655440009"
+                                    input_name:
+                                      type: string
+                                      description: The input name on the downstream node
+                                      example: "input"
         '400':
           description: Bad request - invalid UUID format
           content:

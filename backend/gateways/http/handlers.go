@@ -51,16 +51,49 @@ type imageGraphResponse struct {
 }
 
 type nodeResponse struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Version int    `json:"version"`
-	Config  string `json:"config"`
+	ID      string           `json:"id"`
+	Name    string           `json:"name"`
+	Type    string           `json:"type"`
+	Version int              `json:"version"`
+	Config  string           `json:"config"`
+	State   string           `json:"state"`
+	Preview string           `json:"preview,omitempty"`
+	Inputs  []inputResponse  `json:"inputs"`
+	Outputs []outputResponse `json:"outputs"`
+}
+
+type inputResponse struct {
+	Name       string                   `json:"name"`
+	ImageID    string                   `json:"image_id,omitempty"`
+	Connected  bool                     `json:"connected"`
+	Connection *inputConnectionResponse `json:"connection,omitempty"`
+}
+
+type inputConnectionResponse struct {
+	NodeID     string `json:"node_id"`
+	OutputName string `json:"output_name"`
+}
+
+type outputResponse struct {
+	Name        string                     `json:"name"`
+	ImageID     string                     `json:"image_id,omitempty"`
+	Connections []outputConnectionResponse `json:"connections"`
+}
+
+type outputConnectionResponse struct {
+	NodeID    string `json:"node_id"`
+	InputName string `json:"input_name"`
 }
 
 var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"input", imagegraph.NodeTypeInput,
 	"scale", imagegraph.NodeTypeScale,
+)
+
+var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
+	"waiting", imagegraph.Waiting,
+	"generating", imagegraph.Generating,
+	"generated", imagegraph.Generated,
 )
 
 type errorResponse struct {
@@ -135,13 +168,66 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 	nodes := make([]nodeResponse, 0, len(ig.Nodes))
 
 	for _, node := range ig.Nodes {
-		nodes = append(nodes, nodeResponse{
+		// Map inputs
+		inputs := make([]inputResponse, 0, len(node.Inputs))
+		for _, input := range node.Inputs {
+			inputResp := inputResponse{
+				Name:      string(input.Name),
+				Connected: input.Connected,
+			}
+
+			if !input.ImageID.IsNil() {
+				inputResp.ImageID = input.ImageID.String()
+			}
+
+			if input.Connected {
+				inputResp.Connection = &inputConnectionResponse{
+					NodeID:     input.InputConnection.NodeID.String(),
+					OutputName: string(input.InputConnection.OutputName),
+				}
+			}
+
+			inputs = append(inputs, inputResp)
+		}
+
+		// Map outputs
+		outputs := make([]outputResponse, 0, len(node.Outputs))
+		for _, output := range node.Outputs {
+			outputResp := outputResponse{
+				Name:        string(output.Name),
+				Connections: make([]outputConnectionResponse, 0, len(output.Connections)),
+			}
+
+			if !output.ImageID.IsNil() {
+				outputResp.ImageID = output.ImageID.String()
+			}
+
+			for conn := range output.Connections {
+				outputResp.Connections = append(outputResp.Connections, outputConnectionResponse{
+					NodeID:    conn.NodeID.String(),
+					InputName: string(conn.InputName),
+				})
+			}
+
+			outputs = append(outputs, outputResp)
+		}
+
+		nodeResp := nodeResponse{
 			ID:      node.ID.String(),
 			Name:    node.Name,
 			Type:    nodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Version: int(node.Version),
 			Config:  node.Config,
-		})
+			State:   nodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
+			Inputs:  inputs,
+			Outputs: outputs,
+		}
+
+		if !node.Preview.IsNil() {
+			nodeResp.Preview = node.Preview.String()
+		}
+
+		nodes = append(nodes, nodeResp)
 	}
 
 	return imageGraphResponse{
