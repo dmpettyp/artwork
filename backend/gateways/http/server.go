@@ -85,3 +85,8 @@ func (s *HTTPServer) Stop(ctx context.Context) error {
 	}
 	return nil
 }
+
+// Handler returns the HTTP handler for testing
+func (s *HTTPServer) Handler() http.Handler {
+	return s.server.Handler
+}
