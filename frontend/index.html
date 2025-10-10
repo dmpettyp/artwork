@@ -22,8 +22,7 @@
 
             <section class="sidebar-section">
                 <h2>Add Node</h2>
-                <button class="btn" data-node-type="input">Input Node</button>
-                <button class="btn" data-node-type="scale">Scale Node</button>
+                <button id="add-node-btn" class="btn btn-primary">+ Add Node</button>
             </section>
         </aside>
 
@@ -50,6 +49,32 @@
             <div class="modal-actions">
                 <button id="modal-cancel-btn" class="btn">Cancel</button>
                 <button id="modal-create-btn" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding node -->
+    <div id="add-node-modal" class="modal">
+        <div class="modal-content">
+            <h3>Add Node</h3>
+
+            <label for="node-type-select">Node Type</label>
+            <select id="node-type-select" class="form-select">
+                <option value="">Select node type...</option>
+                <option value="input">Input</option>
+                <option value="scale">Scale</option>
+            </select>
+
+            <label for="node-name-input">Node Name</label>
+            <input type="text" id="node-name-input" class="form-input" placeholder="Enter node name" />
+
+            <div id="node-config-fields">
+                <!-- Dynamic config fields will be inserted here -->
+            </div>
+
+            <div class="modal-actions">
+                <button id="add-node-cancel-btn" class="btn">Cancel</button>
+                <button id="add-node-create-btn" class="btn btn-primary">Add Node</button>
             </div>
         </div>
     </div>

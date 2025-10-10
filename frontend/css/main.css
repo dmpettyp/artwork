@@ -239,18 +239,54 @@ body {
     font-size: 20px;
 }
 
-.modal-content input {
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.modal-content input,
+.modal-content .form-input {
     width: 100%;
     padding: 10px;
     border: 1px solid #bdc3c7;
     border-radius: 4px;
     font-size: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
-.modal-content input:focus {
+.modal-content input:focus,
+.modal-content .form-input:focus {
     outline: none;
     border-color: #3498db;
+}
+
+.modal-content select,
+.modal-content .form-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    background: white;
+    cursor: pointer;
+}
+
+.modal-content select:focus,
+.modal-content .form-select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+#node-config-fields {
+    margin-top: 10px;
+}
+
+#node-config-fields label {
+    margin-top: 5px;
 }
 
 .modal-actions {

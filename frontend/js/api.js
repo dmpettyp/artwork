@@ -34,7 +34,7 @@ export async function getImageGraph(id) {
     return response.json();
 }
 
-export async function addNode(graphId, nodeType) {
+export async function addNode(graphId, nodeType, nodeName, config) {
     const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/nodes`, {
         method: 'POST',
         headers: {
@@ -42,8 +42,8 @@ export async function addNode(graphId, nodeType) {
         },
         body: JSON.stringify({
             type: nodeType,
-            name: nodeType,
-            config: "{}",
+            name: nodeName,
+            config: config,
         }),
     });
     if (!response.ok) {

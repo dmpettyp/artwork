@@ -18,11 +18,21 @@ const graphSelect = document.getElementById('graph-select');
 const graphNameElement = document.getElementById('graph-name');
 const createGraphBtn = document.getElementById('create-graph-btn');
 const refreshBtn = document.getElementById('refresh-btn');
-const addNodeButtons = document.querySelectorAll('[data-node-type]');
-const modal = document.getElementById('create-graph-modal');
+const addNodeBtn = document.getElementById('add-node-btn');
+
+// Create graph modal
+const createGraphModal = document.getElementById('create-graph-modal');
 const graphNameInput = document.getElementById('graph-name-input');
 const modalCreateBtn = document.getElementById('modal-create-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+// Add node modal
+const addNodeModal = document.getElementById('add-node-modal');
+const nodeTypeSelect = document.getElementById('node-type-select');
+const nodeNameInput = document.getElementById('node-name-input');
+const nodeConfigFields = document.getElementById('node-config-fields');
+const addNodeCreateBtn = document.getElementById('add-node-create-btn');
+const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
 
 // Subscribe to graph state changes
 graphState.subscribe((graph) => {
@@ -87,24 +97,115 @@ async function selectGraph(graphId) {
     }
 }
 
-// Modal functions
-function openModal() {
-    modal.classList.add('active');
+// Node type configuration (matches backend node_type.go)
+const nodeTypeConfigs = {
+    input: {
+        fields: {}
+    },
+    scale: {
+        fields: {
+            factor: { type: 'float', required: true }
+        }
+    }
+};
+
+// Create graph modal functions
+function openCreateGraphModal() {
+    createGraphModal.classList.add('active');
     graphNameInput.value = '';
     graphNameInput.focus();
 }
 
-function closeModal() {
-    modal.classList.remove('active');
+function closeCreateGraphModal() {
+    createGraphModal.classList.remove('active');
 }
 
-// Create new graph
+// Add node modal functions
+function openAddNodeModal() {
+    if (!graphState.getCurrentGraphId()) {
+        alert('Please select a graph first');
+        return;
+    }
+    addNodeModal.classList.add('active');
+    nodeTypeSelect.value = '';
+    nodeNameInput.value = '';
+    nodeConfigFields.innerHTML = '';
+    nodeTypeSelect.focus();
+}
+
+function closeAddNodeModal() {
+    addNodeModal.classList.remove('active');
+}
+
+function renderNodeConfigFields(nodeType) {
+    nodeConfigFields.innerHTML = '';
+
+    const config = nodeTypeConfigs[nodeType];
+    if (!config || !config.fields) return;
+
+    Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
+        const label = document.createElement('label');
+        label.setAttribute('for', `config-${fieldName}`);
+        label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
+
+        const input = document.createElement('input');
+        input.id = `config-${fieldName}`;
+        input.className = 'form-input';
+        input.setAttribute('data-field-name', fieldName);
+        input.setAttribute('data-field-type', fieldDef.type);
+
+        if (fieldDef.type === 'float' || fieldDef.type === 'int') {
+            input.type = 'number';
+            if (fieldDef.type === 'float') {
+                input.step = 'any';
+            }
+        } else if (fieldDef.type === 'bool') {
+            input.type = 'checkbox';
+        } else {
+            input.type = 'text';
+        }
+
+        if (fieldDef.required) {
+            input.required = true;
+        }
+
+        nodeConfigFields.appendChild(label);
+        nodeConfigFields.appendChild(input);
+    });
+}
+
+function getNodeConfig() {
+    const config = {};
+    const inputs = nodeConfigFields.querySelectorAll('input');
+
+    inputs.forEach(input => {
+        const fieldName = input.getAttribute('data-field-name');
+        const fieldType = input.getAttribute('data-field-type');
+        let value = input.value;
+
+        if (fieldType === 'int') {
+            value = parseInt(value, 10);
+        } else if (fieldType === 'float') {
+            value = parseFloat(value);
+        } else if (fieldType === 'bool') {
+            value = input.checked;
+        }
+
+        if (value !== '' && !isNaN(value)) {
+            config[fieldName] = value;
+        }
+    });
+
+    return config;
+}
+
+// Create new graph handlers
 createGraphBtn.addEventListener('click', () => {
-    openModal();
+    openCreateGraphModal();
 });
 
 modalCancelBtn.addEventListener('click', () => {
-    closeModal();
+    closeCreateGraphModal();
 });
 
 modalCreateBtn.addEventListener('click', async () => {
@@ -113,7 +214,7 @@ modalCreateBtn.addEventListener('click', async () => {
 
     try {
         const graph_id = await api.createImageGraph(name);
-        closeModal();
+        closeCreateGraphModal();
         await loadGraphList();
         await selectGraph(graph_id);
     } catch (error) {
@@ -122,17 +223,67 @@ modalCreateBtn.addEventListener('click', async () => {
     }
 });
 
-// Allow Enter key to submit modal
 graphNameInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         modalCreateBtn.click();
     }
 });
 
-// Close modal on background click
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeModal();
+createGraphModal.addEventListener('click', (e) => {
+    if (e.target === createGraphModal) {
+        closeCreateGraphModal();
+    }
+});
+
+// Add node handlers
+addNodeBtn.addEventListener('click', () => {
+    openAddNodeModal();
+});
+
+nodeTypeSelect.addEventListener('change', (e) => {
+    const nodeType = e.target.value;
+    renderNodeConfigFields(nodeType);
+});
+
+addNodeCancelBtn.addEventListener('click', () => {
+    closeAddNodeModal();
+});
+
+addNodeCreateBtn.addEventListener('click', async () => {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId) return;
+
+    const nodeType = nodeTypeSelect.value;
+    const nodeName = nodeNameInput.value.trim();
+
+    if (!nodeType) {
+        alert('Please select a node type');
+        return;
+    }
+
+    if (!nodeName) {
+        alert('Please enter a node name');
+        return;
+    }
+
+    const config = getNodeConfig();
+
+    try {
+        // The API expects config as a JSON string
+        await api.addNode(graphId, nodeType, nodeName, JSON.stringify(config));
+        closeAddNodeModal();
+        // Refresh graph to show new node
+        const graph = await api.getImageGraph(graphId);
+        graphState.setCurrentGraph(graph);
+    } catch (error) {
+        console.error('Failed to add node:', error);
+        alert(`Failed to add node: ${error.message}`);
+    }
+});
+
+addNodeModal.addEventListener('click', (e) => {
+    if (e.target === addNodeModal) {
+        closeAddNodeModal();
     }
 });
 
@@ -148,29 +299,6 @@ refreshBtn.addEventListener('click', async () => {
         console.error('Failed to refresh graph:', error);
         alert(`Failed to refresh graph: ${error.message}`);
     }
-});
-
-// Add node buttons
-addNodeButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-        const graphId = graphState.getCurrentGraphId();
-        if (!graphId) {
-            alert('Please select a graph first');
-            return;
-        }
-
-        const nodeType = button.getAttribute('data-node-type');
-
-        try {
-            await api.addNode(graphId, nodeType);
-            // Refresh graph to show new node
-            const graph = await api.getImageGraph(graphId);
-            graphState.setCurrentGraph(graph);
-        } catch (error) {
-            console.error('Failed to add node:', error);
-            alert(`Failed to add node: ${error.message}`);
-        }
-    });
 });
 
 // Auto-refresh every 2 seconds if a graph is selected
