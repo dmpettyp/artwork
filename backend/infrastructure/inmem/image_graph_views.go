@@ -27,3 +27,24 @@ func (view *ImageGraphViews) Get(
 	}
 	return result.Clone(), nil
 }
+
+func (view *ImageGraphViews) List(_ context.Context) (
+	[]*imagegraph.ImageGraph,
+	error,
+) {
+	all, err := view.repo.FindAll(func(*imagegraph.ImageGraph) bool {
+		return true
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*imagegraph.ImageGraph
+
+	for _, ig := range all {
+		result = append(result, ig.Clone())
+	}
+
+	return result, nil
+}

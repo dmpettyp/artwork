@@ -14,4 +14,9 @@ type ImageGraphViews interface {
 		*imagegraph.ImageGraph,
 		error,
 	)
+
+	List(ctx context.Context) (
+		[]*imagegraph.ImageGraph,
+		error,
+	)
 }
