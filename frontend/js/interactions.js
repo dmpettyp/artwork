@@ -10,6 +10,7 @@ export class InteractionHandler {
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
         this.connectionDrag = null;
+        this.canvasDrag = null;
 
         this.setupEventListeners();
     }
@@ -34,6 +35,18 @@ export class InteractionHandler {
             this.startNodeDrag(node, e);
             return;
         }
+
+        // Check if clicking on a connection
+        const connection = e.target.closest('.connection-group');
+        if (connection) {
+            return; // Don't start canvas drag on connections
+        }
+
+        // If clicking on background, start canvas pan
+        if (e.target === this.svg || e.target.id === 'connections-layer' || e.target.id === 'nodes-layer') {
+            this.startCanvasDrag(e);
+            return;
+        }
     }
 
     handleMouseMove(e) {
@@ -41,6 +54,8 @@ export class InteractionHandler {
             this.updateNodeDrag(e);
         } else if (this.connectionDrag) {
             this.updateConnectionDrag(e);
+        } else if (this.canvasDrag) {
+            this.updateCanvasDrag(e);
         }
     }
 
@@ -49,6 +64,8 @@ export class InteractionHandler {
             this.endNodeDrag();
         } else if (this.connectionDrag) {
             this.endConnectionDrag(e);
+        } else if (this.canvasDrag) {
+            this.endCanvasDrag();
         }
     }
 
@@ -115,6 +132,35 @@ export class InteractionHandler {
 
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
+    }
+
+    startCanvasDrag(e) {
+        this.canvasDrag = {
+            startX: e.clientX,
+            startY: e.clientY,
+            startPanX: this.renderer.panX,
+            startPanY: this.renderer.panY
+        };
+        this.svg.style.cursor = 'grabbing';
+    }
+
+    updateCanvasDrag(e) {
+        if (!this.canvasDrag) return;
+
+        const dx = e.clientX - this.canvasDrag.startX;
+        const dy = e.clientY - this.canvasDrag.startY;
+
+        this.renderer.panX = this.canvasDrag.startPanX + dx;
+        this.renderer.panY = this.canvasDrag.startPanY + dy;
+
+        this.renderer.updateTransform();
+    }
+
+    endCanvasDrag() {
+        if (!this.canvasDrag) return;
+
+        this.canvasDrag = null;
+        this.svg.style.cursor = 'grab';
     }
 
     startConnectionDrag(portElement, e) {
