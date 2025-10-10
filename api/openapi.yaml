@@ -10,6 +10,43 @@ servers:
 
 paths:
   /imagegraphs:
+    get:
+      summary: List all ImageGraphs
+      description: Retrieves a list of all ImageGraphs with ID and name
+      operationId: listImageGraphs
+      responses:
+        '200':
+          description: List of ImageGraphs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imagegraphs:
+                    type: array
+                    description: Array of ImageGraph summaries
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: The unique identifier of the ImageGraph
+                          example: "550e8400-e29b-41d4-a716-446655440000"
+                        name:
+                          type: string
+                          description: The name of the ImageGraph
+                          example: "My Image Pipeline"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "failed to list image graphs"
     post:
       summary: Create a new ImageGraph
       description: Creates a new ImageGraph with the specified name

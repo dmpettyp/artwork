@@ -43,6 +43,15 @@ type setNodeOutputImageRequest struct {
 	ImageID string `json:"image_id"`
 }
 
+type listImageGraphsResponse struct {
+	ImageGraphs []imageGraphSummary `json:"imagegraphs"`
+}
+
+type imageGraphSummary struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type imageGraphResponse struct {
 	ID      string         `json:"id"`
 	Name    string         `json:"name"`
@@ -98,6 +107,28 @@ var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
 
 type errorResponse struct {
 	Error string `json:"error"`
+}
+
+func (s *HTTPServer) handleListImageGraphs(w http.ResponseWriter, r *http.Request) {
+	// Fetch all ImageGraphs from views
+	imageGraphs, err := s.imageGraphViews.List(r.Context())
+	if err != nil {
+		s.logger.Error("failed to list image graphs", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to list image graphs"})
+		return
+	}
+
+	// Map to response DTOs
+	summaries := make([]imageGraphSummary, 0, len(imageGraphs))
+	for _, ig := range imageGraphs {
+		summaries = append(summaries, imageGraphSummary{
+			ID:   ig.ID.String(),
+			Name: ig.Name,
+		})
+	}
+
+	// Return successful response
+	respondJSON(w, http.StatusOK, listImageGraphsResponse{ImageGraphs: summaries})
 }
 
 func (s *HTTPServer) handleCreateImageGraph(w http.ResponseWriter, r *http.Request) {

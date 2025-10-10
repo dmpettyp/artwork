@@ -50,6 +50,7 @@ func NewHTTPServer(
 
 	// Set up routes
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /imagegraphs", s.handleListImageGraphs)
 	mux.HandleFunc("POST /imagegraphs", s.handleCreateImageGraph)
 	mux.HandleFunc("GET /imagegraphs/{id}", s.handleGetImageGraph)
 	mux.HandleFunc("POST /imagegraphs/{id}/nodes", s.handleAddNode)
