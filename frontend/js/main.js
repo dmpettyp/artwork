@@ -34,6 +34,22 @@ const nodeConfigFields = document.getElementById('node-config-fields');
 const addNodeCreateBtn = document.getElementById('add-node-create-btn');
 const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
 
+// Edit config modal
+const editConfigModal = document.getElementById('edit-config-modal');
+const editConfigNodeName = document.getElementById('edit-config-node-name');
+const editConfigFields = document.getElementById('edit-config-fields');
+const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
+const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
+
+// Delete node modal
+const deleteNodeModal = document.getElementById('delete-node-modal');
+const deleteNodeName = document.getElementById('delete-node-name');
+const deleteNodeConfirmBtn = document.getElementById('delete-node-confirm-btn');
+const deleteNodeCancelBtn = document.getElementById('delete-node-cancel-btn');
+
+// Track current node being edited/deleted
+let currentNodeId = null;
+
 // Subscribe to graph state changes
 graphState.subscribe((graph) => {
     if (graph) {
@@ -285,6 +301,187 @@ addNodeModal.addEventListener('click', (e) => {
     if (e.target === addNodeModal) {
         closeAddNodeModal();
     }
+});
+
+// Edit config modal handlers
+function openEditConfigModal(nodeId) {
+    const node = graphState.getNode(nodeId);
+    if (!node) return;
+
+    currentNodeId = nodeId;
+    editConfigNodeName.textContent = `${node.name} (${node.type})`;
+
+    // Render config fields based on node type
+    renderEditConfigFields(node.type, node.config);
+
+    editConfigModal.classList.add('active');
+}
+
+function closeEditConfigModal() {
+    editConfigModal.classList.remove('active');
+    currentNodeId = null;
+}
+
+function renderEditConfigFields(nodeType, currentConfig) {
+    editConfigFields.innerHTML = '';
+
+    const config = nodeTypeConfigs[nodeType];
+    if (!config || !config.fields) {
+        editConfigFields.innerHTML = '<p style="color: #7f8c8d;">This node has no configurable fields.</p>';
+        return;
+    }
+
+    Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
+        const label = document.createElement('label');
+        label.setAttribute('for', `edit-config-${fieldName}`);
+        label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
+
+        const input = document.createElement('input');
+        input.id = `edit-config-${fieldName}`;
+        input.className = 'form-input';
+        input.setAttribute('data-field-name', fieldName);
+        input.setAttribute('data-field-type', fieldDef.type);
+
+        if (fieldDef.type === 'float' || fieldDef.type === 'int') {
+            input.type = 'number';
+            if (fieldDef.type === 'float') {
+                input.step = 'any';
+            }
+        } else if (fieldDef.type === 'bool') {
+            input.type = 'checkbox';
+        } else {
+            input.type = 'text';
+        }
+
+        if (fieldDef.required) {
+            input.required = true;
+        }
+
+        // Set current value
+        if (currentConfig && currentConfig[fieldName] !== undefined) {
+            if (fieldDef.type === 'bool') {
+                input.checked = currentConfig[fieldName];
+            } else {
+                input.value = currentConfig[fieldName];
+            }
+        }
+
+        editConfigFields.appendChild(label);
+        editConfigFields.appendChild(input);
+    });
+}
+
+function getEditConfigValues() {
+    const config = {};
+    const inputs = editConfigFields.querySelectorAll('input');
+
+    inputs.forEach(input => {
+        const fieldName = input.getAttribute('data-field-name');
+        const fieldType = input.getAttribute('data-field-type');
+        let value = input.value;
+
+        if (fieldType === 'int') {
+            value = parseInt(value, 10);
+        } else if (fieldType === 'float') {
+            value = parseFloat(value);
+        } else if (fieldType === 'bool') {
+            value = input.checked;
+        }
+
+        if (value !== '' && !isNaN(value)) {
+            config[fieldName] = value;
+        }
+    });
+
+    return config;
+}
+
+editConfigCancelBtn.addEventListener('click', () => {
+    closeEditConfigModal();
+});
+
+editConfigSaveBtn.addEventListener('click', async () => {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId || !currentNodeId) return;
+
+    const config = getEditConfigValues();
+
+    try {
+        await api.setNodeConfig(graphId, currentNodeId, JSON.stringify(config));
+        closeEditConfigModal();
+        // Refresh graph to show updated config
+        const graph = await api.getImageGraph(graphId);
+        graphState.setCurrentGraph(graph);
+    } catch (error) {
+        console.error('Failed to update node config:', error);
+        alert(`Failed to update node config: ${error.message}`);
+    }
+});
+
+editConfigModal.addEventListener('click', (e) => {
+    if (e.target === editConfigModal) {
+        closeEditConfigModal();
+    }
+});
+
+// Delete node modal handlers
+function openDeleteNodeModal(nodeId) {
+    const node = graphState.getNode(nodeId);
+    if (!node) return;
+
+    currentNodeId = nodeId;
+    deleteNodeName.textContent = node.name;
+
+    deleteNodeModal.classList.add('active');
+}
+
+function closeDeleteNodeModal() {
+    deleteNodeModal.classList.remove('active');
+    currentNodeId = null;
+}
+
+deleteNodeCancelBtn.addEventListener('click', () => {
+    closeDeleteNodeModal();
+});
+
+deleteNodeConfirmBtn.addEventListener('click', async () => {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId || !currentNodeId) return;
+
+    try {
+        await api.deleteNode(graphId, currentNodeId);
+        closeDeleteNodeModal();
+        // Refresh graph to show node removed
+        const graph = await api.getImageGraph(graphId);
+        graphState.setCurrentGraph(graph);
+    } catch (error) {
+        console.error('Failed to delete node:', error);
+        alert(`Failed to delete node: ${error.message}`);
+    }
+});
+
+deleteNodeModal.addEventListener('click', (e) => {
+    if (e.target === deleteNodeModal) {
+        closeDeleteNodeModal();
+    }
+});
+
+// Handle node action button clicks
+svg.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('.node-action-btn');
+    if (!actionBtn) return;
+
+    const action = actionBtn.getAttribute('data-action');
+    const nodeElement = actionBtn.closest('.node');
+    const nodeId = nodeElement.getAttribute('data-node-id');
+
+    if (action === 'delete') {
+        openDeleteNodeModal(nodeId);
+    } else if (action === 'edit-config') {
+        openEditConfigModal(nodeId);
+    }
+
+    e.stopPropagation();
 });
 
 // Refresh current graph

@@ -68,11 +68,11 @@ export class GraphState {
         const sourceNode = this.getNode(sourceNodeId);
         if (!sourceNode) return false;
 
-        const output = sourceNode.outputs?.[sourceOutput];
+        const output = (sourceNode.outputs || []).find(o => o.name === sourceOutput);
         if (!output) return false;
 
-        return output.connected_to?.some(conn =>
+        return (output.connections || []).some(conn =>
             conn.node_id === targetNodeId && conn.input_name === targetInput
-        ) || false;
+        );
     }
 }

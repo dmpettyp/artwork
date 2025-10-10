@@ -167,6 +167,65 @@ body {
     user-select: none;
 }
 
+/* Node action buttons */
+.node-actions {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    transition-delay: 0.1s;
+    pointer-events: none;
+}
+
+.node:hover .node-actions {
+    opacity: 1;
+    pointer-events: all;
+    transition-delay: 0s;
+}
+
+.node-actions:hover {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.node-action-btn {
+    cursor: pointer;
+}
+
+.action-btn-bg {
+    fill: white;
+    stroke: #2c3e50;
+    stroke-width: 1.5;
+}
+
+.node-action-btn:hover .action-btn-bg {
+    fill: #ecf0f1;
+}
+
+.node-action-btn[data-action="delete"]:hover .action-btn-bg {
+    fill: #e74c3c;
+    stroke: #c0392b;
+}
+
+.node-action-btn[data-action="delete"]:hover .action-btn-icon {
+    fill: white;
+}
+
+.node-action-btn[data-action="edit-config"]:hover .action-btn-bg {
+    fill: #3498db;
+    stroke: #2980b9;
+}
+
+.node-action-btn[data-action="edit-config"]:hover .action-btn-icon {
+    fill: white;
+}
+
+.action-btn-icon {
+    fill: #2c3e50;
+    font-size: 16px;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+}
+
 /* Ports */
 .port {
     fill: #3498db;

@@ -79,6 +79,37 @@
         </div>
     </div>
 
+    <!-- Modal for editing node config -->
+    <div id="edit-config-modal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Node Configuration</h3>
+            <p id="edit-config-node-name" style="color: #7f8c8d; margin-bottom: 15px;"></p>
+
+            <div id="edit-config-fields">
+                <!-- Dynamic config fields will be inserted here -->
+            </div>
+
+            <div class="modal-actions">
+                <button id="edit-config-cancel-btn" class="btn">Cancel</button>
+                <button id="edit-config-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for delete confirmation -->
+    <div id="delete-node-modal" class="modal">
+        <div class="modal-content">
+            <h3>Delete Node</h3>
+            <p>Are you sure you want to delete this node?</p>
+            <p id="delete-node-name" style="font-weight: bold; color: #2c3e50; margin-top: 10px;"></p>
+
+            <div class="modal-actions">
+                <button id="delete-node-cancel-btn" class="btn">Cancel</button>
+                <button id="delete-node-confirm-btn" class="btn" style="background: #e74c3c;">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript modules -->
     <script type="module" src="/js/main.js"></script>
 </body>
