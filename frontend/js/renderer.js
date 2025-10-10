@@ -208,7 +208,6 @@ export class Renderer {
         label.setAttribute('y', y + 4);
         label.setAttribute('text-anchor', 'end');
         label.textContent = outputName;
-        console.log(outputName);
         g.appendChild(label);
 
         parentG.appendChild(g);
@@ -236,19 +235,59 @@ export class Renderer {
         const x2 = targetPosNode.x + parseFloat(targetPort.getAttribute('cx'));
         const y2 = targetPosNode.y + parseFloat(targetPort.getAttribute('cy'));
 
+        // Create a group for the connection
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.classList.add('connection-group');
+        g.setAttribute('data-from-node', sourceNodeId);
+        g.setAttribute('data-from-output', sourceOutput);
+        g.setAttribute('data-to-node', targetNodeId);
+        g.setAttribute('data-to-input', targetInput);
+
+        // Invisible wider path for better hover detection
+        const hoverPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hoverPath.classList.add('connection-hover');
+        const dx = x2 - x1;
+        const curve = Math.abs(dx) / 2;
+        const d = `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`;
+        hoverPath.setAttribute('d', d);
+
+        // Visible connection path
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.classList.add('connection');
         if (hasImage) {
             path.classList.add('has-image');
         }
-
-        // Bezier curve for nicer connections
-        const dx = x2 - x1;
-        const curve = Math.abs(dx) / 2;
-        const d = `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`;
         path.setAttribute('d', d);
 
-        this.connectionsLayer.appendChild(path);
+        // Calculate midpoint for delete button
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+
+        // Delete button (hidden by default)
+        const deleteBtn = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        deleteBtn.classList.add('connection-delete-btn');
+
+        const btnCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        btnCircle.setAttribute('cx', midX);
+        btnCircle.setAttribute('cy', midY);
+        btnCircle.setAttribute('r', 12);
+        btnCircle.classList.add('connection-delete-bg');
+
+        const btnText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        btnText.setAttribute('x', midX);
+        btnText.setAttribute('y', midY + 5);
+        btnText.setAttribute('text-anchor', 'middle');
+        btnText.classList.add('connection-delete-icon');
+        btnText.textContent = '×';
+
+        deleteBtn.appendChild(btnCircle);
+        deleteBtn.appendChild(btnText);
+
+        g.appendChild(hoverPath);
+        g.appendChild(path);
+        g.appendChild(deleteBtn);
+
+        this.connectionsLayer.appendChild(g);
     }
 
     renderTempConnection(x1, y1, x2, y2) {

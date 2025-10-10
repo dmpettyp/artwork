@@ -246,6 +246,17 @@ body {
 }
 
 /* Connections */
+.connection-group {
+    cursor: pointer;
+}
+
+.connection-hover {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 16;
+    pointer-events: stroke;
+}
+
 .connection {
     fill: none;
     stroke: #3498db;
@@ -255,6 +266,52 @@ body {
 
 .connection.has-image {
     stroke: #27ae60;
+}
+
+.connection-group:hover .connection {
+    stroke-width: 3;
+}
+
+/* Connection delete button */
+.connection-delete-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    transition-delay: 1s;
+    pointer-events: none;
+    cursor: pointer;
+}
+
+.connection-group:hover .connection-delete-btn {
+    opacity: 1;
+    pointer-events: all;
+    transition-delay: 0s;
+}
+
+.connection-delete-btn:hover {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.connection-delete-bg {
+    fill: white;
+    stroke: #e74c3c;
+    stroke-width: 2;
+}
+
+.connection-delete-btn:hover .connection-delete-bg {
+    fill: #e74c3c;
+}
+
+.connection-delete-icon {
+    fill: #e74c3c;
+    font-size: 20px;
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none;
+}
+
+.connection-delete-btn:hover .connection-delete-icon {
+    fill: white;
 }
 
 /* Temporary connection being dragged */

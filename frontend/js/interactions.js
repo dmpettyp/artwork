@@ -96,6 +96,12 @@ export class InteractionHandler {
             nodeElement.style.cursor = 'move';
         }
 
+        const finalPosition = this.renderer.getNodePosition(this.draggedNode);
+        console.log('Node drag ended:', {
+            nodeId: this.draggedNode,
+            position: finalPosition
+        });
+
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
     }

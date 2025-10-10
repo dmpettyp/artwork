@@ -104,7 +104,6 @@ graphSelect.addEventListener('change', (e) => {
 async function selectGraph(graphId) {
     try {
         const graph = await api.getImageGraph(graphId);
-        console.log(graph);
         graphState.setCurrentGraph(graph);
         await loadGraphList(); // Refresh list to update active state
     } catch (error) {
@@ -468,6 +467,21 @@ deleteNodeModal.addEventListener('click', (e) => {
 
 // Handle node action button clicks
 svg.addEventListener('click', (e) => {
+    // Check for connection delete button
+    const connectionDeleteBtn = e.target.closest('.connection-delete-btn');
+    if (connectionDeleteBtn) {
+        const connectionGroup = connectionDeleteBtn.closest('.connection-group');
+        const fromNode = connectionGroup.getAttribute('data-from-node');
+        const fromOutput = connectionGroup.getAttribute('data-from-output');
+        const toNode = connectionGroup.getAttribute('data-to-node');
+        const toInput = connectionGroup.getAttribute('data-to-input');
+
+        handleDisconnectConnection(fromNode, fromOutput, toNode, toInput);
+        e.stopPropagation();
+        return;
+    }
+
+    // Check for node action buttons
     const actionBtn = e.target.closest('.node-action-btn');
     if (!actionBtn) return;
 
@@ -483,6 +497,22 @@ svg.addEventListener('click', (e) => {
 
     e.stopPropagation();
 });
+
+// Handle connection disconnect
+async function handleDisconnectConnection(fromNodeId, fromOutput, toNodeId, toInput) {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId) return;
+
+    try {
+        await api.disconnectNodes(graphId, fromNodeId, fromOutput, toNodeId, toInput);
+        // Refresh graph to show connection removed
+        const graph = await api.getImageGraph(graphId);
+        graphState.setCurrentGraph(graph);
+    } catch (error) {
+        console.error('Failed to disconnect nodes:', error);
+        alert(`Failed to disconnect nodes: ${error.message}`);
+    }
+}
 
 // Refresh current graph
 refreshBtn.addEventListener('click', async () => {
