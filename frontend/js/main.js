@@ -14,7 +14,7 @@ const renderer = new Renderer(svg, nodesLayer, connectionsLayer);
 const interactions = new InteractionHandler(svg, renderer, graphState, api);
 
 // UI elements
-const graphList = document.getElementById('graph-list');
+const graphSelect = document.getElementById('graph-select');
 const graphNameElement = document.getElementById('graph-name');
 const createGraphBtn = document.getElementById('create-graph-btn');
 const refreshBtn = document.getElementById('refresh-btn');
@@ -46,26 +46,33 @@ async function loadGraphList() {
 }
 
 function renderGraphList(graphs) {
-    graphList.innerHTML = '';
+    const currentGraphId = graphState.getCurrentGraphId();
 
-    if (graphs.length === 0) {
-        graphList.innerHTML = '<p style="color: #95a5a6; font-size: 12px; padding: 10px;">No graphs yet</p>';
-        return;
-    }
+    // Clear and add default option
+    graphSelect.innerHTML = '<option value="">Select a graph...</option>';
 
     graphs.forEach(graph => {
-        const item = document.createElement('div');
-        item.className = 'graph-item';
-        item.textContent = graph.name;
-        item.addEventListener('click', () => selectGraph(graph.id));
+        const option = document.createElement('option');
+        option.value = graph.id;
+        option.textContent = graph.name;
 
-        if (graph.id === graphState.getCurrentGraphId()) {
-            item.classList.add('active');
+        if (graph.id === currentGraphId) {
+            option.selected = true;
         }
 
-        graphList.appendChild(item);
+        graphSelect.appendChild(option);
     });
 }
+
+// Handle graph selection from dropdown
+graphSelect.addEventListener('change', (e) => {
+    const graphId = e.target.value;
+    if (graphId) {
+        selectGraph(graphId);
+    } else {
+        graphState.setCurrentGraph(null);
+    }
+});
 
 // Select and load a graph
 async function selectGraph(graphId) {

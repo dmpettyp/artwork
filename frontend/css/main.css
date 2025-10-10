@@ -67,25 +67,27 @@ body {
     background: #2980b9;
 }
 
-/* Graph list */
-.graph-list {
-    margin-top: 10px;
-}
-
-.graph-item {
+/* Graph select */
+.graph-select {
+    width: 100%;
     padding: 10px;
+    margin-bottom: 10px;
     background: #34495e;
+    color: #ecf0f1;
+    border: 1px solid #415b76;
     border-radius: 4px;
-    margin-bottom: 5px;
+    font-size: 14px;
     cursor: pointer;
 }
 
-.graph-item:hover {
-    background: #415b76;
+.graph-select:focus {
+    outline: none;
+    border-color: #3498db;
 }
 
-.graph-item.active {
-    background: #3498db;
+.graph-select option {
+    background: #34495e;
+    color: #ecf0f1;
 }
 
 /* Canvas container */
