@@ -19,6 +19,10 @@ const graphNameElement = document.getElementById('graph-name');
 const createGraphBtn = document.getElementById('create-graph-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const addNodeButtons = document.querySelectorAll('[data-node-type]');
+const modal = document.getElementById('create-graph-modal');
+const graphNameInput = document.getElementById('graph-name-input');
+const modalCreateBtn = document.getElementById('modal-create-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
 // Subscribe to graph state changes
 graphState.subscribe((graph) => {
@@ -76,18 +80,52 @@ async function selectGraph(graphId) {
     }
 }
 
+// Modal functions
+function openModal() {
+    modal.classList.add('active');
+    graphNameInput.value = '';
+    graphNameInput.focus();
+}
+
+function closeModal() {
+    modal.classList.remove('active');
+}
+
 // Create new graph
-createGraphBtn.addEventListener('click', async () => {
-    const name = prompt('Enter graph name:');
+createGraphBtn.addEventListener('click', () => {
+    openModal();
+});
+
+modalCancelBtn.addEventListener('click', () => {
+    closeModal();
+});
+
+modalCreateBtn.addEventListener('click', async () => {
+    const name = graphNameInput.value.trim();
     if (!name) return;
 
     try {
-        const graph = await api.createImageGraph(name);
+        const graph_id = await api.createImageGraph(name);
+        closeModal();
         await loadGraphList();
-        await selectGraph(graph.id);
+        await selectGraph(graph_id);
     } catch (error) {
         console.error('Failed to create graph:', error);
         alert(`Failed to create graph: ${error.message}`);
+    }
+});
+
+// Allow Enter key to submit modal
+graphNameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        modalCreateBtn.click();
+    }
+});
+
+// Close modal on background click
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        closeModal();
     }
 });
 

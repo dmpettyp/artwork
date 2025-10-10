@@ -23,7 +23,7 @@ export async function createImageGraph(name) {
         throw new Error(`Failed to create image graph: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.imagegraph;
+    return data.id;
 }
 
 export async function getImageGraph(id) {
@@ -40,7 +40,7 @@ export async function addNode(graphId, nodeType) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             type: nodeType,
             name: nodeType,
             config: "{}",
