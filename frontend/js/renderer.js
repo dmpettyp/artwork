@@ -23,6 +23,42 @@ export class Renderer {
         this.nodesLayer = nodesLayer;
         this.connectionsLayer = connectionsLayer;
         this.nodePositions = new Map();
+        this.zoom = 1;
+        this.panX = 0;
+        this.panY = 0;
+
+        this.setupZoom();
+    }
+
+    setupZoom() {
+        this.svg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const delta = -e.deltaY;
+            const zoomFactor = delta > 0 ? 1.1 : 0.9;
+
+            // Get mouse position relative to SVG
+            const rect = this.svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calculate new zoom
+            const newZoom = Math.max(0.1, Math.min(5, this.zoom * zoomFactor));
+
+            // Adjust pan to zoom towards mouse position
+            const scale = newZoom / this.zoom;
+            this.panX = mouseX - (mouseX - this.panX) * scale;
+            this.panY = mouseY - (mouseY - this.panY) * scale;
+
+            this.zoom = newZoom;
+            this.updateTransform();
+        });
+    }
+
+    updateTransform() {
+        const transform = `translate(${this.panX}, ${this.panY}) scale(${this.zoom})`;
+        this.nodesLayer.setAttribute('transform', transform);
+        this.connectionsLayer.setAttribute('transform', transform);
     }
 
     nodeTypeHasConfig(nodeType) {

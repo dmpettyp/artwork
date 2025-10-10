@@ -52,18 +52,27 @@ export class InteractionHandler {
         }
     }
 
+    screenToCanvas(screenX, screenY) {
+        // Convert screen coordinates to canvas coordinates accounting for zoom and pan
+        const canvasX = (screenX - this.renderer.panX) / this.renderer.zoom;
+        const canvasY = (screenY - this.renderer.panY) / this.renderer.zoom;
+        return { x: canvasX, y: canvasY };
+    }
+
     startNodeDrag(nodeElement, e) {
         const nodeId = nodeElement.getAttribute('data-node-id');
         const pos = this.renderer.getNodePosition(nodeId);
 
         const svgRect = this.svg.getBoundingClientRect();
-        const mouseX = e.clientX - svgRect.left;
-        const mouseY = e.clientY - svgRect.top;
+        const screenX = e.clientX - svgRect.left;
+        const screenY = e.clientY - svgRect.top;
+
+        const canvasPos = this.screenToCanvas(screenX, screenY);
 
         this.draggedNode = nodeId;
         this.dragOffset = {
-            x: mouseX - pos.x,
-            y: mouseY - pos.y
+            x: canvasPos.x - pos.x,
+            y: canvasPos.y - pos.y
         };
 
         nodeElement.style.cursor = 'grabbing';
@@ -73,11 +82,13 @@ export class InteractionHandler {
         if (!this.draggedNode) return;
 
         const svgRect = this.svg.getBoundingClientRect();
-        const mouseX = e.clientX - svgRect.left;
-        const mouseY = e.clientY - svgRect.top;
+        const screenX = e.clientX - svgRect.left;
+        const screenY = e.clientY - svgRect.top;
 
-        const newX = mouseX - this.dragOffset.x;
-        const newY = mouseY - this.dragOffset.y;
+        const canvasPos = this.screenToCanvas(screenX, screenY);
+
+        const newX = canvasPos.x - this.dragOffset.x;
+        const newY = canvasPos.y - this.dragOffset.y;
 
         this.renderer.updateNodePosition(this.draggedNode, newX, newY);
 
