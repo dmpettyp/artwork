@@ -43,16 +43,7 @@ export class Renderer {
 
         this.clear();
 
-        // Render connections first (so they appear behind nodes)
-        graph.nodes.forEach(node => {
-            (node.outputs || []).forEach(output => {
-                (output.connections || []).forEach(conn => {
-                    this.renderConnection(node.id, output.name, conn.node_id, conn.input_name, output.image_id !== null && output.image_id !== '');
-                });
-            });
-        });
-
-        // Render nodes
+        // Render nodes first
         graph.nodes.forEach((node, index) => {
             // Simple grid layout if no position stored
             if (!this.nodePositions.has(node.id)) {
@@ -66,6 +57,15 @@ export class Renderer {
 
             const pos = this.nodePositions.get(node.id);
             this.renderNode(node, pos.x, pos.y);
+        });
+
+        // Render connections after nodes (but they'll appear behind due to z-order in SVG)
+        graph.nodes.forEach(node => {
+            (node.outputs || []).forEach(output => {
+                (output.connections || []).forEach(conn => {
+                    this.renderConnection(node.id, output.name, conn.node_id, conn.input_name, output.image_id !== null && output.image_id !== '');
+                });
+            });
         });
     }
 
