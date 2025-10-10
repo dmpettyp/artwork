@@ -50,15 +50,21 @@ func NewHTTPServer(
 
 	// Set up routes
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /imagegraphs", s.handleListImageGraphs)
-	mux.HandleFunc("POST /imagegraphs", s.handleCreateImageGraph)
-	mux.HandleFunc("GET /imagegraphs/{id}", s.handleGetImageGraph)
-	mux.HandleFunc("POST /imagegraphs/{id}/nodes", s.handleAddNode)
-	mux.HandleFunc("DELETE /imagegraphs/{id}/nodes/{node_id}", s.handleDeleteNode)
-	mux.HandleFunc("PUT /imagegraphs/{id}/connectNodes", s.handleConnectNodes)
-	mux.HandleFunc("PUT /imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
-	mux.HandleFunc("PATCH /imagegraphs/{id}/nodes/{node_id}/config", s.handleSetNodeConfig)
-	mux.HandleFunc("PATCH /imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleSetNodeOutputImage)
+
+	// API routes
+	mux.HandleFunc("GET /api/imagegraphs", s.handleListImageGraphs)
+	mux.HandleFunc("POST /api/imagegraphs", s.handleCreateImageGraph)
+	mux.HandleFunc("GET /api/imagegraphs/{id}", s.handleGetImageGraph)
+	mux.HandleFunc("POST /api/imagegraphs/{id}/nodes", s.handleAddNode)
+	mux.HandleFunc("DELETE /api/imagegraphs/{id}/nodes/{node_id}", s.handleDeleteNode)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/connectNodes", s.handleConnectNodes)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
+	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/config", s.handleSetNodeConfig)
+	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleSetNodeOutputImage)
+
+	// Serve static frontend files
+	fs := http.FileServer(http.Dir("../frontend"))
+	mux.Handle("/", fs)
 
 	s.server = &http.Server{
 		Addr:    ":" + s.port,

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artwork - Image Graph Editor</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h1>Artwork</h1>
+
+            <section class="sidebar-section">
+                <h2>Graphs</h2>
+                <button id="create-graph-btn" class="btn btn-primary">+ New Graph</button>
+                <div id="graph-list" class="graph-list">
+                    <!-- Graph list will be populated here -->
+                </div>
+            </section>
+
+            <section class="sidebar-section">
+                <h2>Add Node</h2>
+                <button class="btn" data-node-type="input">Input Node</button>
+                <button class="btn" data-node-type="scale">Scale Node</button>
+            </section>
+        </aside>
+
+        <!-- Main canvas area -->
+        <main class="canvas-container">
+            <div class="canvas-header">
+                <h2 id="graph-name">No graph selected</h2>
+                <button id="refresh-btn" class="btn">Refresh</button>
+            </div>
+            <svg id="graph-canvas" class="graph-canvas">
+                <!-- Connections layer -->
+                <g id="connections-layer"></g>
+                <!-- Nodes layer -->
+                <g id="nodes-layer"></g>
+            </svg>
+        </main>
+    </div>
+
+    <!-- JavaScript modules -->
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

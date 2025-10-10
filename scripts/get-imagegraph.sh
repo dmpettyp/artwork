@@ -15,6 +15,6 @@ echo "Fetching ImageGraph with ID: $ID"
 echo ""
 
 # Make the request and optionally pipe through jq for pretty printing
-curl -v "http://localhost:8080/imagegraphs/$ID"
+curl -v "http://localhost:8080/api/imagegraphs/$ID"
 
 echo ""

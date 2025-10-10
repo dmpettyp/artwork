@@ -8,7 +8,7 @@ NAME="${1:-Test ImageGraph}"
 echo "Creating ImageGraph with name: $NAME"
 echo ""
 
-curl -v -X POST http://localhost:8080/imagegraphs \
+curl -v -X POST http://localhost:8080/api/imagegraphs \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"$NAME\"}"
 
