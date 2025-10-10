@@ -69,10 +69,10 @@ export async function connectNodes(graphId, sourceNodeId, sourceOutput, targetNo
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            source_node_id: sourceNodeId,
-            source_output: sourceOutput,
-            target_node_id: targetNodeId,
-            target_input: targetInput,
+            from_node_id: sourceNodeId,
+            output_name: sourceOutput,
+            to_node_id: targetNodeId,
+            input_name: targetInput,
         }),
     });
     if (!response.ok) {
@@ -87,10 +87,10 @@ export async function disconnectNodes(graphId, sourceNodeId, sourceOutput, targe
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            source_node_id: sourceNodeId,
-            source_output: sourceOutput,
-            target_node_id: targetNodeId,
-            target_input: targetInput,
+            from_node_id: sourceNodeId,
+            output_name: sourceOutput,
+            to_node_id: targetNodeId,
+            input_name: targetInput,
         }),
     });
     if (!response.ok) {
