@@ -195,14 +195,16 @@ export class InteractionHandler {
         if (!this.connectionDrag) return;
 
         const svgRect = this.svg.getBoundingClientRect();
-        const mouseX = e.clientX - svgRect.left;
-        const mouseY = e.clientY - svgRect.top;
+        const screenX = e.clientX - svgRect.left;
+        const screenY = e.clientY - svgRect.top;
+
+        const canvasPos = this.screenToCanvas(screenX, screenY);
 
         this.renderer.renderTempConnection(
             this.connectionDrag.startX,
             this.connectionDrag.startY,
-            mouseX,
-            mouseY
+            canvasPos.x,
+            canvasPos.y
         );
     }
 
