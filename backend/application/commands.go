@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/ui"
 	"github.com/dmpettyp/dorky"
 )
 
@@ -224,5 +225,32 @@ func NewSetImageGraphNodeConfigCommand(
 		Config:       config,
 	}
 	command.Init("SetImageGraphNodeConfigCommand")
+	return command
+}
+
+// UIMetadata Commands
+
+type UpdateUIMetadataCommand struct {
+	dorky.BaseCommand
+	GraphID       imagegraph.ImageGraphID
+	Zoom          float64
+	PanX          float64
+	PanY          float64
+	NodePositions map[imagegraph.NodeID]ui.NodePosition
+}
+
+func NewUpdateUIMetadataCommand(
+	graphID imagegraph.ImageGraphID,
+	zoom, panX, panY float64,
+	nodePositions map[imagegraph.NodeID]ui.NodePosition,
+) *UpdateUIMetadataCommand {
+	command := &UpdateUIMetadataCommand{
+		GraphID:       graphID,
+		Zoom:          zoom,
+		PanX:          panX,
+		PanY:          panY,
+		NodePositions: nodePositions,
+	}
+	command.Init("UpdateUIMetadataCommand")
 	return command
 }

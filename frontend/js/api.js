@@ -123,3 +123,29 @@ export async function setNodeOutputImage(graphId, nodeId, outputName, imageData)
         throw new Error(`Failed to set node output image: ${response.statusText}`);
     }
 }
+
+// UI Metadata API functions
+
+export async function getUIMetadata(graphId) {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/ui-metadata`);
+    if (!response.ok) {
+        throw new Error(`Failed to get UI metadata: ${response.statusText}`);
+    }
+    return response.json();
+}
+
+export async function updateUIMetadata(graphId, viewport, nodePositions) {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/ui-metadata`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            viewport,
+            node_positions: nodePositions,
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to update UI metadata: ${response.statusText}`);
+    }
+}

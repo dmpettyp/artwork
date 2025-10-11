@@ -22,9 +22,11 @@ to process images in a non-destructive way.
 - command, handlers and messagebus ✅
 - regenerate events✅
 - node states✅
-- http APIlayer - IN PROGRESS
 - swagger documentation? ✅
 - mapper ✅
+- move config to actual json in the API layer
+- http APIlayer - IN PROGRESS
+- UI - in progress
 - worker infrastructure to generate images
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?

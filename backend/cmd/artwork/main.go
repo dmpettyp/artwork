@@ -53,10 +53,18 @@ func main() {
 		return
 	}
 
+	_, err = application.NewUIMetadataCommandHandlers(messageBus, uow)
+
+	if err != nil {
+		logger.Error("could not create ui metadata command handlers", "error", err)
+		return
+	}
+
 	httpServer := httpgateway.NewHTTPServer(
 		logger,
 		messageBus,
 		uow.ImageGraphViews,
+		uow.UIMetadataViews,
 	)
 
 	httpServer.Start()

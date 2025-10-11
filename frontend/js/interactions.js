@@ -12,6 +12,9 @@ export class InteractionHandler {
         this.connectionDrag = null;
         this.canvasDrag = null;
 
+        // Debounce timer for persisting UI state
+        this.saveViewportTimeout = null;
+
         this.setupEventListeners();
     }
 
@@ -124,11 +127,8 @@ export class InteractionHandler {
             nodeElement.style.cursor = 'move';
         }
 
-        const finalPosition = this.renderer.getNodePosition(this.draggedNode);
-        console.log('Node drag ended:', {
-            nodeId: this.draggedNode,
-            position: finalPosition
-        });
+        // Persist all UI state (viewport + all node positions) to backend
+        this.debouncedSaveViewport();
 
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
@@ -159,8 +159,28 @@ export class InteractionHandler {
     endCanvasDrag() {
         if (!this.canvasDrag) return;
 
+        // Persist all UI state to backend (debounced)
+        this.debouncedSaveViewport();
+
         this.canvasDrag = null;
         this.svg.style.cursor = 'grab';
+    }
+
+    debouncedSaveViewport() {
+        const graphId = this.graphState.getCurrentGraphId();
+        if (!graphId) return;
+
+        // Clear any existing timeout to debounce
+        clearTimeout(this.saveViewportTimeout);
+        this.saveViewportTimeout = setTimeout(async () => {
+            try {
+                const viewport = this.renderer.exportViewport();
+                const nodePositions = this.renderer.exportNodePositions();
+                await this.api.updateUIMetadata(graphId, viewport, nodePositions);
+            } catch (error) {
+                console.error('Failed to save UI metadata:', error);
+            }
+        }, 500); // 500ms debounce
     }
 
     startConnectionDrag(portElement, e) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/ui"
 	"github.com/dmpettyp/mapper"
 )
 
@@ -667,4 +668,137 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
+}
+
+// UI Metadata Handlers
+
+type uiMetadataResponse struct {
+	GraphID       string                       `json:"graph_id"`
+	Viewport      viewportResponse             `json:"viewport"`
+	NodePositions map[string]nodePositionResponse `json:"node_positions"`
+}
+
+type viewportResponse struct {
+	Zoom float64 `json:"zoom"`
+	PanX float64 `json:"pan_x"`
+	PanY float64 `json:"pan_y"`
+}
+
+type nodePositionResponse struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+type updateUIMetadataRequest struct {
+	Viewport      viewportResponse               `json:"viewport"`
+	NodePositions map[string]nodePositionResponse `json:"node_positions"`
+}
+
+func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from path
+	idStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(idStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Fetch UI metadata from view
+	metadata, err := s.uiMetadataViews.Get(r.Context(), imageGraphID)
+	if err != nil {
+		// If not found, return default metadata
+		if errors.Is(err, application.ErrUIMetadataNotFound) {
+			respondJSON(w, http.StatusOK, uiMetadataResponse{
+				GraphID: imageGraphID.String(),
+				Viewport: viewportResponse{
+					Zoom: 1.0,
+					PanX: 0,
+					PanY: 0,
+				},
+				NodePositions: make(map[string]nodePositionResponse),
+			})
+			return
+		}
+		s.logger.Error("failed to get ui metadata", "error", err, "id", imageGraphID)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to retrieve ui metadata"})
+		return
+	}
+
+	// Map domain model to response DTO
+	response := mapUIMetadataToResponse(metadata)
+
+	// Return successful response
+	respondJSON(w, http.StatusOK, response)
+}
+
+func mapUIMetadataToResponse(metadata *ui.UIMetadata) uiMetadataResponse {
+	nodePositions := make(map[string]nodePositionResponse)
+	for nodeID, pos := range metadata.NodePositions {
+		nodePositions[nodeID.String()] = nodePositionResponse{
+			X: pos.X,
+			Y: pos.Y,
+		}
+	}
+
+	return uiMetadataResponse{
+		GraphID: metadata.GraphID.String(),
+		Viewport: viewportResponse{
+			Zoom: metadata.Viewport.Zoom,
+			PanX: metadata.Viewport.PanX,
+			PanY: metadata.Viewport.PanY,
+		},
+		NodePositions: nodePositions,
+	}
+}
+
+func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Parse request body
+	var req updateUIMetadataRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Convert node positions to domain types
+	nodePositions := make(map[imagegraph.NodeID]ui.NodePosition)
+	for nodeIDStr, pos := range req.NodePositions {
+		nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
+		if err != nil {
+			respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID: " + nodeIDStr})
+			return
+		}
+		nodePositions[nodeID] = ui.NodePosition{X: pos.X, Y: pos.Y}
+	}
+
+	// Create command
+	command := application.NewUpdateUIMetadataCommand(
+		imageGraphID,
+		req.Viewport.Zoom,
+		req.Viewport.PanX,
+		req.Viewport.PanY,
+		nodePositions,
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		s.logger.Error("failed to handle UpdateUIMetadataCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update ui metadata"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
 }

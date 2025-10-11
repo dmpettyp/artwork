@@ -12,6 +12,7 @@ import (
 type UnitOfWork struct {
 	*inmem.UnitOfWork[*application.Repos]
 	ImageGraphViews *ImageGraphViews
+	UIMetadataViews *UIMetadataViews
 }
 
 func NewUnitOfWork() (*UnitOfWork, error) {
@@ -21,8 +22,11 @@ func NewUnitOfWork() (*UnitOfWork, error) {
 		return nil, fmt.Errorf("failed to create ImageGraph repository: %w", err)
 	}
 
+	uiMetadataRepository := NewUIMetadataRepository()
+
 	repos := &application.Repos{
 		ImageGraphRepository: imageGraphRepository,
+		UIMetadataRepository: uiMetadataRepository,
 	}
 
 	uow := &UnitOfWork{
@@ -31,6 +35,7 @@ func NewUnitOfWork() (*UnitOfWork, error) {
 			imageGraphRepository,
 		),
 		ImageGraphViews: NewImageGraphViews(imageGraphRepository),
+		UIMetadataViews: NewUIMetadataViews(uiMetadataRepository),
 	}
 
 	return uow, nil

@@ -52,7 +52,17 @@ export class Renderer {
 
             this.zoom = newZoom;
             this.updateTransform();
+
+            // Notify about viewport change (if handler is set)
+            if (this.onViewportChange) {
+                this.onViewportChange();
+            }
         });
+    }
+
+    // Set a callback for viewport changes
+    setViewportChangeCallback(callback) {
+        this.onViewportChange = callback;
     }
 
     updateTransform() {
@@ -361,5 +371,42 @@ export class Renderer {
 
     getNodePosition(nodeId) {
         return this.nodePositions.get(nodeId);
+    }
+
+    // Export current viewport state
+    exportViewport() {
+        return {
+            zoom: this.zoom,
+            pan_x: this.panX,
+            pan_y: this.panY
+        };
+    }
+
+    // Export all node positions
+    exportNodePositions() {
+        const positions = {};
+        for (const [nodeId, pos] of this.nodePositions.entries()) {
+            positions[nodeId] = { x: pos.x, y: pos.y };
+        }
+        return positions;
+    }
+
+    // Restore viewport from metadata
+    restoreViewport(viewport) {
+        if (viewport) {
+            this.zoom = viewport.zoom || 1.0;
+            this.panX = viewport.pan_x || 0;
+            this.panY = viewport.pan_y || 0;
+            this.updateTransform();
+        }
+    }
+
+    // Restore node positions from metadata
+    restoreNodePositions(nodePositions) {
+        if (nodePositions) {
+            for (const [nodeId, pos] of Object.entries(nodePositions)) {
+                this.nodePositions.set(nodeId, { x: pos.x, y: pos.y });
+            }
+        }
     }
 }

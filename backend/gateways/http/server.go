@@ -11,11 +11,12 @@ import (
 )
 
 type HTTPServer struct {
-	logger          *slog.Logger
-	messageBus      *dorky.MessageBus
-	imageGraphViews application.ImageGraphViews
-	server          *http.Server
-	port            string
+	logger           *slog.Logger
+	messageBus       *dorky.MessageBus
+	imageGraphViews  application.ImageGraphViews
+	uiMetadataViews  application.UIMetadataViews
+	server           *http.Server
+	port             string
 }
 
 // ServerOption is a functional option for configuring the HTTPServer
@@ -34,13 +35,15 @@ func NewHTTPServer(
 	logger *slog.Logger,
 	mb *dorky.MessageBus,
 	imageGraphViews application.ImageGraphViews,
+	uiMetadataViews application.UIMetadataViews,
 	opts ...ServerOption,
 ) *HTTPServer {
 	s := &HTTPServer{
-		logger:          logger,
-		messageBus:      mb,
-		imageGraphViews: imageGraphViews,
-		port:            "8080", // default port
+		logger:           logger,
+		messageBus:       mb,
+		imageGraphViews:  imageGraphViews,
+		uiMetadataViews:  uiMetadataViews,
+		port:             "8080", // default port
 	}
 
 	// Apply options
@@ -61,6 +64,10 @@ func NewHTTPServer(
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
 	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/config", s.handleSetNodeConfig)
 	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleSetNodeOutputImage)
+
+	// UI Metadata routes
+	mux.HandleFunc("GET /api/imagegraphs/{id}/ui-metadata", s.handleGetUIMetadata)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/ui-metadata", s.handleUpdateUIMetadata)
 
 	// Serve static frontend files
 	fs := http.FileServer(http.Dir("../frontend"))

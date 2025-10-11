@@ -61,6 +61,11 @@ graphState.subscribe((graph) => {
     }
 });
 
+// Set up viewport change callback for zoom persistence
+renderer.setViewportChangeCallback(() => {
+    interactions.debouncedSaveViewport();
+});
+
 // Load and display graph list
 async function loadGraphList() {
     try {
@@ -104,6 +109,17 @@ graphSelect.addEventListener('change', (e) => {
 async function selectGraph(graphId) {
     try {
         const graph = await api.getImageGraph(graphId);
+
+        // Load UI metadata and restore viewport/positions
+        try {
+            const uiMetadata = await api.getUIMetadata(graphId);
+            renderer.restoreViewport(uiMetadata.viewport);
+            renderer.restoreNodePositions(uiMetadata.node_positions);
+        } catch (error) {
+            console.log('No UI metadata found, using defaults:', error);
+            // Not an error - just means no metadata was saved yet
+        }
+
         graphState.setCurrentGraph(graph);
         await loadGraphList(); // Refresh list to update active state
     } catch (error) {
