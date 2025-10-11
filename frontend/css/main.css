@@ -122,7 +122,7 @@ body {
 .graph-canvas {
     flex: 1;
     width: 100%;
-    background: #ffffff;
+    background: #f5f5f5;
     cursor: grab;
 }
 
