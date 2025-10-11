@@ -544,18 +544,5 @@ refreshBtn.addEventListener('click', async () => {
     }
 });
 
-// Auto-refresh every 2 seconds if a graph is selected
-setInterval(async () => {
-    const graphId = graphState.getCurrentGraphId();
-    if (graphId) {
-        try {
-            const graph = await api.getImageGraph(graphId);
-            graphState.setCurrentGraph(graph);
-        } catch (error) {
-            console.error('Auto-refresh failed:', error);
-        }
-    }
-}, 2000);
-
 // Load initial data
 loadGraphList();
