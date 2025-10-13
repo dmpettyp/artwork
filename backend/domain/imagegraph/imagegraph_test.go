@@ -330,6 +330,120 @@ func TestNode_SetConfig(t *testing.T) {
 
 }
 
+func TestImageGraph_SetNodeName(t *testing.T) {
+	t.Run("sets name for existing node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "old-name", imagegraph.NodeConfig{})
+
+		err := ig.SetNodeName(nodeID, "new-name")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Name != "new-name" {
+			t.Errorf("expected name %q, got %q", "new-name", node.Name)
+		}
+	})
+
+	t.Run("returns error for non-existent node", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+
+		err := ig.SetNodeName(nodeID, "new-name")
+
+		if err == nil {
+			t.Fatal("expected error for non-existent node, got nil")
+		}
+	})
+
+	t.Run("returns error for nil node ID", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+
+		err := ig.SetNodeName(imagegraph.NodeID{}, "new-name")
+
+		if err == nil {
+			t.Fatal("expected error for nil node ID, got nil")
+		}
+	})
+
+	t.Run("returns error for empty name", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "old-name", imagegraph.NodeConfig{})
+
+		err := ig.SetNodeName(nodeID, "")
+
+		if err == nil {
+			t.Fatal("expected error for empty name, got nil")
+		}
+	})
+
+	t.Run("emits NodeNameSet event", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "old-name", imagegraph.NodeConfig{})
+		ig.ResetEvents()
+
+		err := ig.SetNodeName(nodeID, "new-name")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		events := ig.GetEvents()
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
+		}
+
+		nameSetEvent, ok := events[0].(*imagegraph.NodeNameSetEvent)
+		if !ok {
+			t.Errorf("expected NodeNameSetEvent, got %T", events[0])
+		}
+
+		if nameSetEvent.Name != "new-name" {
+			t.Errorf("expected event name %q, got %q", "new-name", nameSetEvent.Name)
+		}
+	})
+
+	t.Run("can update name multiple times", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "name1", imagegraph.NodeConfig{})
+
+		ig.SetNodeName(nodeID, "name2")
+		err := ig.SetNodeName(nodeID, "name3")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		node, _ := ig.Nodes.Get(nodeID)
+		if node.Name != "name3" {
+			t.Errorf("expected name %q, got %q", "name3", node.Name)
+		}
+	})
+
+	t.Run("increments version when name is set", func(t *testing.T) {
+		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
+		nodeID := imagegraph.MustNewNodeID()
+		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "old-name", imagegraph.NodeConfig{})
+		initialVersion := ig.Version
+
+		err := ig.SetNodeName(nodeID, "new-name")
+
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if ig.Version != initialVersion+1 {
+			t.Errorf("expected version %v, got %v", initialVersion+1, ig.Version)
+		}
+	})
+}
+
 func TestImageGraph_SetNodePreview(t *testing.T) {
 	t.Run("sets preview image for existing node", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")

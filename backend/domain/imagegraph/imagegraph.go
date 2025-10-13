@@ -568,6 +568,29 @@ func (ig *ImageGraph) SetNodeConfig(
 	return nil
 }
 
+// SetNodeName sets the name for a specific node
+func (ig *ImageGraph) SetNodeName(
+	nodeID NodeID,
+	name string,
+) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot set name for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		return n.SetName(name)
+	})
+
+	if err != nil {
+		return fmt.Errorf(
+			"couldn't set node %q name: %w",
+			nodeID, err,
+		)
+	}
+
+	return nil
+}
+
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
 func (ig *ImageGraph) wouldCreateCycle(fromNodeID, toNodeID NodeID) bool {
 	// If we connect fromNode -> toNode, check if there's already a path

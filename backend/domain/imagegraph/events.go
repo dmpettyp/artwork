@@ -235,6 +235,20 @@ func NewNodeConfigSetEvent(n *Node) *NodeConfigSetEvent {
 	return e
 }
 
+type NodeNameSetEvent struct {
+	NodeEvent
+	Name string
+}
+
+func NewNodeNameSetEvent(n *Node) *NodeNameSetEvent {
+	e := &NodeNameSetEvent{
+		Name: n.Name,
+	}
+	e.Init("NodeNameSet")
+	e.applyNode(n)
+	return e
+}
+
 type NodePreviewSetEvent struct {
 	NodeEvent
 	ImageID ImageID

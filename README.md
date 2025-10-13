@@ -26,6 +26,10 @@ to process images in a non-destructive way.
 - mapper ✅
 - move config to actual json in the API layer ✅
 - change patch node/config to patch node to allow name changing
+  - add domain method to Node and ImageGraph
+  - add command
+  - modify patch endpoint to update multiple things
+  - ui
 - uploading images
 - http APIlayer - IN PROGRESS ✅
 - UI

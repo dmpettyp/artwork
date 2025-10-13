@@ -190,6 +190,18 @@ func (n *Node) SetConfig(config NodeConfig) error {
 	return nil
 }
 
+func (n *Node) SetName(name string) error {
+	if len(name) == 0 {
+		return fmt.Errorf("cannot set node name to empty string")
+	}
+
+	n.Name = name
+
+	n.addEvent(NewNodeNameSetEvent(n))
+
+	return nil
+}
+
 func (n *Node) SetPreview(imageID ImageID) error {
 	n.Preview = imageID
 
