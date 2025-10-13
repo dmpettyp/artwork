@@ -20,9 +20,9 @@ type createImageGraphResponse struct {
 }
 
 type addNodeRequest struct {
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Config string `json:"config"`
+	Name   string          `json:"name"`
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
 }
 
 type addNodeResponse struct {
@@ -37,7 +37,7 @@ type connectionRequest struct {
 }
 
 type setNodeConfigRequest struct {
-	Config string `json:"config"`
+	Config json.RawMessage `json:"config"`
 }
 
 type setNodeOutputImageRequest struct {
@@ -65,7 +65,7 @@ type nodeResponse struct {
 	Name    string           `json:"name"`
 	Type    string           `json:"type"`
 	Version int              `json:"version"`
-	Config  string           `json:"config"`
+	Config  json.RawMessage  `json:"config"`
 	State   string           `json:"state"`
 	Preview string           `json:"preview,omitempty"`
 	Inputs  []inputResponse  `json:"inputs"`
@@ -249,7 +249,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 			Name:    node.Name,
 			Type:    nodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Version: int(node.Version),
-			Config:  node.Config,
+			Config:  json.RawMessage(node.Config),
 			State:   nodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
 			Inputs:  inputs,
 			Outputs: outputs,
@@ -298,7 +298,7 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "type is required"})
 		return
 	}
-	if req.Config == "" {
+	if len(req.Config) == 0 {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "config is required"})
 		return
 	}
@@ -315,13 +315,16 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 	// Generate new NodeID
 	nodeID := imagegraph.MustNewNodeID()
 
+	// Serialize config to string for command
+	configStr := string(req.Config)
+
 	// Create command
 	command := application.NewAddImageGraphNodeCommand(
 		imageGraphID,
 		nodeID,
 		nodeType,
 		req.Name,
-		req.Config,
+		configStr,
 	)
 
 	// Send command to message bus
@@ -562,16 +565,19 @@ func (s *HTTPServer) handleSetNodeConfig(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Validate config
-	if req.Config == "" {
+	if len(req.Config) == 0 {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "config is required"})
 		return
 	}
+
+	// Serialize config to string for command
+	configStr := string(req.Config)
 
 	// Create command
 	command := application.NewSetImageGraphNodeConfigCommand(
 		imageGraphID,
 		nodeID,
-		req.Config,
+		configStr,
 	)
 
 	// Send command to message bus

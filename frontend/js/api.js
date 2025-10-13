@@ -43,7 +43,7 @@ export async function addNode(graphId, nodeType, nodeName, config) {
         body: JSON.stringify({
             type: nodeType,
             name: nodeName,
-            config: config,
+            config: config, // config is now sent as an object, not a string
         }),
     });
     if (!response.ok) {
@@ -104,7 +104,7 @@ export async function setNodeConfig(graphId, nodeId, config) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ config }),
+        body: JSON.stringify({ config }), // config is now sent as an object, not a string
     });
     if (!response.ok) {
         throw new Error(`Failed to set node config: ${response.statusText}`);

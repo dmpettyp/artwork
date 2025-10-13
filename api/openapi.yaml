@@ -158,9 +158,9 @@ paths:
                           description: The version number of the node
                           example: 3
                         config:
-                          type: string
+                          type: object
                           description: JSON configuration for the node
-                          example: "{}"
+                          example: {}
                         state:
                           type: string
                           description: The current state of the node
@@ -299,9 +299,9 @@ paths:
                   example: "input"
                   enum: [input, scale]
                 config:
-                  type: string
+                  type: object
                   description: JSON configuration for the node
-                  example: "{}"
+                  example: {}
       responses:
         '201':
           description: Node created successfully
@@ -590,9 +590,9 @@ paths:
                 - config
               properties:
                 config:
-                  type: string
+                  type: object
                   description: JSON configuration for the node
-                  example: "{\"path\": \"/some/path\"}"
+                  example: {"path": "/some/path"}
       responses:
         '204':
           description: Node config updated successfully (no content)

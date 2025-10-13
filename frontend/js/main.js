@@ -300,8 +300,8 @@ addNodeCreateBtn.addEventListener('click', async () => {
     const config = getNodeConfig();
 
     try {
-        // The API expects config as a JSON string
-        await api.addNode(graphId, nodeType, nodeName, JSON.stringify(config));
+        // The API now expects config as a JSON object
+        await api.addNode(graphId, nodeType, nodeName, config);
         closeAddNodeModal();
         // Refresh graph to show new node
         const graph = await api.getImageGraph(graphId);
@@ -422,7 +422,8 @@ editConfigSaveBtn.addEventListener('click', async () => {
     const config = getEditConfigValues();
 
     try {
-        await api.setNodeConfig(graphId, currentNodeId, JSON.stringify(config));
+        // The API now expects config as a JSON object
+        await api.setNodeConfig(graphId, currentNodeId, config);
         closeEditConfigModal();
         // Refresh graph to show updated config
         const graph = await api.getImageGraph(graphId);

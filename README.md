@@ -25,8 +25,11 @@ to process images in a non-destructive way.
 - swagger documentation? ✅
 - mapper ✅
 - move config to actual json in the API layer
-- http APIlayer - IN PROGRESS
-- UI - in progress
+- uploading images
+- http APIlayer - IN PROGRESS ✅
+- UI
+  - drawer for inputs and outputs
+  - output/input node green when set, red when not
 - worker infrastructure to generate images
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?
