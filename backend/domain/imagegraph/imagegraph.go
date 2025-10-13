@@ -69,7 +69,7 @@ func (ig *ImageGraph) AddNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	config string,
+	config NodeConfig,
 ) error {
 	n, err := NewNode(ig.addEvent, id, nodeType, name, config)
 
@@ -548,7 +548,7 @@ func (ig *ImageGraph) UnsetNodePreview(
 // SetNodeConfig sets the configuration for a specific node
 func (ig *ImageGraph) SetNodeConfig(
 	nodeID NodeID,
-	config string,
+	config NodeConfig,
 ) error {
 	if nodeID.IsNil() {
 		return fmt.Errorf("cannot set config for node with nil ID in ImageGraph %q", ig.ID)

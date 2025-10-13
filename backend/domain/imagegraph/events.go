@@ -223,7 +223,7 @@ func NewInputImageUnsetEvent(
 
 type NodeConfigSetEvent struct {
 	NodeEvent
-	Config string
+	Config NodeConfig
 }
 
 func NewNodeConfigSetEvent(n *Node) *NodeConfigSetEvent {

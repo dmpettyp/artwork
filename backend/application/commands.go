@@ -30,7 +30,7 @@ type AddImageGraphNodeCommand struct {
 	NodeID       imagegraph.NodeID
 	NodeType     imagegraph.NodeType
 	Name         string
-	Config       string
+	Config       imagegraph.NodeConfig
 }
 
 func NewAddImageGraphNodeCommand(
@@ -38,7 +38,7 @@ func NewAddImageGraphNodeCommand(
 	nodeID imagegraph.NodeID,
 	nodeType imagegraph.NodeType,
 	name string,
-	config string,
+	config imagegraph.NodeConfig,
 ) *AddImageGraphNodeCommand {
 	command := &AddImageGraphNodeCommand{
 		ImageGraphID: imageGraphID,
@@ -211,13 +211,13 @@ type SetImageGraphNodeConfigCommand struct {
 	dorky.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID
 	NodeID       imagegraph.NodeID
-	Config       string
+	Config       imagegraph.NodeConfig
 }
 
 func NewSetImageGraphNodeConfigCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
-	config string,
+	config imagegraph.NodeConfig,
 ) *SetImageGraphNodeConfigCommand {
 	command := &SetImageGraphNodeConfigCommand{
 		ImageGraphID: imageGraphID,

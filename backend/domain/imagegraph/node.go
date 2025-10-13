@@ -1,13 +1,14 @@
 package imagegraph
 
 import (
-	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
 
 	"github.com/dmpettyp/state"
 )
+
+type NodeConfig map[string]interface{}
 
 // Node represents a node in the ImageGraph that define the image pipeline.
 // Node are connected to upstream nodes through thier inputs, and to their
@@ -29,9 +30,9 @@ type Node struct {
 
 	State state.State[NodeState]
 
-	// The configuration for the node. The configuration is a string containing
-	// json that is provided to the image processor.
-	Config string
+	// The configuration for the node. The configuration is a map containing
+	// the node's settings that are provided to the image processor.
+	Config NodeConfig
 
 	// The preview image for the node
 	Preview ImageID
@@ -54,7 +55,7 @@ func NewNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	config string,
+	config NodeConfig,
 ) (
 	*Node,
 	error,
@@ -125,24 +126,9 @@ func (n *Node) SetEventAdder(eventAdder func(Event)) {
 	n.addEvent = eventAdder
 }
 
-func (n *Node) SetConfig(config string) error {
-	if config == "" {
-		return fmt.Errorf("config cannot be empty")
-	}
-
-	if config == "null" {
-		return fmt.Errorf("config cannot be null")
-	}
-
-	// Validate that config is valid JSON
-	if !json.Valid([]byte(config)) {
-		return fmt.Errorf("config must be valid JSON")
-	}
-
-	// Validate that config is a JSON object
-	var obj map[string]interface{}
-	if err := json.Unmarshal([]byte(config), &obj); err != nil {
-		return fmt.Errorf("config must be a JSON object")
+func (n *Node) SetConfig(config NodeConfig) error {
+	if config == nil {
+		return fmt.Errorf("config cannot be nil")
 	}
 
 	// Get node type configuration
@@ -154,14 +140,14 @@ func (n *Node) SetConfig(config string) error {
 	// Validate required fields are present
 	for fieldName, fieldDef := range nodeConfig.fields {
 		if fieldDef.required {
-			if _, exists := obj[fieldName]; !exists {
+			if _, exists := config[fieldName]; !exists {
 				return fmt.Errorf("required field %q is missing", fieldName)
 			}
 		}
 	}
 
 	// Validate field types and reject unknown fields
-	for key, value := range obj {
+	for key, value := range config {
 		fieldDef, exists := nodeConfig.fields[key]
 		if !exists {
 			return fmt.Errorf("unknown field %q", key)

@@ -24,7 +24,8 @@ to process images in a non-destructive way.
 - node states✅
 - swagger documentation? ✅
 - mapper ✅
-- move config to actual json in the API layer
+- move config to actual json in the API layer ✅
+- change patch node/config to patch node to allow name changing
 - uploading images
 - http APIlayer - IN PROGRESS ✅
 - UI
