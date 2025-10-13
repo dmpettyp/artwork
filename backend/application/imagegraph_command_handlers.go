@@ -36,6 +36,7 @@ func NewImageGraphCommandHandlers(
 		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodePreviewCommand),
 		dorky.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodePreviewCommand),
 		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeConfigCommand),
+		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeNameCommand),
 	)
 
 	if err != nil {
@@ -304,6 +305,30 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeConfigCommand(
 
 		if err != nil {
 			return fmt.Errorf("could not process SetImageGraphNodeConfigCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+		}
+
+		return nil
+	})
+}
+
+func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeNameCommand(
+	ctx context.Context,
+	command *SetImageGraphNodeNameCommand,
+) (
+	[]dorky.Event,
+	error,
+) {
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(command.ImageGraphID)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodeNameCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+		}
+
+		err = ig.SetNodeName(command.NodeID, command.Name)
+
+		if err != nil {
+			return fmt.Errorf("could not process SetImageGraphNodeNameCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
 		return nil

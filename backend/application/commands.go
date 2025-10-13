@@ -228,6 +228,27 @@ func NewSetImageGraphNodeConfigCommand(
 	return command
 }
 
+type SetImageGraphNodeNameCommand struct {
+	dorky.BaseCommand
+	ImageGraphID imagegraph.ImageGraphID
+	NodeID       imagegraph.NodeID
+	Name         string
+}
+
+func NewSetImageGraphNodeNameCommand(
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	name string,
+) *SetImageGraphNodeNameCommand {
+	command := &SetImageGraphNodeNameCommand{
+		ImageGraphID: imageGraphID,
+		NodeID:       nodeID,
+		Name:         name,
+	}
+	command.Init("SetImageGraphNodeNameCommand")
+	return command
+}
+
 // UIMetadata Commands
 
 type UpdateUIMetadataCommand struct {
