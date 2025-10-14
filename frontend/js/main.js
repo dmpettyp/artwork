@@ -260,10 +260,16 @@ graphNameInput.addEventListener('keypress', (e) => {
     }
 });
 
-createGraphModal.addEventListener('click', (e) => {
-    if (e.target === createGraphModal) {
+// Close modal only if both mousedown and mouseup happen on the background
+let createGraphModalMousedownTarget = null;
+createGraphModal.addEventListener('mousedown', (e) => {
+    createGraphModalMousedownTarget = e.target;
+});
+createGraphModal.addEventListener('mouseup', (e) => {
+    if (createGraphModalMousedownTarget === createGraphModal && e.target === createGraphModal) {
         closeCreateGraphModal();
     }
+    createGraphModalMousedownTarget = null;
 });
 
 // Add node handlers
@@ -312,10 +318,16 @@ addNodeCreateBtn.addEventListener('click', async () => {
     }
 });
 
-addNodeModal.addEventListener('click', (e) => {
-    if (e.target === addNodeModal) {
+// Close modal only if both mousedown and mouseup happen on the background
+let addNodeModalMousedownTarget = null;
+addNodeModal.addEventListener('mousedown', (e) => {
+    addNodeModalMousedownTarget = e.target;
+});
+addNodeModal.addEventListener('mouseup', (e) => {
+    if (addNodeModalMousedownTarget === addNodeModal && e.target === addNodeModal) {
         closeAddNodeModal();
     }
+    addNodeModalMousedownTarget = null;
 });
 
 // Edit config modal handlers
@@ -450,10 +462,16 @@ editConfigSaveBtn.addEventListener('click', async () => {
     }
 });
 
-editConfigModal.addEventListener('click', (e) => {
-    if (e.target === editConfigModal) {
+// Close modal only if both mousedown and mouseup happen on the background
+let editConfigModalMousedownTarget = null;
+editConfigModal.addEventListener('mousedown', (e) => {
+    editConfigModalMousedownTarget = e.target;
+});
+editConfigModal.addEventListener('mouseup', (e) => {
+    if (editConfigModalMousedownTarget === editConfigModal && e.target === editConfigModal) {
         closeEditConfigModal();
     }
+    editConfigModalMousedownTarget = null;
 });
 
 // Delete node modal handlers
@@ -492,10 +510,16 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
     }
 });
 
-deleteNodeModal.addEventListener('click', (e) => {
-    if (e.target === deleteNodeModal) {
+// Close modal only if both mousedown and mouseup happen on the background
+let deleteNodeModalMousedownTarget = null;
+deleteNodeModal.addEventListener('mousedown', (e) => {
+    deleteNodeModalMousedownTarget = e.target;
+});
+deleteNodeModal.addEventListener('mouseup', (e) => {
+    if (deleteNodeModalMousedownTarget === deleteNodeModal && e.target === deleteNodeModal) {
         closeDeleteNodeModal();
     }
+    deleteNodeModalMousedownTarget = null;
 });
 
 // Handle node action button clicks
