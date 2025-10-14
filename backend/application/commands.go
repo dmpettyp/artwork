@@ -257,13 +257,13 @@ type UpdateUIMetadataCommand struct {
 	Zoom          float64
 	PanX          float64
 	PanY          float64
-	NodePositions map[imagegraph.NodeID]ui.NodePosition
+	NodePositions []ui.NodePosition
 }
 
 func NewUpdateUIMetadataCommand(
 	graphID imagegraph.ImageGraphID,
 	zoom, panX, panY float64,
-	nodePositions map[imagegraph.NodeID]ui.NodePosition,
+	nodePositions []ui.NodePosition,
 ) *UpdateUIMetadataCommand {
 	command := &UpdateUIMetadataCommand{
 		GraphID:       graphID,

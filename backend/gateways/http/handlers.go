@@ -695,9 +695,9 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 // UI Metadata Handlers
 
 type uiMetadataResponse struct {
-	GraphID       string                       `json:"graph_id"`
-	Viewport      viewportResponse             `json:"viewport"`
-	NodePositions map[string]nodePositionResponse `json:"node_positions"`
+	GraphID       string                   `json:"graph_id"`
+	Viewport      viewportResponse         `json:"viewport"`
+	NodePositions []nodePositionResponse `json:"node_positions"`
 }
 
 type viewportResponse struct {
@@ -707,13 +707,14 @@ type viewportResponse struct {
 }
 
 type nodePositionResponse struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	NodeID string  `json:"node_id"`
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
 }
 
 type updateUIMetadataRequest struct {
-	Viewport      viewportResponse               `json:"viewport"`
-	NodePositions map[string]nodePositionResponse `json:"node_positions"`
+	Viewport      viewportResponse         `json:"viewport"`
+	NodePositions []nodePositionResponse `json:"node_positions"`
 }
 
 func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request) {
@@ -739,7 +740,7 @@ func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request)
 					PanX: 0,
 					PanY: 0,
 				},
-				NodePositions: make(map[string]nodePositionResponse),
+				NodePositions: []nodePositionResponse{},
 			})
 			return
 		}
@@ -756,12 +757,13 @@ func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request)
 }
 
 func mapUIMetadataToResponse(metadata *ui.UIMetadata) uiMetadataResponse {
-	nodePositions := make(map[string]nodePositionResponse)
-	for nodeID, pos := range metadata.NodePositions {
-		nodePositions[nodeID.String()] = nodePositionResponse{
-			X: pos.X,
-			Y: pos.Y,
-		}
+	nodePositions := make([]nodePositionResponse, 0, len(metadata.NodePositions))
+	for _, pos := range metadata.NodePositions {
+		nodePositions = append(nodePositions, nodePositionResponse{
+			NodeID: pos.NodeID.String(),
+			X:      pos.X,
+			Y:      pos.Y,
+		})
 	}
 
 	return uiMetadataResponse{
@@ -795,14 +797,18 @@ func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Convert node positions to domain types
-	nodePositions := make(map[imagegraph.NodeID]ui.NodePosition)
-	for nodeIDStr, pos := range req.NodePositions {
-		nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
+	nodePositions := make([]ui.NodePosition, 0, len(req.NodePositions))
+	for _, pos := range req.NodePositions {
+		nodeID, err := imagegraph.ParseNodeID(pos.NodeID)
 		if err != nil {
-			respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID: " + nodeIDStr})
+			respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID: " + pos.NodeID})
 			return
 		}
-		nodePositions[nodeID] = ui.NodePosition{X: pos.X, Y: pos.Y}
+		nodePositions = append(nodePositions, ui.NodePosition{
+			NodeID: nodeID,
+			X:      pos.X,
+			Y:      pos.Y,
+		})
 	}
 
 	// Create command

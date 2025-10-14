@@ -30,8 +30,8 @@ to process images in a non-destructive way.
   - add domain method to Node and ImageGraph ✅
   - add command ✅
   - modify patch endpoint to update multiple things ✅
-  - ui - in progress
-- change UpdateUIMetadataCommand to not use a map, use a slice of structs
+  - ui - in progress ✅
+- change UpdateUIMetadataCommand to not use a map, use a slice of structs ✅
 - uploading images
   - create depenedency (ImageStore) that implements interface to set and get images
   - create handler that allows images to be uploaded and uses ImageStore the is injected

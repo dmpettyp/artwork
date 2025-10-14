@@ -384,11 +384,8 @@ export class Renderer {
 
     // Export all node positions
     exportNodePositions() {
-        const positions = {};
-        for (const [nodeId, pos] of this.nodePositions.entries()) {
-            positions[nodeId] = { x: pos.x, y: pos.y };
-        }
-        return positions;
+        // Return the Map directly (will be converted to array in API layer)
+        return this.nodePositions;
     }
 
     // Restore viewport from metadata
@@ -404,8 +401,9 @@ export class Renderer {
     // Restore node positions from metadata
     restoreNodePositions(nodePositions) {
         if (nodePositions) {
-            for (const [nodeId, pos] of Object.entries(nodePositions)) {
-                this.nodePositions.set(nodeId, { x: pos.x, y: pos.y });
+            // nodePositions is now an array of {node_id, x, y}
+            for (const pos of nodePositions) {
+                this.nodePositions.set(pos.node_id, { x: pos.x, y: pos.y });
             }
         }
     }

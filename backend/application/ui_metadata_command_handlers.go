@@ -69,15 +69,8 @@ func (h *UIMetadataCommandHandlers) HandleUpdateUIMetadataCommand(
 			return fmt.Errorf("could not update viewport for ImageGraph %q: %w", command.GraphID, err)
 		}
 
-		// Update node positions (mutates the domain object directly)
-		if command.NodePositions != nil {
-			for nodeID, pos := range command.NodePositions {
-				err = metadata.SetNodePosition(nodeID, pos.X, pos.Y)
-				if err != nil {
-					return fmt.Errorf("could not update node position for node %q: %w", nodeID, err)
-				}
-			}
-		}
+		// Replace all node positions
+		metadata.NodePositions = command.NodePositions
 
 		return nil
 	})

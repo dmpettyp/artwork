@@ -143,6 +143,13 @@ export async function getUIMetadata(graphId) {
 }
 
 export async function updateUIMetadata(graphId, viewport, nodePositions) {
+    // Convert nodePositions Map to array format
+    const nodePositionsArray = Array.from(nodePositions.entries()).map(([nodeId, pos]) => ({
+        node_id: nodeId,
+        x: pos.x,
+        y: pos.y,
+    }));
+
     const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/ui-metadata`, {
         method: 'PUT',
         headers: {
@@ -150,7 +157,7 @@ export async function updateUIMetadata(graphId, viewport, nodePositions) {
         },
         body: JSON.stringify({
             viewport,
-            node_positions: nodePositions,
+            node_positions: nodePositionsArray,
         }),
     });
     if (!response.ok) {

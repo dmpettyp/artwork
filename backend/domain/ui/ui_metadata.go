@@ -8,8 +8,9 @@ import (
 
 // NodePosition represents the UI position of a node in the canvas
 type NodePosition struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	NodeID imagegraph.NodeID `json:"node_id"`
+	X      float64           `json:"x"`
+	Y      float64           `json:"y"`
 }
 
 // Viewport represents the canvas viewport state (zoom and pan)
@@ -27,8 +28,8 @@ type UIMetadata struct {
 	// Canvas viewport state
 	Viewport Viewport
 
-	// Node positions keyed by NodeID
-	NodePositions map[imagegraph.NodeID]NodePosition
+	// Node positions
+	NodePositions []NodePosition
 }
 
 // NewUIMetadata creates a new UIMetadata with default viewport settings
@@ -46,7 +47,7 @@ func NewUIMetadata(
 			PanX: 0,
 			PanY: 0,
 		},
-		NodePositions: make(map[imagegraph.NodeID]NodePosition),
+		NodePositions: []NodePosition{},
 	}, nil
 }
 
@@ -69,33 +70,56 @@ func (m *UIMetadata) SetNodePosition(nodeID imagegraph.NodeID, x, y float64) err
 		return fmt.Errorf("cannot set position for nil NodeID")
 	}
 
-	m.NodePositions[nodeID] = NodePosition{X: x, Y: y}
+	// Find existing position and update it
+	for i := range m.NodePositions {
+		if m.NodePositions[i].NodeID == nodeID {
+			m.NodePositions[i].X = x
+			m.NodePositions[i].Y = y
+			return nil
+		}
+	}
+
+	// Not found, add new position
+	m.NodePositions = append(m.NodePositions, NodePosition{
+		NodeID: nodeID,
+		X:      x,
+		Y:      y,
+	})
 
 	return nil
 }
 
 // GetNodePosition retrieves the position for a specific node
 func (m *UIMetadata) GetNodePosition(nodeID imagegraph.NodeID) (NodePosition, bool) {
-	pos, ok := m.NodePositions[nodeID]
-	return pos, ok
+	for _, pos := range m.NodePositions {
+		if pos.NodeID == nodeID {
+			return pos, true
+		}
+	}
+	return NodePosition{}, false
 }
 
 // RemoveNodePosition removes the position for a specific node
 func (m *UIMetadata) RemoveNodePosition(nodeID imagegraph.NodeID) {
-	delete(m.NodePositions, nodeID)
+	for i, pos := range m.NodePositions {
+		if pos.NodeID == nodeID {
+			// Remove by replacing with last element and truncating
+			m.NodePositions[i] = m.NodePositions[len(m.NodePositions)-1]
+			m.NodePositions = m.NodePositions[:len(m.NodePositions)-1]
+			return
+		}
+	}
 }
 
 // Clone creates a deep copy of the UIMetadata
 func (m *UIMetadata) Clone() *UIMetadata {
 	clone := &UIMetadata{
-		GraphID:  m.GraphID,
-		Viewport: m.Viewport,
-		NodePositions: make(map[imagegraph.NodeID]NodePosition, len(m.NodePositions)),
+		GraphID:       m.GraphID,
+		Viewport:      m.Viewport,
+		NodePositions: make([]NodePosition, len(m.NodePositions)),
 	}
 
-	for k, v := range m.NodePositions {
-		clone.NodePositions[k] = v
-	}
+	copy(clone.NodePositions, m.NodePositions)
 
 	return clone
 }
