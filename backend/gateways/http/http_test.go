@@ -55,7 +55,7 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Create HTTP server
-	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews)
+	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews)
 
 	// Start the message bus
 	ctx, cancel := context.WithCancel(context.Background())
@@ -202,22 +202,28 @@ func (ts *testServer) getImageGraph(t *testing.T, graphID string) map[string]int
 	return response
 }
 
-func (ts *testServer) setNodeConfig(t *testing.T, graphID, nodeID, config string) {
+func (ts *testServer) updateNode(t *testing.T, graphID, nodeID string, name *string, config *string) {
 	t.Helper()
 
-	reqBody := map[string]string{"config": config}
+	reqBody := make(map[string]interface{})
+	if name != nil {
+		reqBody["name"] = *name
+	}
+	if config != nil {
+		reqBody["config"] = *config
+	}
 	body, _ := json.Marshal(reqBody)
 
 	req, _ := http.NewRequest(
 		http.MethodPatch,
-		fmt.Sprintf("%s/imagegraphs/%s/nodes/%s/config", ts.URL(), graphID, nodeID),
+		fmt.Sprintf("%s/imagegraphs/%s/nodes/%s", ts.URL(), graphID, nodeID),
 		bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("failed to set node config: %v", err)
+		t.Fatalf("failed to update node: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -385,7 +391,7 @@ func TestNodeConfigUpdate(t *testing.T) {
 
 	// Update config
 	newConfig := `{}`
-	server.setNodeConfig(t, graphID, nodeID, newConfig)
+	server.updateNode(t, graphID, nodeID, nil, &newConfig)
 
 	// Get graph and verify config updated
 	graph := server.getImageGraph(t, graphID)
@@ -436,7 +442,7 @@ func TestErrorScenarios(t *testing.T) {
 
 		req, _ := http.NewRequest(
 			http.MethodPatch,
-			fmt.Sprintf("%s/imagegraphs/%s/nodes/%s/config", server.URL(), graphID, nodeID),
+			fmt.Sprintf("%s/imagegraphs/%s/nodes/%s", server.URL(), graphID, nodeID),
 			bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", "application/json")

@@ -25,17 +25,21 @@ to process images in a non-destructive way.
 - swagger documentation? ✅
 - mapper ✅
 - move config to actual json in the API layer ✅
-- change patch node/config to patch node to allow name changing
-  - add domain method to Node and ImageGraph
-  - add command
-  - modify patch endpoint to update multiple things
-  - ui
+- http APIlayer ✅
+- change patch node/config to patch node to allow name changing ✅
+  - add domain method to Node and ImageGraph ✅
+  - add command ✅
+  - modify patch endpoint to update multiple things ✅
+  - ui - in progress
+- change UpdateUIMetadataCommand to not use a map, use a slice of structs
 - uploading images
-- http APIlayer - IN PROGRESS ✅
+  - create depenedency (ImageStore) that implements interface to set and get images
+  - create handler that allows images to be uploaded and uses ImageStore the is injected
 - UI
   - drawer for inputs and outputs
   - output/input node green when set, red when not
 - worker infrastructure to generate images
+  - will use Injected ImageStore to get/set images, also inject messagebus to set output
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?
 

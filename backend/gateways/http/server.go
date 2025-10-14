@@ -62,7 +62,7 @@ func NewHTTPServer(
 	mux.HandleFunc("DELETE /api/imagegraphs/{id}/nodes/{node_id}", s.handleDeleteNode)
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/connectNodes", s.handleConnectNodes)
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
-	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/config", s.handleSetNodeConfig)
+	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}", s.handleUpdateNode)
 	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleSetNodeOutputImage)
 
 	// UI Metadata routes

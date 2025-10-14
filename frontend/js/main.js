@@ -36,7 +36,7 @@ const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
 
 // Edit config modal
 const editConfigModal = document.getElementById('edit-config-modal');
-const editConfigNodeName = document.getElementById('edit-config-node-name');
+const editNodeNameInput = document.getElementById('edit-node-name-input');
 const editConfigFields = document.getElementById('edit-config-fields');
 const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
 const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
@@ -324,7 +324,7 @@ function openEditConfigModal(nodeId) {
     if (!node) return;
 
     currentNodeId = nodeId;
-    editConfigNodeName.textContent = `${node.name} (${node.type})`;
+    editNodeNameInput.value = node.name;
 
     // Render config fields based on node type
     renderEditConfigFields(node.type, node.config);
@@ -419,18 +419,34 @@ editConfigSaveBtn.addEventListener('click', async () => {
     const graphId = graphState.getCurrentGraphId();
     if (!graphId || !currentNodeId) return;
 
+    const node = graphState.getNode(currentNodeId);
+    const newName = editNodeNameInput.value.trim();
     const config = getEditConfigValues();
 
-    try {
-        // The API now expects config as a JSON object
-        await api.setNodeConfig(graphId, currentNodeId, config);
+    // Determine what changed
+    const nameChanged = newName !== node.name;
+    const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
+
+    if (!nameChanged && !configChanged) {
         closeEditConfigModal();
-        // Refresh graph to show updated config
+        return;
+    }
+
+    try {
+        // Send both name and config - API will update what's provided
+        await api.updateNode(
+            graphId,
+            currentNodeId,
+            nameChanged ? newName : null,
+            configChanged ? config : null
+        );
+        closeEditConfigModal();
+        // Refresh graph to show updates
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
     } catch (error) {
-        console.error('Failed to update node config:', error);
-        alert(`Failed to update node config: ${error.message}`);
+        console.error('Failed to update node:', error);
+        alert(`Failed to update node: ${error.message}`);
     }
 });
 

@@ -558,11 +558,11 @@ paths:
                     type: string
                     example: "failed to disconnect nodes"
 
-  /imagegraphs/{id}/nodes/{node_id}/config:
+  /imagegraphs/{id}/nodes/{node_id}:
     patch:
-      summary: Update a node's configuration
-      description: Sets the configuration for a specific node in the ImageGraph
-      operationId: setNodeConfig
+      summary: Update a node
+      description: Updates the name and/or configuration for a specific node in the ImageGraph
+      operationId: updateNode
       parameters:
         - name: id
           in: path
@@ -586,16 +586,18 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - config
               properties:
+                name:
+                  type: string
+                  description: The name of the node
+                  example: "Updated Node Name"
                 config:
                   type: object
                   description: JSON configuration for the node
                   example: {"path": "/some/path"}
       responses:
         '204':
-          description: Node config updated successfully (no content)
+          description: Node updated successfully (no content)
         '400':
           description: Bad request - invalid input
           content:
@@ -605,7 +607,7 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "config is required"
+                    example: "at least one of name or config must be provided"
         '404':
           description: ImageGraph not found
           content:
@@ -625,7 +627,7 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "failed to set node config"
+                    example: "failed to update node"
 
   /imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}:
     patch:

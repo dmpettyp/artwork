@@ -98,16 +98,24 @@ export async function disconnectNodes(graphId, sourceNodeId, sourceOutput, targe
     }
 }
 
-export async function setNodeConfig(graphId, nodeId, config) {
-    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/nodes/${nodeId}/config`, {
+export async function updateNode(graphId, nodeId, name, config) {
+    const body = {};
+    if (name !== undefined && name !== null) {
+        body.name = name;
+    }
+    if (config !== undefined && config !== null) {
+        body.config = config;
+    }
+
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/nodes/${nodeId}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ config }), // config is now sent as an object, not a string
+        body: JSON.stringify(body),
     });
     if (!response.ok) {
-        throw new Error(`Failed to set node config: ${response.statusText}`);
+        throw new Error(`Failed to update node: ${response.statusText}`);
     }
 }
 

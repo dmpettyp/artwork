@@ -36,8 +36,9 @@ type connectionRequest struct {
 	InputName  string `json:"input_name"`
 }
 
-type setNodeConfigRequest struct {
-	Config imagegraph.NodeConfig `json:"config"`
+type updateNodeRequest struct {
+	Name   *string                  `json:"name,omitempty"`
+	Config imagegraph.NodeConfig `json:"config,omitempty"`
 }
 
 type setNodeOutputImageRequest struct {
@@ -532,7 +533,7 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *HTTPServer) handleSetNodeConfig(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
@@ -554,36 +555,57 @@ func (s *HTTPServer) handleSetNodeConfig(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Parse request body
-	var req setNodeConfigRequest
+	var req updateNodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 		return
 	}
 
-	// Validate config
-	if req.Config == nil {
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "config is required"})
+	// Validate that at least one field is provided
+	if req.Name == nil && req.Config == nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "at least one of name or config must be provided"})
 		return
 	}
 
-	// Create command
-	command := application.NewSetImageGraphNodeConfigCommand(
-		imageGraphID,
-		nodeID,
-		req.Config,
-	)
+	// Update name if provided
+	if req.Name != nil {
+		command := application.NewSetImageGraphNodeNameCommand(
+			imageGraphID,
+			nodeID,
+			*req.Name,
+		)
 
-	// Send command to message bus
-	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
-		if errors.Is(err, application.ErrImageGraphNotFound) {
-			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+		if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+			// Check if it's a not found error
+			if errors.Is(err, application.ErrImageGraphNotFound) {
+				respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+				return
+			}
+			s.logger.Error("failed to handle SetImageGraphNodeNameCommand", "error", err)
+			respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update node name"})
 			return
 		}
-		s.logger.Error("failed to handle SetImageGraphNodeConfigCommand", "error", err)
-		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to set node config"})
-		return
+	}
+
+	// Update config if provided
+	if req.Config != nil {
+		command := application.NewSetImageGraphNodeConfigCommand(
+			imageGraphID,
+			nodeID,
+			req.Config,
+		)
+
+		if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+			// Check if it's a not found error
+			if errors.Is(err, application.ErrImageGraphNotFound) {
+				respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+				return
+			}
+			s.logger.Error("failed to handle SetImageGraphNodeConfigCommand", "error", err)
+			respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update node config"})
+			return
+		}
 	}
 
 	// Return successful response with no content
