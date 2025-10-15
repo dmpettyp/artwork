@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/dmpettyp/artwork/application"
+	"github.com/dmpettyp/artwork/infrastructure/filestorage"
 	"github.com/dmpettyp/dorky"
 )
 
@@ -15,6 +16,7 @@ type HTTPServer struct {
 	messageBus       *dorky.MessageBus
 	imageGraphViews  application.ImageGraphViews
 	uiMetadataViews  application.UIMetadataViews
+	imageStorage     filestorage.ImageStorage
 	server           *http.Server
 	port             string
 }
@@ -36,6 +38,7 @@ func NewHTTPServer(
 	mb *dorky.MessageBus,
 	imageGraphViews application.ImageGraphViews,
 	uiMetadataViews application.UIMetadataViews,
+	imageStorage filestorage.ImageStorage,
 	opts ...ServerOption,
 ) *HTTPServer {
 	s := &HTTPServer{
@@ -43,6 +46,7 @@ func NewHTTPServer(
 		messageBus:       mb,
 		imageGraphViews:  imageGraphViews,
 		uiMetadataViews:  uiMetadataViews,
+		imageStorage:     imageStorage,
 		port:             "8080", // default port
 	}
 
@@ -63,7 +67,10 @@ func NewHTTPServer(
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/connectNodes", s.handleConnectNodes)
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/disconnectNodes", s.handleDisconnectNodes)
 	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}", s.handleUpdateNode)
-	mux.HandleFunc("PATCH /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleSetNodeOutputImage)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}", s.handleUploadNodeOutputImage)
+
+	// Image retrieval
+	mux.HandleFunc("GET /api/images/{image_id}", s.handleGetImage)
 
 	// UI Metadata routes
 	mux.HandleFunc("GET /api/imagegraphs/{id}/ui-metadata", s.handleGetUIMetadata)

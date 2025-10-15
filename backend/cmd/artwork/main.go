@@ -10,6 +10,7 @@ import (
 
 	"github.com/dmpettyp/artwork/application"
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
+	"github.com/dmpettyp/artwork/infrastructure/filestorage"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/dorky"
 )
@@ -60,11 +61,20 @@ func main() {
 		return
 	}
 
+	// Create image storage
+	imageStorage, err := filestorage.NewFilesystemImageStorage("uploads")
+
+	if err != nil {
+		logger.Error("could not create image storage", "error", err)
+		return
+	}
+
 	httpServer := httpgateway.NewHTTPServer(
 		logger,
 		messageBus,
 		uow.ImageGraphViews,
 		uow.UIMetadataViews,
+		imageStorage,
 	)
 
 	httpServer.Start()

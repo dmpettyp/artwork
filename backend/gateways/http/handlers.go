@@ -3,7 +3,9 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -41,7 +43,7 @@ type updateNodeRequest struct {
 	Config imagegraph.NodeConfig `json:"config,omitempty"`
 }
 
-type setNodeOutputImageRequest struct {
+type uploadImageResponse struct {
 	ImageID string `json:"image_id"`
 }
 
@@ -612,7 +614,9 @@ func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *HTTPServer) handleSetNodeOutputImage(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.Request) {
+	const maxUploadSize = 10 * 1024 * 1024 // 10 MB
+
 	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
@@ -640,28 +644,54 @@ func (s *HTTPServer) handleSetNodeOutputImage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Parse request body
-	var req setNodeOutputImageRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.logger.Error("failed to parse request body", "error", err)
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+	// Parse multipart form
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		s.logger.Error("failed to parse multipart form", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid multipart form data"})
 		return
 	}
 
-	// Validate image_id
-	if req.ImageID == "" {
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "image_id is required"})
-		return
-	}
-
-	// Parse ImageID
-	imageID, err := imagegraph.ParseImageID(req.ImageID)
+	// Get the uploaded file
+	file, header, err := r.FormFile("image")
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image_id"})
+		s.logger.Error("failed to get form file", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "image file is required"})
+		return
+	}
+	defer file.Close()
+
+	// Validate content type
+	contentType := header.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "file must be an image"})
 		return
 	}
 
-	// Create command
+	// Validate file size
+	if header.Size > maxUploadSize {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "image file too large (max 10MB)"})
+		return
+	}
+
+	// Read file data
+	imageData, err := io.ReadAll(file)
+	if err != nil {
+		s.logger.Error("failed to read image data", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to read image file"})
+		return
+	}
+
+	// Generate new ImageID
+	imageID := imagegraph.MustNewImageID()
+
+	// Save image to storage
+	if err := s.imageStorage.Save(imageID, imageData); err != nil {
+		s.logger.Error("failed to save image to storage", "error", err, "image_id", imageID)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to save image"})
+		return
+	}
+
+	// Create command to set the image on the node output
 	command := application.NewSetImageGraphNodeOutputImageCommand(
 		imageGraphID,
 		nodeID,
@@ -681,8 +711,8 @@ func (s *HTTPServer) handleSetNodeOutputImage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Return successful response with no content
-	w.WriteHeader(http.StatusNoContent)
+	// Return the generated image ID
+	respondJSON(w, http.StatusCreated, uploadImageResponse{ImageID: imageID.String()})
 }
 
 // respondJSON writes a JSON response with the given status code
@@ -829,4 +859,31 @@ func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Reque
 
 	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Image Retrieval Handlers
+
+func (s *HTTPServer) handleGetImage(w http.ResponseWriter, r *http.Request) {
+	// Extract image ID from path
+	imageIDStr := r.PathValue("image_id")
+
+	// Parse ImageID
+	imageID, err := imagegraph.ParseImageID(imageIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image ID"})
+		return
+	}
+
+	// Get image from storage
+	imageData, err := s.imageStorage.Get(imageID)
+	if err != nil {
+		s.logger.Error("failed to get image from storage", "error", err, "image_id", imageID)
+		respondJSON(w, http.StatusNotFound, errorResponse{Error: "image not found"})
+		return
+	}
+
+	// Set content type and write image data
+	w.Header().Set("Content-Type", "image/png")
+	w.WriteHeader(http.StatusOK)
+	w.Write(imageData)
 }
