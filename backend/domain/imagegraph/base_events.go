@@ -25,10 +25,14 @@ type Event interface {
 type NodeEvent struct {
 	ImageGraphEvent
 	NodeID      NodeID
+	NodeState   NodeState
 	NodeVersion NodeVersion
+	NodeType    NodeType
 }
 
 func (e *NodeEvent) applyNode(n *Node) {
 	e.NodeID = n.ID
+	e.NodeType = n.Type
+	e.NodeState = n.State.Get()
 	e.NodeVersion = n.Version.Next()
 }

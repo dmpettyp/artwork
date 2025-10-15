@@ -259,6 +259,16 @@ func (n *Node) SetOutputImage(
 
 	output.SetImage(imageID)
 
+	if n.allOutputsSet() {
+		err := n.State.Transition(Generated)
+
+		if err != nil {
+			return nil, fmt.Errorf(
+				"could not set output %q for node %q: %w", outputName, n.ID, err,
+			)
+		}
+	}
+
 	n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
 
 	return slices.Collect(maps.Keys(output.Connections)), nil
@@ -417,9 +427,11 @@ func (n *Node) DisconnectInput(inputName InputName) (
 		return inputConnection, nil
 	}
 
+	input.ResetImage()
+
 	// If the node previously had all inputs set, revert the state to
 	// WaitingForInputs
-	if n.allInputsSet() {
+	if !n.allInputsSet() {
 		err := n.State.Transition(Waiting)
 
 		if err != nil {
@@ -428,8 +440,6 @@ func (n *Node) DisconnectInput(inputName InputName) (
 			)
 		}
 	}
-
-	input.ResetImage()
 
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
@@ -479,6 +489,16 @@ func (n *Node) UnsetInputImage(
 
 	input.ResetImage()
 
+	if !n.allInputsSet() {
+		err := n.State.Transition(Waiting)
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not unset input %q for node %q: %w", inputName, n.ID, err,
+			)
+		}
+	}
+
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
 	n.resetOutputImages()
@@ -514,6 +534,21 @@ func (n *Node) resetOutputImages() {
 	}
 }
 
+func (n *Node) GetOutputImage(
+	outputName OutputName,
+) (
+	ImageID,
+	error,
+) {
+	output, ok := n.Outputs[outputName]
+
+	if !ok {
+		return ImageID{}, fmt.Errorf("no output named %q exists", outputName)
+	}
+
+	return output.ImageID, nil
+}
+
 // Test to see that all inputs are connected and have an image set
 func (n *Node) allInputsSet() bool {
 	for _, input := range n.Inputs {
@@ -521,6 +556,16 @@ func (n *Node) allInputsSet() bool {
 			return false
 		}
 
+		if input.ImageID.IsNil() {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (n *Node) allOutputsSet() bool {
+	for _, input := range n.Outputs {
 		if input.ImageID.IsNil() {
 			return false
 		}

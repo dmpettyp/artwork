@@ -303,6 +303,26 @@ func (ig *ImageGraph) ConnectNodes(
 		)
 	}
 
+	imageID, err := fromNode.GetOutputImage(outputName)
+
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't get output image: %w", baseError, err,
+		)
+	}
+
+	if imageID.IsNil() {
+		return nil
+	}
+
+	err = toNode.SetInputImage(inputName, imageID)
+
+	if err != nil {
+		return fmt.Errorf(
+			"%s: couldn't set input image: %w", baseError, err,
+		)
+	}
+
 	return nil
 }
 
