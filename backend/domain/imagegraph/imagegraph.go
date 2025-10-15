@@ -55,6 +55,13 @@ func NewImageGraph(
 
 func (ig *ImageGraph) Clone() *ImageGraph {
 	clone := *ig
+
+	for nodeID, n := range ig.Nodes {
+		c := &(*n)
+		c.SetEventAdder(clone.addEvent)
+		clone.Nodes[nodeID] = c
+	}
+
 	return &clone
 }
 

@@ -1,9 +1,12 @@
 // SVG rendering for nodes and connections
 
 const NODE_WIDTH = 200;
-const NODE_HEIGHT = 120;
+const NODE_HEIGHT = 180;
 const PORT_RADIUS = 6;
 const PORT_SPACING = 30;
+const THUMBNAIL_WIDTH = 80;
+const THUMBNAIL_HEIGHT = 60;
+const THUMBNAIL_Y = 48;
 
 // Node type configurations (matches backend node_type.go)
 const nodeTypeConfigs = {
@@ -147,17 +150,23 @@ export class Renderer {
         type.textContent = `${node.type} • ${node.state}`;
         g.appendChild(type);
 
+        // Render thumbnail if first output has an image
+        if (node.outputs && node.outputs.length > 0 && node.outputs[0].image_id) {
+            this.renderThumbnail(g, node.outputs[0].image_id);
+        }
+
         // Render input ports (left side)
         const inputs = node.inputs || [];
+        const portStartY = THUMBNAIL_Y + THUMBNAIL_HEIGHT + 10; // 10px padding below thumbnail
         inputs.forEach((input, i) => {
-            const portY = 60 + i * PORT_SPACING;
+            const portY = portStartY + i * PORT_SPACING;
             this.renderInputPort(g, input.name, portY);
         });
 
         // Render output ports (right side)
         const outputs = node.outputs || [];
         outputs.forEach((output, i) => {
-            const portY = 60 + i * PORT_SPACING;
+            const portY = portStartY + i * PORT_SPACING;
             this.renderOutputPort(g, output.name, portY, output.image_id !== null && output.image_id !== '');
         });
 
@@ -182,6 +191,18 @@ export class Renderer {
         g.appendChild(actionsGroup);
 
         this.nodesLayer.appendChild(g);
+    }
+
+    renderThumbnail(parentG, imageId) {
+        const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        image.classList.add('node-thumbnail');
+        image.setAttribute('x', (NODE_WIDTH - THUMBNAIL_WIDTH) / 2);
+        image.setAttribute('y', THUMBNAIL_Y);
+        image.setAttribute('width', THUMBNAIL_WIDTH);
+        image.setAttribute('height', THUMBNAIL_HEIGHT);
+        image.setAttribute('href', `/api/images/${imageId}`);
+        image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        parentG.appendChild(image);
     }
 
     createActionButton(x, y, icon, action) {
