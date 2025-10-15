@@ -50,7 +50,7 @@ export async function addNode(graphId, nodeType, nodeName, config) {
         throw new Error(`Failed to add node: ${response.statusText}`);
     }
     const data = await response.json();
-    return data.node;
+    return data.id;
 }
 
 export async function deleteNode(graphId, nodeId) {
@@ -119,17 +119,19 @@ export async function updateNode(graphId, nodeId, name, config) {
     }
 }
 
-export async function setNodeOutputImage(graphId, nodeId, outputName, imageData) {
+export async function uploadNodeOutputImage(graphId, nodeId, outputName, imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
     const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/nodes/${nodeId}/outputs/${outputName}`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image: imageData }),
+        method: 'PUT',
+        body: formData,
     });
     if (!response.ok) {
-        throw new Error(`Failed to set node output image: ${response.statusText}`);
+        throw new Error(`Failed to upload node output image: ${response.statusText}`);
     }
+    const data = await response.json();
+    return data.image_id;
 }
 
 // UI Metadata API functions

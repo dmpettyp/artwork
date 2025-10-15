@@ -30,6 +30,8 @@ const modalCancelBtn = document.getElementById('modal-cancel-btn');
 const addNodeModal = document.getElementById('add-node-modal');
 const nodeTypeSelect = document.getElementById('node-type-select');
 const nodeNameInput = document.getElementById('node-name-input');
+const nodeImageUpload = document.getElementById('node-image-upload');
+const nodeImageInput = document.getElementById('node-image-input');
 const nodeConfigFields = document.getElementById('node-config-fields');
 const addNodeCreateBtn = document.getElementById('add-node-create-btn');
 const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
@@ -160,6 +162,8 @@ function openAddNodeModal() {
     addNodeModal.classList.add('active');
     nodeTypeSelect.value = '';
     nodeNameInput.value = '';
+    nodeImageInput.value = '';
+    nodeImageUpload.style.display = 'none';
     nodeConfigFields.innerHTML = '';
     nodeTypeSelect.focus();
 }
@@ -279,6 +283,15 @@ addNodeBtn.addEventListener('click', () => {
 
 nodeTypeSelect.addEventListener('change', (e) => {
     const nodeType = e.target.value;
+
+    // Show/hide image upload based on node type
+    if (nodeType === 'input') {
+        nodeImageUpload.style.display = 'block';
+    } else {
+        nodeImageUpload.style.display = 'none';
+        nodeImageInput.value = '';
+    }
+
     renderNodeConfigFields(nodeType);
 });
 
@@ -303,11 +316,24 @@ addNodeCreateBtn.addEventListener('click', async () => {
         return;
     }
 
+    // For input nodes, check if an image file is selected
+    if (nodeType === 'input' && nodeImageInput.files.length === 0) {
+        alert('Please select an image file for the input node');
+        return;
+    }
+
     const config = getNodeConfig();
 
     try {
-        // The API now expects config as a JSON object
-        await api.addNode(graphId, nodeType, nodeName, config);
+        // Add the node first to get the node ID
+        const nodeId = await api.addNode(graphId, nodeType, nodeName, config);
+
+        // If this is an input node with an image, upload it to the "original" output
+        if (nodeType === 'input' && nodeImageInput.files.length > 0) {
+            const imageFile = nodeImageInput.files[0];
+            await api.uploadNodeOutputImage(graphId, nodeId, 'original', imageFile);
+        }
+
         closeAddNodeModal();
         // Refresh graph to show new node
         const graph = await api.getImageGraph(graphId);
