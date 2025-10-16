@@ -281,11 +281,14 @@ type nodeInput struct {
 
 type NodeNeedsOutputsEvent struct {
 	NodeEvent
-	Inputs []nodeInput
+	NodeConfig NodeConfig
+	Inputs     []nodeInput
 }
 
 func NewNodeNeedsOutputsEvent(n *Node) *NodeNeedsOutputsEvent {
-	e := &NodeNeedsOutputsEvent{}
+	e := &NodeNeedsOutputsEvent{
+		NodeConfig: n.Config,
+	}
 	e.Init("NodeNeedsOutputs")
 	e.applyNode(n)
 

@@ -22,8 +22,8 @@ type createImageGraphResponse struct {
 }
 
 type addNodeRequest struct {
-	Name   string                   `json:"name"`
-	Type   string                   `json:"type"`
+	Name   string                `json:"name"`
+	Type   string                `json:"type"`
 	Config imagegraph.NodeConfig `json:"config"`
 }
 
@@ -39,7 +39,7 @@ type connectionRequest struct {
 }
 
 type updateNodeRequest struct {
-	Name   *string                  `json:"name,omitempty"`
+	Name   *string               `json:"name,omitempty"`
 	Config imagegraph.NodeConfig `json:"config,omitempty"`
 }
 
@@ -64,15 +64,15 @@ type imageGraphResponse struct {
 }
 
 type nodeResponse struct {
-	ID      string                   `json:"id"`
-	Name    string                   `json:"name"`
-	Type    string                   `json:"type"`
-	Version int                      `json:"version"`
+	ID      string                `json:"id"`
+	Name    string                `json:"name"`
+	Type    string                `json:"type"`
+	Version int                   `json:"version"`
 	Config  imagegraph.NodeConfig `json:"config"`
-	State   string                   `json:"state"`
-	Preview string                   `json:"preview,omitempty"`
-	Inputs  []inputResponse          `json:"inputs"`
-	Outputs []outputResponse         `json:"outputs"`
+	State   string                `json:"state"`
+	Preview string                `json:"preview,omitempty"`
+	Inputs  []inputResponse       `json:"inputs"`
+	Outputs []outputResponse      `json:"outputs"`
 }
 
 type inputResponse struct {
@@ -725,8 +725,8 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 // UI Metadata Handlers
 
 type uiMetadataResponse struct {
-	GraphID       string                   `json:"graph_id"`
-	Viewport      viewportResponse         `json:"viewport"`
+	GraphID       string                 `json:"graph_id"`
+	Viewport      viewportResponse       `json:"viewport"`
 	NodePositions []nodePositionResponse `json:"node_positions"`
 }
 
@@ -743,7 +743,7 @@ type nodePositionResponse struct {
 }
 
 type updateUIMetadataRequest struct {
-	Viewport      viewportResponse         `json:"viewport"`
+	Viewport      viewportResponse       `json:"viewport"`
 	NodePositions []nodePositionResponse `json:"node_positions"`
 }
 

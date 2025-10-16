@@ -11,6 +11,7 @@ import (
 	"github.com/dmpettyp/artwork/application"
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
+	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/dorky"
 )
@@ -40,6 +41,16 @@ func main() {
 
 	messageBus := dorky.NewMessageBus(logger)
 
+	// Create image storage
+	imageStorage, err := filestorage.NewFilesystemImageStorage("uploads")
+
+	if err != nil {
+		logger.Error("could not create image storage", "error", err)
+		return
+	}
+
+	imageGen := imagegen.NewImageGen(imageStorage, messageBus)
+
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 
 	if err != nil {
@@ -47,7 +58,7 @@ func main() {
 		return
 	}
 
-	_, err = application.NewImageGraphEventHandlers(messageBus, uow)
+	_, err = application.NewImageGraphEventHandlers(messageBus, uow, imageGen)
 
 	if err != nil {
 		logger.Error("could not create image graph event handlers", "error", err)
@@ -58,14 +69,6 @@ func main() {
 
 	if err != nil {
 		logger.Error("could not create ui metadata command handlers", "error", err)
-		return
-	}
-
-	// Create image storage
-	imageStorage, err := filestorage.NewFilesystemImageStorage("uploads")
-
-	if err != nil {
-		logger.Error("could not create image storage", "error", err)
 		return
 	}
 

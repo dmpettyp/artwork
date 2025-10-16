@@ -6,11 +6,13 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/dorky"
 )
 
 type ImageGraphEventHandlers struct {
-	uow UnitOfWork
+	uow      UnitOfWork
+	imageGen *imagegen.ImageGen
 }
 
 // NewImageGraphEventHandlers initializes the handlers struct that processes
@@ -19,11 +21,15 @@ type ImageGraphEventHandlers struct {
 func NewImageGraphEventHandlers(
 	mb *dorky.MessageBus,
 	uow UnitOfWork,
+	imageGen *imagegen.ImageGen,
 ) (
 	*ImageGraphEventHandlers,
 	error,
 ) {
-	handlers := &ImageGraphEventHandlers{uow: uow}
+	handlers := &ImageGraphEventHandlers{
+		uow:      uow,
+		imageGen: imageGen,
+	}
 
 	err := errors.Join(
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
