@@ -46,20 +46,18 @@ func (h *UIMetadataCommandHandlers) HandleUpdateUIMetadataCommand(
 		metadata, err := repos.UIMetadataRepository.Get(command.GraphID)
 
 		if err != nil {
-			if errors.Is(err, ErrUIMetadataNotFound) {
-				// Create new metadata
-				metadata, err = ui.NewUIMetadata(command.GraphID)
-				if err != nil {
-					return fmt.Errorf("could not create UIMetadata for ImageGraph %q: %w", command.GraphID, err)
-				}
-
-				// Add it to the repository
-				err = repos.UIMetadataRepository.Add(metadata)
-				if err != nil {
-					return fmt.Errorf("could not add UIMetadata for ImageGraph %q: %w", command.GraphID, err)
-				}
-			} else {
+			if !errors.Is(err, ErrUIMetadataNotFound) {
 				return fmt.Errorf("could not get UIMetadata for ImageGraph %q: %w", command.GraphID, err)
+			}
+
+			metadata, err = ui.NewUIMetadata(command.GraphID)
+			if err != nil {
+				return fmt.Errorf("could not create UIMetadata for ImageGraph %q: %w", command.GraphID, err)
+			}
+
+			err = repos.UIMetadataRepository.Add(metadata)
+			if err != nil {
+				return fmt.Errorf("could not add UIMetadata for ImageGraph %q: %w", command.GraphID, err)
 			}
 		}
 

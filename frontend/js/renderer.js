@@ -421,6 +421,9 @@ export class Renderer {
 
     // Restore node positions from metadata
     restoreNodePositions(nodePositions) {
+        // Clear existing positions when switching graphs
+        this.nodePositions.clear();
+
         if (nodePositions) {
             // nodePositions is now an array of {node_id, x, y}
             for (const pos of nodePositions) {
