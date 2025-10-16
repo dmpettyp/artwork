@@ -1,10 +1,10 @@
 BUILDDIR := ./build/
 
 run:
-	LOG_LEVEL=debug go run cmd/artwork/main.go
+	LOG_LEVEL=debug go run ./cmd/artwork/
 
 build: builddir
-	go build -o $(BUILDDIR)/artwork cmd/artwork/main.go
+	go build -o $(BUILDDIR)/artwork cmd/artwork
 
 builddir:
 	mkdir -p $(BUILDDIR)
