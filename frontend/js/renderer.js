@@ -185,7 +185,7 @@ export class Renderer {
 
         // Delete button (position depends on whether edit button is present)
         const deleteX = hasConfig ? NODE_WIDTH - 25 : NODE_WIDTH - 25;
-        const deleteBtn = this.createActionButton(deleteX, 5, '×', 'delete');
+        const deleteBtn = this.createActionButton(deleteX, 5, '🗑', 'delete');
         actionsGroup.appendChild(deleteBtn);
 
         g.appendChild(actionsGroup);
