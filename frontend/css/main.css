@@ -15,38 +15,9 @@ body {
     height: 100vh;
 }
 
-/* Sidebar */
-.sidebar {
-    width: 300px;
-    background: #2c3e50;
-    color: #ecf0f1;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.sidebar h1 {
-    font-size: 24px;
-    margin-bottom: 30px;
-    color: #3498db;
-}
-
-.sidebar-section {
-    margin-bottom: 30px;
-}
-
-.sidebar-section h2 {
-    font-size: 14px;
-    text-transform: uppercase;
-    color: #95a5a6;
-    margin-bottom: 10px;
-}
-
 /* Buttons */
 .btn {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 8px;
+    padding: 8px 16px;
     background: #34495e;
     color: #ecf0f1;
     border: none;
@@ -88,19 +59,6 @@ body {
 .graph-select option {
     background: white;
     color: #2c3e50;
-}
-
-.sidebar .graph-select {
-    width: 100%;
-    margin-bottom: 10px;
-    background: #34495e;
-    color: #ecf0f1;
-    border: 1px solid #415b76;
-}
-
-.sidebar .graph-select option {
-    background: #34495e;
-    color: #ecf0f1;
 }
 
 /* Canvas container */
