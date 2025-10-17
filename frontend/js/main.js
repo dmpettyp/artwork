@@ -20,7 +20,9 @@ const refreshBtn = document.getElementById('refresh-btn');
 
 // Context menu
 const contextMenu = document.getElementById('context-menu');
+const nodeContextMenu = document.getElementById('node-context-menu');
 let contextMenuPosition = { x: 0, y: 0 };
+let contextMenuNodeId = null;
 
 // Create graph modal
 const createGraphModal = document.getElementById('create-graph-modal');
@@ -569,7 +571,7 @@ deleteNodeModal.addEventListener('mouseup', (e) => {
     deleteNodeModalMousedownTarget = null;
 });
 
-// Handle node action button clicks
+// Handle connection delete button clicks
 svg.addEventListener('click', (e) => {
     // Check for connection delete button
     const connectionDeleteBtn = e.target.closest('.connection-delete-btn');
@@ -584,22 +586,6 @@ svg.addEventListener('click', (e) => {
         e.stopPropagation();
         return;
     }
-
-    // Check for node action buttons
-    const actionBtn = e.target.closest('.node-action-btn');
-    if (!actionBtn) return;
-
-    const action = actionBtn.getAttribute('data-action');
-    const nodeElement = actionBtn.closest('.node');
-    const nodeId = nodeElement.getAttribute('data-node-id');
-
-    if (action === 'delete') {
-        openDeleteNodeModal(nodeId);
-    } else if (action === 'edit-config') {
-        openEditConfigModal(nodeId);
-    }
-
-    e.stopPropagation();
 });
 
 // Handle connection disconnect
@@ -641,19 +627,25 @@ svg.addEventListener('contextmenu', (e) => {
         return;
     }
 
-    // Check if right-clicking on canvas (not on a node or connection)
+    // Check if right-clicking on a node
     const clickedNode = e.target.closest('.node');
     const clickedConnection = e.target.closest('.connection-group');
 
-    if (!clickedNode && !clickedConnection) {
-        // Store the canvas position where the user right-clicked
+    if (clickedNode) {
+        // Show node context menu
+        const nodeId = clickedNode.getAttribute('data-node-id');
+        contextMenuNodeId = nodeId;
+
+        nodeContextMenu.style.left = `${e.clientX - 5}px`;
+        nodeContextMenu.style.top = `${e.clientY - 5}px`;
+        nodeContextMenu.classList.add('active');
+    } else if (!clickedConnection) {
+        // Show canvas context menu (not on a node or connection)
         const svgRect = svg.getBoundingClientRect();
         const screenX = e.clientX - svgRect.left;
         const screenY = e.clientY - svgRect.top;
         contextMenuPosition = interactions.screenToCanvas(screenX, screenY);
 
-        // Position and show the context menu with slight offset
-        // so cursor is inside the menu when it appears
         contextMenu.style.left = `${e.clientX - 5}px`;
         contextMenu.style.top = `${e.clientY - 5}px`;
         contextMenu.classList.add('active');
@@ -664,6 +656,7 @@ svg.addEventListener('contextmenu', (e) => {
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.context-menu')) {
         contextMenu.classList.remove('active');
+        nodeContextMenu.classList.remove('active');
     }
 });
 
@@ -672,13 +665,34 @@ contextMenu.addEventListener('mouseleave', () => {
     contextMenu.classList.remove('active');
 });
 
-// Handle context menu node type selection
+nodeContextMenu.addEventListener('mouseleave', () => {
+    nodeContextMenu.classList.remove('active');
+});
+
+// Handle canvas context menu node type selection
 contextMenu.addEventListener('click', (e) => {
     const nodeTypeItem = e.target.closest('[data-node-type]');
     if (nodeTypeItem) {
         const nodeType = nodeTypeItem.getAttribute('data-node-type');
         contextMenu.classList.remove('active');
         openAddNodeModalAtPosition(nodeType, contextMenuPosition);
+    }
+});
+
+// Handle node context menu actions
+nodeContextMenu.addEventListener('click', (e) => {
+    const actionItem = e.target.closest('[data-action]');
+    if (actionItem && contextMenuNodeId) {
+        const action = actionItem.getAttribute('data-action');
+        nodeContextMenu.classList.remove('active');
+
+        if (action === 'edit-config') {
+            openEditConfigModal(contextMenuNodeId);
+        } else if (action === 'delete') {
+            openDeleteNodeModal(contextMenuNodeId);
+        }
+
+        contextMenuNodeId = null;
     }
 });
 
@@ -720,6 +734,8 @@ document.addEventListener('keydown', (e) => {
             closeDeleteNodeModal();
         } else if (contextMenu.classList.contains('active')) {
             contextMenu.classList.remove('active');
+        } else if (nodeContextMenu.classList.contains('active')) {
+            nodeContextMenu.classList.remove('active');
         }
     }
 });

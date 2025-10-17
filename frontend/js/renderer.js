@@ -74,11 +74,6 @@ export class Renderer {
         this.connectionsLayer.setAttribute('transform', transform);
     }
 
-    nodeTypeHasConfig(nodeType) {
-        const config = nodeTypeConfigs[nodeType];
-        return config && config.fields && Object.keys(config.fields).length > 0;
-    }
-
     clear() {
         this.nodesLayer.innerHTML = '';
         this.connectionsLayer.innerHTML = '';
@@ -170,26 +165,6 @@ export class Renderer {
             this.renderOutputPort(g, output.name, portY, output.image_id !== null && output.image_id !== '');
         });
 
-        // Action buttons (hidden by default, shown on hover)
-        const actionsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        actionsGroup.classList.add('node-actions');
-
-        // Check if node type has configurable fields
-        const hasConfig = this.nodeTypeHasConfig(node.type);
-
-        // Edit config button (only if node has configurable fields)
-        if (hasConfig) {
-            const editBtn = this.createActionButton(NODE_WIDTH - 50, 5, '⚙', 'edit-config');
-            actionsGroup.appendChild(editBtn);
-        }
-
-        // Delete button (position depends on whether edit button is present)
-        const deleteX = hasConfig ? NODE_WIDTH - 25 : NODE_WIDTH - 25;
-        const deleteBtn = this.createActionButton(deleteX, 5, '🗑', 'delete');
-        actionsGroup.appendChild(deleteBtn);
-
-        g.appendChild(actionsGroup);
-
         this.nodesLayer.appendChild(g);
     }
 
@@ -203,33 +178,6 @@ export class Renderer {
         image.setAttribute('href', `/api/images/${imageId}`);
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         parentG.appendChild(image);
-    }
-
-    createActionButton(x, y, icon, action) {
-        const btnGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        btnGroup.classList.add('node-action-btn');
-        btnGroup.setAttribute('data-action', action);
-        btnGroup.style.cursor = 'pointer';
-
-        const btnRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        btnRect.setAttribute('x', x);
-        btnRect.setAttribute('y', y);
-        btnRect.setAttribute('width', 20);
-        btnRect.setAttribute('height', 20);
-        btnRect.setAttribute('rx', 3);
-        btnRect.classList.add('action-btn-bg');
-
-        const btnText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        btnText.setAttribute('x', x + 10);
-        btnText.setAttribute('y', y + 15);
-        btnText.setAttribute('text-anchor', 'middle');
-        btnText.classList.add('action-btn-icon');
-        btnText.textContent = icon;
-
-        btnGroup.appendChild(btnRect);
-        btnGroup.appendChild(btnText);
-
-        return btnGroup;
     }
 
     renderInputPort(parentG, inputName, y) {
