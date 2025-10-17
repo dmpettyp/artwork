@@ -49,7 +49,11 @@ func main() {
 		return
 	}
 
-	imageGen := imagegen.NewImageGen(imageStorage, messageBus)
+	// Create output setter for ImageGen
+	outputSetter := application.NewNodeOutputSetter(messageBus)
+
+	// Create ImageGen with dependencies
+	imageGen := imagegen.NewImageGen(imageStorage, outputSetter)
 
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 

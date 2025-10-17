@@ -36,11 +36,9 @@ to process images in a non-destructive way.
   - create depenedency (ImageStore) that implements interface to set and get images ✅
   - create handler that allows images to be uploaded and uses ImageStore the is injected ✅
 - UI
-  - show output as thumbnail
+  - show output as thumbnail ✅
   - drawer for inputs and outputs
   - output/input node green when set, red when not
-- worker infrastructure to generate images
-  - will use Injected ImageStore to get/set images, also inject messagebus to set output
 - websocket implementation for events
 - durable repository/unit of work implementation: postgres?
 

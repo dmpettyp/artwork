@@ -15,9 +15,33 @@ import (
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
+	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/dorky"
 )
+
+// mockImageStorage is a simple in-memory image storage for testing
+type mockImageStorage struct {
+	data map[string][]byte
+}
+
+func (m *mockImageStorage) Save(imageID imagegraph.ImageID, imageData []byte) error {
+	m.data[imageID.String()] = imageData
+	return nil
+}
+
+func (m *mockImageStorage) Get(imageID imagegraph.ImageID) ([]byte, error) {
+	data, ok := m.data[imageID.String()]
+	if !ok {
+		return nil, fmt.Errorf("image not found: %s", imageID.String())
+	}
+	return data, nil
+}
+
+func (m *mockImageStorage) Exists(imageID imagegraph.ImageID) (bool, error) {
+	_, ok := m.data[imageID.String()]
+	return ok, nil
+}
 
 // testServer wraps HTTPServer with test utilities
 type testServer struct {
@@ -42,6 +66,15 @@ func setupTestServer(t *testing.T) *testServer {
 	// Create message bus
 	mb := dorky.NewMessageBus(logger)
 
+	// Create mock image storage
+	imageStorage := &mockImageStorage{data: make(map[string][]byte)}
+
+	// Create output setter for ImageGen
+	outputSetter := application.NewNodeOutputSetter(mb)
+
+	// Create ImageGen with dependencies
+	imageGen := imagegen.NewImageGen(imageStorage, outputSetter)
+
 	// Register command handlers
 	_, err = application.NewImageGraphCommandHandlers(mb, uow)
 	if err != nil {
@@ -49,13 +82,13 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Register event handlers
-	_, err = application.NewImageGraphEventHandlers(mb, uow)
+	_, err = application.NewImageGraphEventHandlers(mb, uow, imageGen)
 	if err != nil {
 		t.Fatalf("failed to create event handlers: %v", err)
 	}
 
 	// Create HTTP server
-	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews)
+	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews, imageStorage)
 
 	// Start the message bus
 	ctx, cancel := context.WithCancel(context.Background())

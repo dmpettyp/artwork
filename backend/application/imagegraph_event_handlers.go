@@ -77,21 +77,33 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	[]dorky.Event,
 	error,
 ) {
-	return h.uow.Run(ctx, func(repos *Repos) error {
-		ig, err := repos.ImageGraphRepository.Get(event.ImageGraphID)
+	if event.NodeType == imagegraph.NodeTypeScale {
+		factor := event.NodeConfig["factor"].(float64)
 
-		if err != nil {
-			return fmt.Errorf("could not process NodeNeedsOutputsEvent for ImageGraph %q: %w", event.ImageGraphID, err)
-		}
-
-		if event.NodeType == imagegraph.NodeTypeScale {
-			err = ig.SetNodeOutputImage(event.NodeID, "scaled", event.Inputs[0].ImageID)
-
-			if err != nil {
-				return fmt.Errorf("could not process NodeNeedsOutputsEvent for ImageGraph %q: %w", event.ImageGraphID, err)
+		// Find the "original" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				inputImageID = input.ImageID
+				break
 			}
 		}
 
-		return nil
-	})
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForScaleNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				factor,
+				"scaled",
+			)
+		}()
+	}
+
+	return nil, nil
 }
