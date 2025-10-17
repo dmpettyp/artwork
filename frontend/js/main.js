@@ -20,6 +20,10 @@ const createGraphBtn = document.getElementById('create-graph-btn');
 const refreshBtn = document.getElementById('refresh-btn');
 const addNodeBtn = document.getElementById('add-node-btn');
 
+// Context menu
+const contextMenu = document.getElementById('context-menu');
+let contextMenuPosition = { x: 0, y: 0 };
+
 // Create graph modal
 const createGraphModal = document.getElementById('create-graph-modal');
 const graphNameInput = document.getElementById('graph-name-input');
@@ -144,6 +148,7 @@ const nodeTypeConfigs = {
 
 // Create graph modal functions
 function openCreateGraphModal() {
+    interactions.cancelAllDrags();
     createGraphModal.classList.add('active');
     graphNameInput.value = '';
     graphNameInput.focus();
@@ -159,6 +164,7 @@ function openAddNodeModal() {
         alert('Please select a graph first');
         return;
     }
+    interactions.cancelAllDrags();
     addNodeModal.classList.add('active');
     nodeTypeSelect.value = '';
     nodeNameInput.value = '';
@@ -334,6 +340,22 @@ addNodeCreateBtn.addEventListener('click', async () => {
             await api.uploadNodeOutputImage(graphId, nodeId, 'original', imageFile);
         }
 
+        // If position was set from context menu, update node position
+        if (addNodeModal.dataset.canvasX && addNodeModal.dataset.canvasY) {
+            const x = parseFloat(addNodeModal.dataset.canvasX);
+            const y = parseFloat(addNodeModal.dataset.canvasY);
+            renderer.updateNodePosition(nodeId, x, y);
+
+            // Persist the position
+            const viewport = renderer.exportViewport();
+            const nodePositions = renderer.exportNodePositions();
+            await api.updateUIMetadata(graphId, viewport, nodePositions);
+
+            // Clear the stored position
+            delete addNodeModal.dataset.canvasX;
+            delete addNodeModal.dataset.canvasY;
+        }
+
         closeAddNodeModal();
         // Refresh graph to show new node
         const graph = await api.getImageGraph(graphId);
@@ -361,6 +383,7 @@ function openEditConfigModal(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
+    interactions.cancelAllDrags();
     currentNodeId = nodeId;
     editNodeNameInput.value = node.name;
 
@@ -505,6 +528,7 @@ function openDeleteNodeModal(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
+    interactions.cancelAllDrags();
     currentNodeId = nodeId;
     deleteNodeName.textContent = node.name;
 
@@ -610,6 +634,74 @@ refreshBtn.addEventListener('click', async () => {
         alert(`Failed to refresh graph: ${error.message}`);
     }
 });
+
+// Context menu handlers
+svg.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+
+    // Only show context menu if a graph is selected
+    if (!graphState.getCurrentGraphId()) {
+        return;
+    }
+
+    // Check if right-clicking on canvas (not on a node or connection)
+    const clickedNode = e.target.closest('.node');
+    const clickedConnection = e.target.closest('.connection-group');
+
+    if (!clickedNode && !clickedConnection) {
+        // Store the canvas position where the user right-clicked
+        const svgRect = svg.getBoundingClientRect();
+        const screenX = e.clientX - svgRect.left;
+        const screenY = e.clientY - svgRect.top;
+        contextMenuPosition = interactions.screenToCanvas(screenX, screenY);
+
+        // Position and show the context menu
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.classList.add('active');
+    }
+});
+
+// Close context menu when clicking anywhere else
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.context-menu')) {
+        contextMenu.classList.remove('active');
+    }
+});
+
+// Handle context menu node type selection
+contextMenu.addEventListener('click', (e) => {
+    const nodeTypeItem = e.target.closest('[data-node-type]');
+    if (nodeTypeItem) {
+        const nodeType = nodeTypeItem.getAttribute('data-node-type');
+        contextMenu.classList.remove('active');
+        openAddNodeModalAtPosition(nodeType, contextMenuPosition);
+    }
+});
+
+// Open add node modal with pre-selected type and position
+function openAddNodeModalAtPosition(nodeType, position) {
+    if (!graphState.getCurrentGraphId()) {
+        alert('Please select a graph first');
+        return;
+    }
+
+    interactions.cancelAllDrags();
+
+    // Store the position for use when creating the node
+    addNodeModal.dataset.canvasX = position.x;
+    addNodeModal.dataset.canvasY = position.y;
+
+    addNodeModal.classList.add('active');
+    nodeTypeSelect.value = nodeType;
+    nodeNameInput.value = '';
+    nodeImageInput.value = '';
+
+    // Trigger the change event to show/hide appropriate fields
+    nodeTypeSelect.dispatchEvent(new Event('change'));
+
+    nodeNameInput.focus();
+}
 
 // Load initial data
 loadGraphList();

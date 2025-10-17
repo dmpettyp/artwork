@@ -282,4 +282,26 @@ export class InteractionHandler {
             alert(`Failed to create connection: ${error.message}`);
         }
     }
+
+    // Cancel all ongoing drag operations
+    cancelAllDrags() {
+        if (this.draggedNode) {
+            const nodeElement = this.svg.querySelector(`[data-node-id="${this.draggedNode}"]`);
+            if (nodeElement) {
+                nodeElement.style.cursor = 'move';
+            }
+            this.draggedNode = null;
+            this.dragOffset = { x: 0, y: 0 };
+        }
+
+        if (this.connectionDrag) {
+            this.renderer.removeTempConnection();
+            this.connectionDrag = null;
+        }
+
+        if (this.canvasDrag) {
+            this.canvasDrag = null;
+            this.svg.style.cursor = 'grab';
+        }
+    }
 }
