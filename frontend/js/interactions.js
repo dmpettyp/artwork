@@ -25,6 +25,11 @@ export class InteractionHandler {
     }
 
     handleMouseDown(e) {
+        // Ignore right-click
+        if (e.button === 2) {
+            return;
+        }
+
         // Check if clicking on a port (for connections)
         const port = e.target.closest('.port');
         if (port) {

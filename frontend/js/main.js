@@ -655,9 +655,10 @@ svg.addEventListener('contextmenu', (e) => {
         const screenY = e.clientY - svgRect.top;
         contextMenuPosition = interactions.screenToCanvas(screenX, screenY);
 
-        // Position and show the context menu
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.style.top = `${e.clientY}px`;
+        // Position and show the context menu with slight offset
+        // so cursor is inside the menu when it appears
+        contextMenu.style.left = `${e.clientX - 5}px`;
+        contextMenu.style.top = `${e.clientY - 5}px`;
         contextMenu.classList.add('active');
     }
 });
@@ -667,6 +668,11 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.context-menu')) {
         contextMenu.classList.remove('active');
     }
+});
+
+// Close context menu when mouse leaves it
+contextMenu.addEventListener('mouseleave', () => {
+    contextMenu.classList.remove('active');
 });
 
 // Handle context menu node type selection
@@ -702,6 +708,24 @@ function openAddNodeModalAtPosition(nodeType, position) {
 
     nodeNameInput.focus();
 }
+
+// Handle ESC key to close modals
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // Close whichever modal is currently open
+        if (createGraphModal.classList.contains('active')) {
+            closeCreateGraphModal();
+        } else if (addNodeModal.classList.contains('active')) {
+            closeAddNodeModal();
+        } else if (editConfigModal.classList.contains('active')) {
+            closeEditConfigModal();
+        } else if (deleteNodeModal.classList.contains('active')) {
+            closeDeleteNodeModal();
+        } else if (contextMenu.classList.contains('active')) {
+            contextMenu.classList.remove('active');
+        }
+    }
+});
 
 // Load initial data
 loadGraphList();
