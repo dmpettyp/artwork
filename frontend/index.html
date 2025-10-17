@@ -13,24 +13,20 @@
             <h1>Artwork</h1>
 
             <section class="sidebar-section">
-                <h2>Graphs</h2>
-                <select id="graph-select" class="graph-select">
-                    <option value="">Select a graph...</option>
-                </select>
                 <button id="create-graph-btn" class="btn btn-primary">+ New Graph</button>
             </section>
 
-            <section class="sidebar-section">
-                <h2>Add Node</h2>
-                <button id="add-node-btn" class="btn btn-primary">+ Add Node</button>
-            </section>
         </aside>
 
         <!-- Main canvas area -->
         <main class="canvas-container">
             <div class="canvas-header">
-                <h2 id="graph-name">No graph selected</h2>
-                <button id="refresh-btn" class="btn">Refresh</button>
+                <select id="graph-select" class="graph-select">
+                    <option value="">Select a graph...</option>
+                </select>
+                <div style="display: flex; gap: 10px;">
+                    <button id="refresh-btn" class="btn">Refresh</button>
+                </div>
             </div>
             <svg id="graph-canvas" class="graph-canvas">
                 <!-- Connections layer -->

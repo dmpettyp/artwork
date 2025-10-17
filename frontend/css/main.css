@@ -69,15 +69,15 @@ body {
 
 /* Graph select */
 .graph-select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    background: #34495e;
-    color: #ecf0f1;
-    border: 1px solid #415b76;
+    padding: 8px 12px;
+    background: white;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
     border-radius: 4px;
     font-size: 14px;
     cursor: pointer;
+    flex: 1;
+    max-width: 300px;
 }
 
 .graph-select:focus {
@@ -86,6 +86,19 @@ body {
 }
 
 .graph-select option {
+    background: white;
+    color: #2c3e50;
+}
+
+.sidebar .graph-select {
+    width: 100%;
+    margin-bottom: 10px;
+    background: #34495e;
+    color: #ecf0f1;
+    border: 1px solid #415b76;
+}
+
+.sidebar .graph-select option {
     background: #34495e;
     color: #ecf0f1;
 }

@@ -15,10 +15,8 @@ const interactions = new InteractionHandler(svg, renderer, graphState, api);
 
 // UI elements
 const graphSelect = document.getElementById('graph-select');
-const graphNameElement = document.getElementById('graph-name');
 const createGraphBtn = document.getElementById('create-graph-btn');
 const refreshBtn = document.getElementById('refresh-btn');
-const addNodeBtn = document.getElementById('add-node-btn');
 
 // Context menu
 const contextMenu = document.getElementById('context-menu');
@@ -59,10 +57,8 @@ let currentNodeId = null;
 // Subscribe to graph state changes
 graphState.subscribe((graph) => {
     if (graph) {
-        graphNameElement.textContent = graph.name;
         renderer.render(graph);
     } else {
-        graphNameElement.textContent = 'No graph selected';
         renderer.clear();
     }
 });
@@ -77,6 +73,11 @@ async function loadGraphList() {
     try {
         const graphs = await api.listImageGraphs();
         renderGraphList(graphs);
+
+        // Auto-select the first graph if none is selected
+        if (graphs.length > 0 && !graphState.getCurrentGraphId()) {
+            await selectGraph(graphs[0].id);
+        }
     } catch (error) {
         console.error('Failed to load graphs:', error);
     }
@@ -283,10 +284,6 @@ createGraphModal.addEventListener('mouseup', (e) => {
 });
 
 // Add node handlers
-addNodeBtn.addEventListener('click', () => {
-    openAddNodeModal();
-});
-
 nodeTypeSelect.addEventListener('change', (e) => {
     const nodeType = e.target.value;
 
