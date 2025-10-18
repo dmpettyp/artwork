@@ -180,6 +180,15 @@ async function selectGraph(graphId) {
     }
 }
 
+// Reload the currently selected graph
+async function reloadCurrentGraph() {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId) return;
+
+    const graph = await api.getImageGraph(graphId);
+    graphState.setCurrentGraph(graph);
+}
+
 // Node type configuration (matches backend node_type.go)
 const nodeTypeConfigs = {
     input: {
@@ -341,8 +350,7 @@ addNodeCreateBtn.addEventListener('click', async () => {
 
         closeAddNodeModal();
         // Refresh graph to show new node
-        const graph = await api.getImageGraph(graphId);
-        graphState.setCurrentGraph(graph);
+        await reloadCurrentGraph();
         toastManager.success(`Node "${nodeName}" added successfully`);
     } catch (error) {
         console.error('Failed to add node:', error);
@@ -415,8 +423,7 @@ editConfigSaveBtn.addEventListener('click', async () => {
         );
         closeEditConfigModal();
         // Refresh graph to show updates
-        const graph = await api.getImageGraph(graphId);
-        graphState.setCurrentGraph(graph);
+        await reloadCurrentGraph();
         toastManager.success('Node updated successfully');
     } catch (error) {
         console.error('Failed to update node:', error);
@@ -472,8 +479,7 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
         await api.deleteNode(graphId, currentNodeId);
         closeDeleteNodeModal();
         // Refresh graph to show node removed
-        const graph = await api.getImageGraph(graphId);
-        graphState.setCurrentGraph(graph);
+        await reloadCurrentGraph();
         toastManager.success(`"${nodeName}" deleted successfully`);
     } catch (error) {
         console.error('Failed to delete node:', error);
@@ -548,8 +554,7 @@ async function handleDisconnectConnection(fromNodeId, fromOutput, toNodeId, toIn
     try {
         await api.disconnectNodes(graphId, fromNodeId, fromOutput, toNodeId, toInput);
         // Refresh graph to show connection removed
-        const graph = await api.getImageGraph(graphId);
-        graphState.setCurrentGraph(graph);
+        await reloadCurrentGraph();
         toastManager.success('Connection removed');
     } catch (error) {
         console.error('Failed to disconnect nodes:', error);
@@ -559,12 +564,10 @@ async function handleDisconnectConnection(fromNodeId, fromOutput, toNodeId, toIn
 
 // Refresh current graph
 refreshBtn.addEventListener('click', async () => {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId) return;
+    if (!graphState.getCurrentGraphId()) return;
 
     try {
-        const graph = await api.getImageGraph(graphId);
-        graphState.setCurrentGraph(graph);
+        await reloadCurrentGraph();
         toastManager.info('Graph refreshed');
     } catch (error) {
         console.error('Failed to refresh graph:', error);
