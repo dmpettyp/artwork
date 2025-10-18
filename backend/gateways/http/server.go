@@ -17,6 +17,7 @@ type HTTPServer struct {
 	imageGraphViews application.ImageGraphViews
 	uiMetadataViews application.UIMetadataViews
 	imageStorage    filestorage.ImageStorage
+	wsHub           *WebSocketHub
 	server          *http.Server
 	port            string
 }
@@ -47,6 +48,7 @@ func NewHTTPServer(
 		imageGraphViews: imageGraphViews,
 		uiMetadataViews: uiMetadataViews,
 		imageStorage:    imageStorage,
+		wsHub:           NewWebSocketHub(logger),
 		port:            "8080", // default port
 	}
 
@@ -76,6 +78,9 @@ func NewHTTPServer(
 	mux.HandleFunc("GET /api/imagegraphs/{id}/ui-metadata", s.handleGetUIMetadata)
 	mux.HandleFunc("PUT /api/imagegraphs/{id}/ui-metadata", s.handleUpdateUIMetadata)
 
+	// WebSocket route
+	mux.HandleFunc("GET /api/imagegraphs/{id}/ws", s.handleWebSocket)
+
 	// Serve static frontend files
 	fs := http.FileServer(http.Dir("../frontend"))
 	mux.Handle("/", fs)
@@ -101,6 +106,10 @@ func (s *HTTPServer) Start() {
 // Stop gracefully shuts down the HTTP server
 func (s *HTTPServer) Stop(ctx context.Context) error {
 	s.logger.Info("stopping HTTP server")
+
+	// Close WebSocket hub first
+	s.wsHub.Close()
+
 	if err := s.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown HTTP server: %w", err)
 	}

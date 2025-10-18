@@ -3,6 +3,7 @@ module github.com/dmpettyp/artwork
 go 1.24.6
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/dmpettyp/dorky v0.0.0-20251005144453-fdc257b3d921
 	github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5
 	github.com/dmpettyp/mapper v0.0.0-20251008224010-89f1817dea21
