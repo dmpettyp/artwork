@@ -184,23 +184,63 @@ body {
     pointer-events: none;
 }
 
+/* Port table header */
+.port-table-header-bg {
+    fill: #e9ecef;
+    stroke: #bdc3c7;
+    stroke-width: 1;
+}
+
+.port-table-header-label {
+    fill: #495057;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Port table cells */
+.port-cell {
+    cursor: pointer;
+}
+
+.port-cell-bg {
+    fill: #f8f9fa;
+    stroke: #bdc3c7;
+    stroke-width: 1;
+}
+
+.port-cell:hover .port-cell-bg {
+    fill: #ecf0f1;
+}
+
+.port-divider {
+    stroke: #bdc3c7;
+    stroke-width: 1;
+}
+
 /* Ports */
 .port {
     fill: #3498db;
     stroke: #2c3e50;
-    stroke-width: 1;
+    stroke-width: 2;
     cursor: crosshair;
+    pointer-events: all;
 }
 
 .port:hover {
     fill: #2980b9;
-    stroke-width: 2;
+    stroke-width: 3;
 }
 
 .port-label {
-    fill: #7f8c8d;
-    font-size: 10px;
+    fill: #2c3e50;
+    font-size: 11px;
+    font-weight: 500;
     user-select: none;
+    pointer-events: none;
 }
 
 /* Connections */

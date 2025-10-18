@@ -120,11 +120,31 @@ export class Renderer {
         g.setAttribute('data-node-id', node.id);
         g.setAttribute('transform', `translate(${x},${y})`);
 
+        const inputs = node.inputs || [];
+        const outputs = node.outputs || [];
+
+        // Store default thumbnail image ID (first output's image)
+        const defaultImageId = (node.outputs && node.outputs.length > 0 && node.outputs[0].image_id)
+            ? node.outputs[0].image_id
+            : null;
+        if (defaultImageId) {
+            g.setAttribute('data-default-image-id', defaultImageId);
+        }
+
+        // Calculate node height based on content
+        const tablePadding = 8;
+        const portTableY = THUMBNAIL_Y + THUMBNAIL_HEIGHT + 10;
+        const maxRows = Math.max(inputs.length, outputs.length, 1); // At least 1 row
+        const rowHeight = 24;
+        const headerHeight = 20;
+        const portTableHeight = headerHeight + maxRows * rowHeight;
+        const nodeHeight = portTableY + portTableHeight + tablePadding; // Add bottom padding
+
         // Node rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.classList.add('node-rect');
         rect.setAttribute('width', NODE_WIDTH);
-        rect.setAttribute('height', NODE_HEIGHT);
+        rect.setAttribute('height', nodeHeight);
         g.appendChild(rect);
 
         // Node title (name)
@@ -146,24 +166,12 @@ export class Renderer {
         g.appendChild(type);
 
         // Render thumbnail if first output has an image
-        if (node.outputs && node.outputs.length > 0 && node.outputs[0].image_id) {
-            this.renderThumbnail(g, node.outputs[0].image_id);
+        if (defaultImageId) {
+            this.renderThumbnail(g, defaultImageId);
         }
 
-        // Render input ports (left side)
-        const inputs = node.inputs || [];
-        const portStartY = THUMBNAIL_Y + THUMBNAIL_HEIGHT + 10; // 10px padding below thumbnail
-        inputs.forEach((input, i) => {
-            const portY = portStartY + i * PORT_SPACING;
-            this.renderInputPort(g, input.name, portY);
-        });
-
-        // Render output ports (right side)
-        const outputs = node.outputs || [];
-        outputs.forEach((output, i) => {
-            const portY = portStartY + i * PORT_SPACING;
-            this.renderOutputPort(g, output.name, portY, output.image_id !== null && output.image_id !== '');
-        });
+        // Render port table (reuse variables from height calculation)
+        this.renderPortTable(g, inputs, outputs, portTableY, tablePadding);
 
         this.nodesLayer.appendChild(g);
     }
@@ -178,6 +186,182 @@ export class Renderer {
         image.setAttribute('href', `/api/images/${imageId}`);
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         parentG.appendChild(image);
+    }
+
+    updateThumbnail(nodeGroup, imageId) {
+        // Find existing thumbnail
+        const existingThumbnail = nodeGroup.querySelector('.node-thumbnail');
+
+        if (existingThumbnail) {
+            // Update the href to show the new image
+            existingThumbnail.setAttribute('href', `/api/images/${imageId}`);
+        } else {
+            // Create thumbnail if it doesn't exist
+            this.renderThumbnail(nodeGroup, imageId);
+        }
+    }
+
+    restoreDefaultThumbnail(nodeGroup) {
+        const defaultImageId = nodeGroup.getAttribute('data-default-image-id');
+        const existingThumbnail = nodeGroup.querySelector('.node-thumbnail');
+
+        if (defaultImageId && existingThumbnail) {
+            // Restore to default image
+            existingThumbnail.setAttribute('href', `/api/images/${defaultImageId}`);
+        } else if (!defaultImageId && existingThumbnail) {
+            // Remove thumbnail if there's no default
+            existingThumbnail.remove();
+        }
+    }
+
+    renderPortTable(parentG, inputs, outputs, startY, padding) {
+        const maxRows = Math.max(inputs.length, outputs.length);
+        const rowHeight = 24;
+        const headerHeight = 20;
+        const tableWidth = NODE_WIDTH - padding * 2; // Account for left and right padding
+        const halfWidth = tableWidth / 2;
+
+        // Render header row
+        this.renderTableHeader(parentG, startY, padding, halfWidth, headerHeight, inputs.length > 0, outputs.length > 0);
+
+        // Render port rows
+        for (let i = 0; i < maxRows; i++) {
+            const rowY = startY + headerHeight + i * rowHeight;
+
+            // Left cell (input)
+            if (i < inputs.length) {
+                const imageId = inputs[i].image_id;
+                this.renderPortCell(parentG, inputs[i].name, padding, rowY, halfWidth, rowHeight, 'input', imageId);
+            }
+
+            // Right cell (output)
+            if (i < outputs.length) {
+                const imageId = outputs[i].image_id;
+                this.renderPortCell(parentG, outputs[i].name, padding + halfWidth, rowY, halfWidth, rowHeight, 'output', imageId);
+            }
+
+            // Divider line between left and right
+            if (inputs.length > 0 && outputs.length > 0) {
+                const divider = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                divider.classList.add('port-divider');
+                divider.setAttribute('x1', padding + halfWidth);
+                divider.setAttribute('y1', rowY);
+                divider.setAttribute('x2', padding + halfWidth);
+                divider.setAttribute('y2', rowY + rowHeight);
+                parentG.appendChild(divider);
+            }
+        }
+    }
+
+    renderTableHeader(parentG, startY, padding, halfWidth, headerHeight, hasInputs, hasOutputs) {
+        // Left header (Inputs)
+        if (hasInputs) {
+            const leftHeader = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            leftHeader.classList.add('port-table-header-bg');
+            leftHeader.setAttribute('x', padding);
+            leftHeader.setAttribute('y', startY);
+            leftHeader.setAttribute('width', halfWidth);
+            leftHeader.setAttribute('height', headerHeight);
+            parentG.appendChild(leftHeader);
+
+            const leftLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            leftLabel.classList.add('port-table-header-label');
+            leftLabel.setAttribute('x', padding + halfWidth / 2);
+            leftLabel.setAttribute('y', startY + headerHeight / 2 + 4);
+            leftLabel.setAttribute('text-anchor', 'middle');
+            leftLabel.textContent = 'Inputs';
+            parentG.appendChild(leftLabel);
+        }
+
+        // Right header (Outputs)
+        if (hasOutputs) {
+            const rightHeader = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rightHeader.classList.add('port-table-header-bg');
+            rightHeader.setAttribute('x', padding + halfWidth);
+            rightHeader.setAttribute('y', startY);
+            rightHeader.setAttribute('width', halfWidth);
+            rightHeader.setAttribute('height', headerHeight);
+            parentG.appendChild(rightHeader);
+
+            const rightLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            rightLabel.classList.add('port-table-header-label');
+            rightLabel.setAttribute('x', padding + halfWidth + halfWidth / 2);
+            rightLabel.setAttribute('y', startY + headerHeight / 2 + 4);
+            rightLabel.setAttribute('text-anchor', 'middle');
+            rightLabel.textContent = 'Outputs';
+            parentG.appendChild(rightLabel);
+        }
+
+        // Divider between headers
+        if (hasInputs && hasOutputs) {
+            const divider = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            divider.classList.add('port-divider');
+            divider.setAttribute('x1', padding + halfWidth);
+            divider.setAttribute('y1', startY);
+            divider.setAttribute('x2', padding + halfWidth);
+            divider.setAttribute('y2', startY + headerHeight);
+            parentG.appendChild(divider);
+        }
+    }
+
+    renderPortCell(parentG, portName, x, y, width, height, type, imageId = null) {
+        const cellGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        cellGroup.classList.add('port-cell');
+        cellGroup.classList.add(`port-cell-${type}`);
+
+        if (type === 'input') {
+            cellGroup.setAttribute('data-input-name', portName);
+        } else {
+            cellGroup.setAttribute('data-output-name', portName);
+        }
+
+        // Store image ID if present
+        const hasImage = imageId !== null && imageId !== '';
+        if (hasImage) {
+            cellGroup.setAttribute('data-image-id', imageId);
+        }
+
+        // Cell background
+        const cellBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        cellBg.classList.add('port-cell-bg');
+        cellBg.setAttribute('x', x);
+        cellBg.setAttribute('y', y);
+        cellBg.setAttribute('width', width);
+        cellBg.setAttribute('height', height);
+        cellGroup.appendChild(cellBg);
+
+        // Port circle at edge
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.classList.add('port');
+        circle.setAttribute('cx', type === 'input' ? x : x + width);
+        circle.setAttribute('cy', y + height / 2);
+        circle.setAttribute('r', PORT_RADIUS);
+        if (hasImage) {
+            circle.style.fill = '#27ae60';
+        }
+        cellGroup.appendChild(circle);
+
+        // Label centered in cell
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.classList.add('port-label');
+        label.setAttribute('x', x + width / 2);
+        label.setAttribute('y', y + height / 2 + 4);
+        label.setAttribute('text-anchor', 'middle');
+        label.textContent = portName;
+        cellGroup.appendChild(label);
+
+        // Add hover event handlers to show image preview
+        if (hasImage) {
+            cellGroup.addEventListener('mouseenter', () => {
+                this.updateThumbnail(parentG, imageId);
+            });
+
+            cellGroup.addEventListener('mouseleave', () => {
+                this.restoreDefaultThumbnail(parentG);
+            });
+        }
+
+        parentG.appendChild(cellGroup);
     }
 
     renderInputPort(parentG, inputName, y) {
@@ -240,8 +424,8 @@ export class Renderer {
 
         if (!sourceNode || !targetNode) return;
 
-        const sourcePort = sourceNode.querySelector(`[data-output-name="${sourceOutput}"] circle`);
-        const targetPort = targetNode.querySelector(`[data-input-name="${targetInput}"] circle`);
+        const sourcePort = sourceNode.querySelector(`[data-output-name="${sourceOutput}"] .port`);
+        const targetPort = targetNode.querySelector(`[data-input-name="${targetInput}"] .port`);
 
         if (!sourcePort || !targetPort) return;
 

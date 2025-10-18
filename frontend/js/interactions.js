@@ -193,12 +193,12 @@ export class InteractionHandler {
         const nodeId = nodeElement.getAttribute('data-node-id');
         const nodePos = this.renderer.getNodePosition(nodeId);
 
-        const portParent = portElement.parentElement;
-        const isOutput = portParent.classList.contains('output-port');
+        const portCell = portElement.closest('.port-cell');
+        const isOutput = portCell.classList.contains('port-cell-output');
 
         const portName = isOutput
-            ? portParent.getAttribute('data-output-name')
-            : portParent.getAttribute('data-input-name');
+            ? portCell.getAttribute('data-output-name')
+            : portCell.getAttribute('data-input-name');
 
         const circle = portElement.closest('circle');
         const portX = nodePos.x + parseFloat(circle.getAttribute('cx'));
@@ -241,12 +241,12 @@ export class InteractionHandler {
             const targetNodeElement = port.closest('.node');
             const targetNodeId = targetNodeElement.getAttribute('data-node-id');
 
-            const portParent = port.parentElement;
-            const isTargetOutput = portParent.classList.contains('output-port');
+            const portCell = port.closest('.port-cell');
+            const isTargetOutput = portCell.classList.contains('port-cell-output');
 
             const targetPortName = isTargetOutput
-                ? portParent.getAttribute('data-output-name')
-                : portParent.getAttribute('data-input-name');
+                ? portCell.getAttribute('data-output-name')
+                : portCell.getAttribute('data-input-name');
 
             // Valid connection: output -> input
             if (this.connectionDrag.isOutput && !isTargetOutput) {
