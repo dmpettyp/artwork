@@ -5,6 +5,7 @@ import { GraphState } from './graph.js';
 import { Renderer } from './renderer.js';
 import { InteractionHandler } from './interactions.js';
 import { Modal, ModalManager } from './modal.js';
+import { ToastManager } from './toast.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -25,8 +26,9 @@ const nodeContextMenu = document.getElementById('node-context-menu');
 let contextMenuPosition = { x: 0, y: 0 };
 let contextMenuNodeId = null;
 
-// Initialize modal manager
+// Initialize modal manager and toast manager
 const modalManager = new ModalManager();
+const toastManager = new ToastManager();
 
 // Create graph modal
 const createGraphModalElement = document.getElementById('create-graph-modal');
@@ -173,7 +175,7 @@ async function selectGraph(graphId) {
         await loadGraphList(); // Refresh list to update active state
     } catch (error) {
         console.error('Failed to load graph:', error);
-        alert(`Failed to load graph: ${error.message}`);
+        toastManager.error(`Failed to load graph: ${error.message}`);
     }
 }
 
@@ -201,7 +203,7 @@ function closeCreateGraphModal() {
 // Add node modal functions
 function openAddNodeModal() {
     if (!graphState.getCurrentGraphId()) {
-        alert('Please select a graph first');
+        toastManager.warning('Please select a graph first');
         return;
     }
     nodeTypeSelect.value = '';
@@ -297,9 +299,10 @@ modalCreateBtn.addEventListener('click', async () => {
         closeCreateGraphModal();
         await loadGraphList();
         await selectGraph(graph_id);
+        toastManager.success(`Graph "${name}" created successfully`);
     } catch (error) {
         console.error('Failed to create graph:', error);
-        alert(`Failed to create graph: ${error.message}`);
+        toastManager.error(`Failed to create graph: ${error.message}`);
     }
 });
 
@@ -336,18 +339,18 @@ addNodeCreateBtn.addEventListener('click', async () => {
     const nodeName = nodeNameInput.value.trim();
 
     if (!nodeType) {
-        alert('Please select a node type');
+        toastManager.warning('Please select a node type');
         return;
     }
 
     if (!nodeName) {
-        alert('Please enter a node name');
+        toastManager.warning('Please enter a node name');
         return;
     }
 
     // For input nodes, check if an image file is selected
     if (nodeType === 'input' && nodeImageInput.files.length === 0) {
-        alert('Please select an image file for the input node');
+        toastManager.warning('Please select an image file for the input node');
         return;
     }
 
@@ -383,9 +386,10 @@ addNodeCreateBtn.addEventListener('click', async () => {
         // Refresh graph to show new node
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
+        toastManager.success(`Node "${nodeName}" added successfully`);
     } catch (error) {
         console.error('Failed to add node:', error);
-        alert(`Failed to add node: ${error.message}`);
+        toastManager.error(`Failed to add node: ${error.message}`);
     }
 });
 
@@ -514,9 +518,10 @@ editConfigSaveBtn.addEventListener('click', async () => {
         // Refresh graph to show updates
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
+        toastManager.success('Node updated successfully');
     } catch (error) {
         console.error('Failed to update node:', error);
-        alert(`Failed to update node: ${error.message}`);
+        toastManager.error(`Failed to update node: ${error.message}`);
     }
 });
 
@@ -562,14 +567,18 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
     if (!graphId || !currentNodeId) return;
 
     try {
+        const node = graphState.getNode(currentNodeId);
+        const nodeName = node ? node.name : 'Node';
+
         await api.deleteNode(graphId, currentNodeId);
         closeDeleteNodeModal();
         // Refresh graph to show node removed
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
+        toastManager.success(`"${nodeName}" deleted successfully`);
     } catch (error) {
         console.error('Failed to delete node:', error);
-        alert(`Failed to delete node: ${error.message}`);
+        toastManager.error(`Failed to delete node: ${error.message}`);
     }
 });
 
@@ -642,9 +651,10 @@ async function handleDisconnectConnection(fromNodeId, fromOutput, toNodeId, toIn
         // Refresh graph to show connection removed
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
+        toastManager.success('Connection removed');
     } catch (error) {
         console.error('Failed to disconnect nodes:', error);
-        alert(`Failed to disconnect nodes: ${error.message}`);
+        toastManager.error(`Failed to disconnect nodes: ${error.message}`);
     }
 }
 
@@ -656,9 +666,10 @@ refreshBtn.addEventListener('click', async () => {
     try {
         const graph = await api.getImageGraph(graphId);
         graphState.setCurrentGraph(graph);
+        toastManager.info('Graph refreshed');
     } catch (error) {
         console.error('Failed to refresh graph:', error);
-        alert(`Failed to refresh graph: ${error.message}`);
+        toastManager.error(`Failed to refresh graph: ${error.message}`);
     }
 });
 
@@ -745,7 +756,7 @@ nodeContextMenu.addEventListener('click', (e) => {
 // Open add node modal with pre-selected type and position
 function openAddNodeModalAtPosition(nodeType, position) {
     if (!graphState.getCurrentGraphId()) {
-        alert('Please select a graph first');
+        toastManager.warning('Please select a graph first');
         return;
     }
 
