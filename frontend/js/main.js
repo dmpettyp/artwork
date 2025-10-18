@@ -571,6 +571,71 @@ deleteNodeModal.addEventListener('mouseup', (e) => {
     deleteNodeModalMousedownTarget = null;
 });
 
+// View image modal
+const viewImageModal = document.getElementById('view-image-modal');
+const viewImageTitle = document.getElementById('view-image-title');
+const viewImageImg = document.getElementById('view-image-img');
+const viewImageMessage = document.getElementById('view-image-message');
+const viewImageCloseBtn = document.getElementById('view-image-close-btn');
+
+function openViewImageModal(nodeId) {
+    const node = graphState.getNode(nodeId);
+    if (!node) return;
+
+    interactions.cancelAllDrags();
+    currentNodeId = nodeId;
+    viewImageTitle.textContent = `${node.name} - Output`;
+
+    // Get the first output
+    const outputs = node.outputs || [];
+    if (outputs.length === 0 || !outputs[0].image_id) {
+        // No output image available
+        viewImageImg.style.display = 'none';
+        viewImageMessage.textContent = 'No output image available for this node.';
+        viewImageMessage.style.display = 'block';
+    } else {
+        // Load and display the image
+        const imageId = outputs[0].image_id;
+        const imageUrl = `/api/images/${imageId}`;
+
+        viewImageImg.src = imageUrl;
+        viewImageImg.style.display = 'block';
+        viewImageMessage.style.display = 'none';
+
+        // Handle image load error
+        viewImageImg.onerror = () => {
+            viewImageImg.style.display = 'none';
+            viewImageMessage.textContent = 'Failed to load image.';
+            viewImageMessage.style.display = 'block';
+        };
+    }
+
+    viewImageModal.classList.add('active');
+}
+
+function closeViewImageModal() {
+    viewImageModal.classList.remove('active');
+    viewImageImg.src = '';
+    viewImageImg.onerror = null;
+    currentNodeId = null;
+}
+
+viewImageCloseBtn.addEventListener('click', () => {
+    closeViewImageModal();
+});
+
+// Close modal only if both mousedown and mouseup happen on the background
+let viewImageModalMousedownTarget = null;
+viewImageModal.addEventListener('mousedown', (e) => {
+    viewImageModalMousedownTarget = e.target;
+});
+viewImageModal.addEventListener('mouseup', (e) => {
+    if (viewImageModalMousedownTarget === viewImageModal && e.target === viewImageModal) {
+        closeViewImageModal();
+    }
+    viewImageModalMousedownTarget = null;
+});
+
 // Handle connection delete button clicks
 svg.addEventListener('click', (e) => {
     // Check for connection delete button
@@ -686,7 +751,9 @@ nodeContextMenu.addEventListener('click', (e) => {
         const action = actionItem.getAttribute('data-action');
         nodeContextMenu.classList.remove('active');
 
-        if (action === 'edit-config') {
+        if (action === 'view') {
+            openViewImageModal(contextMenuNodeId);
+        } else if (action === 'edit-config') {
             openEditConfigModal(contextMenuNodeId);
         } else if (action === 'delete') {
             openDeleteNodeModal(contextMenuNodeId);
@@ -732,6 +799,8 @@ document.addEventListener('keydown', (e) => {
             closeEditConfigModal();
         } else if (deleteNodeModal.classList.contains('active')) {
             closeDeleteNodeModal();
+        } else if (viewImageModal.classList.contains('active')) {
+            closeViewImageModal();
         } else if (contextMenu.classList.contains('active')) {
             contextMenu.classList.remove('active');
         } else if (nodeContextMenu.classList.contains('active')) {

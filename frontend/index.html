@@ -105,6 +105,20 @@
         </div>
     </div>
 
+    <!-- Modal for viewing node output image -->
+    <div id="view-image-modal" class="modal">
+        <div class="modal-content modal-image-viewer">
+            <h3 id="view-image-title">Node Output</h3>
+            <div id="view-image-container" class="image-viewer-container">
+                <img id="view-image-img" src="" alt="Node output" />
+                <p id="view-image-message" class="image-viewer-message"></p>
+            </div>
+            <div class="modal-actions">
+                <button id="view-image-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Context menu for canvas -->
     <div id="context-menu" class="context-menu">
         <div class="context-menu-item context-menu-parent">
@@ -121,6 +135,7 @@
 
     <!-- Context menu for nodes -->
     <div id="node-context-menu" class="context-menu">
+        <div class="context-menu-item" data-action="view">View</div>
         <div class="context-menu-item" data-action="edit-config">Edit Config</div>
         <div class="context-menu-item" data-action="delete">Delete</div>
     </div>
