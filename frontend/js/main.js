@@ -6,6 +6,7 @@ import { Renderer } from './renderer.js';
 import { InteractionHandler } from './interactions.js';
 import { Modal, ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
+import { NodeConfigFormBuilder } from './form-builder.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -191,6 +192,9 @@ const nodeTypeConfigs = {
     }
 };
 
+// Initialize form builder
+const formBuilder = new NodeConfigFormBuilder(nodeTypeConfigs);
+
 // Create graph modal functions
 function openCreateGraphModal() {
     createGraphModal.open();
@@ -220,65 +224,11 @@ function closeAddNodeModal() {
 }
 
 function renderNodeConfigFields(nodeType) {
-    nodeConfigFields.innerHTML = '';
-
-    const config = nodeTypeConfigs[nodeType];
-    if (!config || !config.fields) return;
-
-    Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
-        const label = document.createElement('label');
-        label.setAttribute('for', `config-${fieldName}`);
-        label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
-
-        const input = document.createElement('input');
-        input.id = `config-${fieldName}`;
-        input.className = 'form-input';
-        input.setAttribute('data-field-name', fieldName);
-        input.setAttribute('data-field-type', fieldDef.type);
-
-        if (fieldDef.type === 'float' || fieldDef.type === 'int') {
-            input.type = 'number';
-            if (fieldDef.type === 'float') {
-                input.step = 'any';
-            }
-        } else if (fieldDef.type === 'bool') {
-            input.type = 'checkbox';
-        } else {
-            input.type = 'text';
-        }
-
-        if (fieldDef.required) {
-            input.required = true;
-        }
-
-        nodeConfigFields.appendChild(label);
-        nodeConfigFields.appendChild(input);
-    });
+    formBuilder.renderFields(nodeConfigFields, nodeType, 'config');
 }
 
 function getNodeConfig() {
-    const config = {};
-    const inputs = nodeConfigFields.querySelectorAll('input');
-
-    inputs.forEach(input => {
-        const fieldName = input.getAttribute('data-field-name');
-        const fieldType = input.getAttribute('data-field-type');
-        let value = input.value;
-
-        if (fieldType === 'int') {
-            value = parseInt(value, 10);
-        } else if (fieldType === 'float') {
-            value = parseFloat(value);
-        } else if (fieldType === 'bool') {
-            value = input.checked;
-        }
-
-        if (value !== '' && !isNaN(value)) {
-            config[fieldName] = value;
-        }
-    });
-
-    return config;
+    return formBuilder.getValues(nodeConfigFields);
 }
 
 // Create new graph handlers
@@ -354,6 +304,13 @@ addNodeCreateBtn.addEventListener('click', async () => {
         return;
     }
 
+    // Validate config fields
+    const validation = formBuilder.validate(nodeConfigFields, nodeType);
+    if (!validation.valid) {
+        toastManager.warning(validation.errors[0]);
+        return;
+    }
+
     const config = getNodeConfig();
 
     try {
@@ -412,77 +369,11 @@ function closeEditConfigModal() {
 }
 
 function renderEditConfigFields(nodeType, currentConfig) {
-    editConfigFields.innerHTML = '';
-
-    const config = nodeTypeConfigs[nodeType];
-    if (!config || !config.fields) {
-        editConfigFields.innerHTML = '<p style="color: #7f8c8d;">This node has no configurable fields.</p>';
-        return;
-    }
-
-    Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
-        const label = document.createElement('label');
-        label.setAttribute('for', `edit-config-${fieldName}`);
-        label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
-
-        const input = document.createElement('input');
-        input.id = `edit-config-${fieldName}`;
-        input.className = 'form-input';
-        input.setAttribute('data-field-name', fieldName);
-        input.setAttribute('data-field-type', fieldDef.type);
-
-        if (fieldDef.type === 'float' || fieldDef.type === 'int') {
-            input.type = 'number';
-            if (fieldDef.type === 'float') {
-                input.step = 'any';
-            }
-        } else if (fieldDef.type === 'bool') {
-            input.type = 'checkbox';
-        } else {
-            input.type = 'text';
-        }
-
-        if (fieldDef.required) {
-            input.required = true;
-        }
-
-        // Set current value
-        if (currentConfig && currentConfig[fieldName] !== undefined) {
-            if (fieldDef.type === 'bool') {
-                input.checked = currentConfig[fieldName];
-            } else {
-                input.value = currentConfig[fieldName];
-            }
-        }
-
-        editConfigFields.appendChild(label);
-        editConfigFields.appendChild(input);
-    });
+    formBuilder.renderFields(editConfigFields, nodeType, 'edit-config', currentConfig);
 }
 
 function getEditConfigValues() {
-    const config = {};
-    const inputs = editConfigFields.querySelectorAll('input');
-
-    inputs.forEach(input => {
-        const fieldName = input.getAttribute('data-field-name');
-        const fieldType = input.getAttribute('data-field-type');
-        let value = input.value;
-
-        if (fieldType === 'int') {
-            value = parseInt(value, 10);
-        } else if (fieldType === 'float') {
-            value = parseFloat(value);
-        } else if (fieldType === 'bool') {
-            value = input.checked;
-        }
-
-        if (value !== '' && !isNaN(value)) {
-            config[fieldName] = value;
-        }
-    });
-
-    return config;
+    return formBuilder.getValues(editConfigFields);
 }
 
 editConfigCancelBtn.addEventListener('click', () => {
@@ -495,6 +386,14 @@ editConfigSaveBtn.addEventListener('click', async () => {
 
     const node = graphState.getNode(currentNodeId);
     const newName = editNodeNameInput.value.trim();
+
+    // Validate config fields
+    const validation = formBuilder.validate(editConfigFields, node.type);
+    if (!validation.valid) {
+        toastManager.warning(validation.errors[0]);
+        return;
+    }
+
     const config = getEditConfigValues();
 
     // Determine what changed

@@ -337,6 +337,17 @@ body {
     border-color: #3498db;
 }
 
+.modal-content input.error,
+.modal-content .form-input.error {
+    border-color: #e74c3c;
+    background-color: #fef5f5;
+}
+
+.modal-content input.error:focus,
+.modal-content .form-input.error:focus {
+    border-color: #c0392b;
+}
+
 .modal-content select,
 .modal-content .form-select {
     width: 100%;
