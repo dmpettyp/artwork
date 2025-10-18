@@ -4,6 +4,7 @@ import * as api from './api.js';
 import { GraphState } from './graph.js';
 import { Renderer } from './renderer.js';
 import { InteractionHandler } from './interactions.js';
+import { Modal, ModalManager } from './modal.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -24,14 +25,26 @@ const nodeContextMenu = document.getElementById('node-context-menu');
 let contextMenuPosition = { x: 0, y: 0 };
 let contextMenuNodeId = null;
 
+// Initialize modal manager
+const modalManager = new ModalManager();
+
 // Create graph modal
-const createGraphModal = document.getElementById('create-graph-modal');
+const createGraphModalElement = document.getElementById('create-graph-modal');
 const graphNameInput = document.getElementById('graph-name-input');
 const modalCreateBtn = document.getElementById('modal-create-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
+const createGraphModal = new Modal('create-graph-modal', {
+    onOpen: () => {
+        interactions.cancelAllDrags();
+        graphNameInput.value = '';
+        graphNameInput.focus();
+    }
+});
+modalManager.register(createGraphModal);
+
 // Add node modal
-const addNodeModal = document.getElementById('add-node-modal');
+const addNodeModalElement = document.getElementById('add-node-modal');
 const nodeTypeSelect = document.getElementById('node-type-select');
 const nodeNameInput = document.getElementById('node-name-input');
 const nodeImageUpload = document.getElementById('node-image-upload');
@@ -40,18 +53,45 @@ const nodeConfigFields = document.getElementById('node-config-fields');
 const addNodeCreateBtn = document.getElementById('add-node-create-btn');
 const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
 
+const addNodeModal = new Modal('add-node-modal', {
+    onOpen: () => {
+        interactions.cancelAllDrags();
+    }
+});
+modalManager.register(addNodeModal);
+
 // Edit config modal
-const editConfigModal = document.getElementById('edit-config-modal');
+const editConfigModalElement = document.getElementById('edit-config-modal');
 const editNodeNameInput = document.getElementById('edit-node-name-input');
 const editConfigFields = document.getElementById('edit-config-fields');
 const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
 const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
 
+const editConfigModal = new Modal('edit-config-modal', {
+    onOpen: () => {
+        interactions.cancelAllDrags();
+    },
+    onClose: () => {
+        currentNodeId = null;
+    }
+});
+modalManager.register(editConfigModal);
+
 // Delete node modal
-const deleteNodeModal = document.getElementById('delete-node-modal');
+const deleteNodeModalElement = document.getElementById('delete-node-modal');
 const deleteNodeName = document.getElementById('delete-node-name');
 const deleteNodeConfirmBtn = document.getElementById('delete-node-confirm-btn');
 const deleteNodeCancelBtn = document.getElementById('delete-node-cancel-btn');
+
+const deleteNodeModal = new Modal('delete-node-modal', {
+    onOpen: () => {
+        interactions.cancelAllDrags();
+    },
+    onClose: () => {
+        currentNodeId = null;
+    }
+});
+modalManager.register(deleteNodeModal);
 
 // Track current node being edited/deleted
 let currentNodeId = null;
@@ -151,14 +191,11 @@ const nodeTypeConfigs = {
 
 // Create graph modal functions
 function openCreateGraphModal() {
-    interactions.cancelAllDrags();
-    createGraphModal.classList.add('active');
-    graphNameInput.value = '';
-    graphNameInput.focus();
+    createGraphModal.open();
 }
 
 function closeCreateGraphModal() {
-    createGraphModal.classList.remove('active');
+    createGraphModal.close();
 }
 
 // Add node modal functions
@@ -167,18 +204,17 @@ function openAddNodeModal() {
         alert('Please select a graph first');
         return;
     }
-    interactions.cancelAllDrags();
-    addNodeModal.classList.add('active');
     nodeTypeSelect.value = '';
     nodeNameInput.value = '';
     nodeImageInput.value = '';
     nodeImageUpload.style.display = 'none';
     nodeConfigFields.innerHTML = '';
+    addNodeModal.open();
     nodeTypeSelect.focus();
 }
 
 function closeAddNodeModal() {
-    addNodeModal.classList.remove('active');
+    addNodeModal.close();
 }
 
 function renderNodeConfigFields(nodeType) {
@@ -273,18 +309,6 @@ graphNameInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Close modal only if both mousedown and mouseup happen on the background
-let createGraphModalMousedownTarget = null;
-createGraphModal.addEventListener('mousedown', (e) => {
-    createGraphModalMousedownTarget = e.target;
-});
-createGraphModal.addEventListener('mouseup', (e) => {
-    if (createGraphModalMousedownTarget === createGraphModal && e.target === createGraphModal) {
-        closeCreateGraphModal();
-    }
-    createGraphModalMousedownTarget = null;
-});
-
 // Add node handlers
 nodeTypeSelect.addEventListener('change', (e) => {
     const nodeType = e.target.value;
@@ -340,9 +364,9 @@ addNodeCreateBtn.addEventListener('click', async () => {
         }
 
         // If position was set from context menu, update node position
-        if (addNodeModal.dataset.canvasX && addNodeModal.dataset.canvasY) {
-            const x = parseFloat(addNodeModal.dataset.canvasX);
-            const y = parseFloat(addNodeModal.dataset.canvasY);
+        if (addNodeModalElement.dataset.canvasX && addNodeModalElement.dataset.canvasY) {
+            const x = parseFloat(addNodeModalElement.dataset.canvasX);
+            const y = parseFloat(addNodeModalElement.dataset.canvasY);
             renderer.updateNodePosition(nodeId, x, y);
 
             // Persist the position
@@ -351,8 +375,8 @@ addNodeCreateBtn.addEventListener('click', async () => {
             await api.updateUIMetadata(graphId, viewport, nodePositions);
 
             // Clear the stored position
-            delete addNodeModal.dataset.canvasX;
-            delete addNodeModal.dataset.canvasY;
+            delete addNodeModalElement.dataset.canvasX;
+            delete addNodeModalElement.dataset.canvasY;
         }
 
         closeAddNodeModal();
@@ -365,36 +389,22 @@ addNodeCreateBtn.addEventListener('click', async () => {
     }
 });
 
-// Close modal only if both mousedown and mouseup happen on the background
-let addNodeModalMousedownTarget = null;
-addNodeModal.addEventListener('mousedown', (e) => {
-    addNodeModalMousedownTarget = e.target;
-});
-addNodeModal.addEventListener('mouseup', (e) => {
-    if (addNodeModalMousedownTarget === addNodeModal && e.target === addNodeModal) {
-        closeAddNodeModal();
-    }
-    addNodeModalMousedownTarget = null;
-});
-
 // Edit config modal handlers
 function openEditConfigModal(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
-    interactions.cancelAllDrags();
     currentNodeId = nodeId;
     editNodeNameInput.value = node.name;
 
     // Render config fields based on node type
     renderEditConfigFields(node.type, node.config);
 
-    editConfigModal.classList.add('active');
+    editConfigModal.open();
 }
 
 function closeEditConfigModal() {
-    editConfigModal.classList.remove('active');
-    currentNodeId = null;
+    editConfigModal.close();
 }
 
 function renderEditConfigFields(nodeType, currentConfig) {
@@ -510,33 +520,37 @@ editConfigSaveBtn.addEventListener('click', async () => {
     }
 });
 
-// Close modal only if both mousedown and mouseup happen on the background
-let editConfigModalMousedownTarget = null;
-editConfigModal.addEventListener('mousedown', (e) => {
-    editConfigModalMousedownTarget = e.target;
-});
-editConfigModal.addEventListener('mouseup', (e) => {
-    if (editConfigModalMousedownTarget === editConfigModal && e.target === editConfigModal) {
-        closeEditConfigModal();
+// View image modal
+const viewImageModalElement = document.getElementById('view-image-modal');
+const viewImageTitle = document.getElementById('view-image-title');
+const viewImageImg = document.getElementById('view-image-img');
+const viewImageMessage = document.getElementById('view-image-message');
+const viewImageCloseBtn = document.getElementById('view-image-close-btn');
+
+const viewImageModal = new Modal('view-image-modal', {
+    onOpen: () => {
+        interactions.cancelAllDrags();
+    },
+    onClose: () => {
+        viewImageImg.src = '';
+        viewImageImg.onerror = null;
+        currentNodeId = null;
     }
-    editConfigModalMousedownTarget = null;
 });
+modalManager.register(viewImageModal);
 
 // Delete node modal handlers
 function openDeleteNodeModal(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
-    interactions.cancelAllDrags();
     currentNodeId = nodeId;
     deleteNodeName.textContent = node.name;
-
-    deleteNodeModal.classList.add('active');
+    deleteNodeModal.open();
 }
 
 function closeDeleteNodeModal() {
-    deleteNodeModal.classList.remove('active');
-    currentNodeId = null;
+    deleteNodeModal.close();
 }
 
 deleteNodeCancelBtn.addEventListener('click', () => {
@@ -559,30 +573,10 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
     }
 });
 
-// Close modal only if both mousedown and mouseup happen on the background
-let deleteNodeModalMousedownTarget = null;
-deleteNodeModal.addEventListener('mousedown', (e) => {
-    deleteNodeModalMousedownTarget = e.target;
-});
-deleteNodeModal.addEventListener('mouseup', (e) => {
-    if (deleteNodeModalMousedownTarget === deleteNodeModal && e.target === deleteNodeModal) {
-        closeDeleteNodeModal();
-    }
-    deleteNodeModalMousedownTarget = null;
-});
-
-// View image modal
-const viewImageModal = document.getElementById('view-image-modal');
-const viewImageTitle = document.getElementById('view-image-title');
-const viewImageImg = document.getElementById('view-image-img');
-const viewImageMessage = document.getElementById('view-image-message');
-const viewImageCloseBtn = document.getElementById('view-image-close-btn');
-
 function openViewImageModal(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
-    interactions.cancelAllDrags();
     currentNodeId = nodeId;
     viewImageTitle.textContent = `${node.name} - Output`;
 
@@ -610,30 +604,15 @@ function openViewImageModal(nodeId) {
         };
     }
 
-    viewImageModal.classList.add('active');
+    viewImageModal.open();
 }
 
 function closeViewImageModal() {
-    viewImageModal.classList.remove('active');
-    viewImageImg.src = '';
-    viewImageImg.onerror = null;
-    currentNodeId = null;
+    viewImageModal.close();
 }
 
 viewImageCloseBtn.addEventListener('click', () => {
     closeViewImageModal();
-});
-
-// Close modal only if both mousedown and mouseup happen on the background
-let viewImageModalMousedownTarget = null;
-viewImageModal.addEventListener('mousedown', (e) => {
-    viewImageModalMousedownTarget = e.target;
-});
-viewImageModal.addEventListener('mouseup', (e) => {
-    if (viewImageModalMousedownTarget === viewImageModal && e.target === viewImageModal) {
-        closeViewImageModal();
-    }
-    viewImageModalMousedownTarget = null;
 });
 
 // Handle connection delete button clicks
@@ -770,13 +749,10 @@ function openAddNodeModalAtPosition(nodeType, position) {
         return;
     }
 
-    interactions.cancelAllDrags();
-
     // Store the position for use when creating the node
-    addNodeModal.dataset.canvasX = position.x;
-    addNodeModal.dataset.canvasY = position.y;
+    addNodeModalElement.dataset.canvasX = position.x;
+    addNodeModalElement.dataset.canvasY = position.y;
 
-    addNodeModal.classList.add('active');
     nodeTypeSelect.value = nodeType;
     nodeNameInput.value = '';
     nodeImageInput.value = '';
@@ -784,30 +760,9 @@ function openAddNodeModalAtPosition(nodeType, position) {
     // Trigger the change event to show/hide appropriate fields
     nodeTypeSelect.dispatchEvent(new Event('change'));
 
+    addNodeModal.open();
     nodeNameInput.focus();
 }
-
-// Handle ESC key to close modals
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        // Close whichever modal is currently open
-        if (createGraphModal.classList.contains('active')) {
-            closeCreateGraphModal();
-        } else if (addNodeModal.classList.contains('active')) {
-            closeAddNodeModal();
-        } else if (editConfigModal.classList.contains('active')) {
-            closeEditConfigModal();
-        } else if (deleteNodeModal.classList.contains('active')) {
-            closeDeleteNodeModal();
-        } else if (viewImageModal.classList.contains('active')) {
-            closeViewImageModal();
-        } else if (contextMenu.classList.contains('active')) {
-            contextMenu.classList.remove('active');
-        } else if (nodeContextMenu.classList.contains('active')) {
-            nodeContextMenu.classList.remove('active');
-        }
-    }
-});
 
 // Load initial data
 loadGraphList();
