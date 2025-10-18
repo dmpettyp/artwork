@@ -4,8 +4,8 @@ const NODE_WIDTH = 200;
 const NODE_HEIGHT = 180;
 const PORT_RADIUS = 6;
 const PORT_SPACING = 30;
-const THUMBNAIL_WIDTH = 80;
-const THUMBNAIL_HEIGHT = 60;
+const THUMBNAIL_WIDTH = 120;
+const THUMBNAIL_HEIGHT = 90;
 const THUMBNAIL_Y = 48;
 
 // Node type configurations (matches backend node_type.go)
@@ -131,56 +131,56 @@ export class Renderer {
             g.setAttribute('data-default-image-id', defaultImageId);
         }
 
-        // Calculate node height based on content
+        // Layout constants
+        const titleBarHeight = 30;
         const tablePadding = 8;
-        const portTableY = THUMBNAIL_Y + THUMBNAIL_HEIGHT + 10;
-        const maxRows = Math.max(inputs.length, outputs.length, 1); // At least 1 row
+        const thumbnailY = titleBarHeight + 10;
+        const portTableY = thumbnailY + THUMBNAIL_HEIGHT + 10;
+        const maxRows = Math.max(inputs.length, outputs.length, 1);
         const rowHeight = 24;
         const headerHeight = 20;
         const portTableHeight = headerHeight + maxRows * rowHeight;
-        const nodeHeight = portTableY + portTableHeight + tablePadding; // Add bottom padding
+        const nodeHeight = portTableY + portTableHeight + tablePadding;
 
-        // Node rectangle
+        // Node rectangle (main body)
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.classList.add('node-rect');
         rect.setAttribute('width', NODE_WIDTH);
         rect.setAttribute('height', nodeHeight);
         g.appendChild(rect);
 
-        // Node title (name)
+        // Title bar background
+        const titleBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        titleBar.classList.add('node-title-bar');
+        titleBar.setAttribute('width', NODE_WIDTH);
+        titleBar.setAttribute('height', titleBarHeight);
+        g.appendChild(titleBar);
+
+        // Node title (name and type)
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         title.classList.add('node-title');
         title.setAttribute('x', NODE_WIDTH / 2);
-        title.setAttribute('y', 25);
+        title.setAttribute('y', titleBarHeight / 2 + 5);
         title.setAttribute('text-anchor', 'middle');
-        title.textContent = node.name;
+        title.textContent = `${node.name} (${node.type})`;
         g.appendChild(title);
-
-        // Node type and state
-        const type = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        type.classList.add('node-type');
-        type.setAttribute('x', NODE_WIDTH / 2);
-        type.setAttribute('y', 42);
-        type.setAttribute('text-anchor', 'middle');
-        type.textContent = `${node.type} • ${node.state}`;
-        g.appendChild(type);
 
         // Render thumbnail if first output has an image
         if (defaultImageId) {
-            this.renderThumbnail(g, defaultImageId);
+            this.renderThumbnail(g, defaultImageId, thumbnailY);
         }
 
-        // Render port table (reuse variables from height calculation)
+        // Render port table
         this.renderPortTable(g, inputs, outputs, portTableY, tablePadding);
 
         this.nodesLayer.appendChild(g);
     }
 
-    renderThumbnail(parentG, imageId) {
+    renderThumbnail(parentG, imageId, yPos = THUMBNAIL_Y) {
         const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         image.classList.add('node-thumbnail');
         image.setAttribute('x', (NODE_WIDTH - THUMBNAIL_WIDTH) / 2);
-        image.setAttribute('y', THUMBNAIL_Y);
+        image.setAttribute('y', yPos);
         image.setAttribute('width', THUMBNAIL_WIDTH);
         image.setAttribute('height', THUMBNAIL_HEIGHT);
         image.setAttribute('href', `/api/images/${imageId}`);

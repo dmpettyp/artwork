@@ -125,10 +125,15 @@ body {
     stroke: #27ae60;
 }
 
+.node-title-bar {
+    fill: #34495e;
+    rx: 4;
+}
+
 .node-title {
-    fill: #2c3e50;
-    font-size: 14px;
-    font-weight: bold;
+    fill: white;
+    font-size: 13px;
+    font-weight: 600;
     user-select: none;
 }
 
