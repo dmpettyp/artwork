@@ -217,6 +217,9 @@ const nodeTypeConfigs = {
         fields: {
             radius: { type: 'int', required: true }
         }
+    },
+    output: {
+        fields: {}
     }
 };
 

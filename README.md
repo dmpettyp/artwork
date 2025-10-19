@@ -40,10 +40,16 @@ to process images in a non-destructive way.
   - drawer for inputs and outputs - not doing this, went with a table approach for inputs and outputs
   - output/input node green when set, red when not
 - websocket implementation for events ✅
+- spinner when outputs are being generated
+- ? when outputs can't be generated
+- output nodes should have side bar or something that shows the output images
 - more node types
   - get rid of scale
+  - output ✅
+  - blur ✅
   - resize
-- durable repository/unit of work implementation: postgres?
+  - resizeTo
+- durable repository/unit of work implementation: sqlite
 
 ## Overview
 

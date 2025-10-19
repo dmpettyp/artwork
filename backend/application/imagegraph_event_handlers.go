@@ -152,6 +152,40 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypeOutput {
+		// Find the "input" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "input" {
+				inputImageID = input.ImageID
+				break
+			}
+		}
+
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'input' input")
+		}
+
+		// Passive passthrough - just set the output to the same image as the input
+		_, err := h.uow.Run(ctx, func(repos *Repos) error {
+			ig, err := repos.ImageGraphRepository.Get(event.ImageGraphID)
+			if err != nil {
+				return fmt.Errorf("could not get image graph: %w", err)
+			}
+
+			err = ig.SetNodeOutputImage(event.NodeID, "final", inputImageID)
+			if err != nil {
+				return fmt.Errorf("could not set output image: %w", err)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent for output node: %w", err)
+		}
+	}
+
 	return nil, nil
 }
 

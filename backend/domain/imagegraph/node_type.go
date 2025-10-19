@@ -7,6 +7,7 @@ const (
 	NodeTypeInput
 	NodeTypeScale
 	NodeTypeBlur
+	NodeTypeOutput
 )
 
 type NodeConfigFieldType int
@@ -47,5 +48,9 @@ var nodeConfigs = map[NodeType]nodeConfig{
 		fields: map[string]nodeConfigField{
 			"radius": {NodeConfigTypeInt, true},
 		},
+	},
+	NodeTypeOutput: {
+		inputs:  []InputName{"input"},
+		outputs: []OutputName{"final"},
 	},
 }
