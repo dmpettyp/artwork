@@ -16,6 +16,11 @@ const connectionsLayer = document.getElementById('connections-layer');
 const renderer = new Renderer(svg, nodesLayer, connectionsLayer);
 const interactions = new InteractionHandler(svg, renderer, graphState, api);
 
+// WebSocket connection management
+let wsConnection = null;
+let wsReconnectTimeout = null;
+const WS_RECONNECT_DELAY = 3000; // 3 seconds
+
 // UI elements
 const graphSelect = document.getElementById('graph-select');
 const createGraphBtn = document.getElementById('create-graph-btn');
@@ -153,6 +158,7 @@ graphSelect.addEventListener('change', (e) => {
     if (graphId) {
         selectGraph(graphId);
     } else {
+        disconnectWebSocket();
         graphState.setCurrentGraph(null);
     }
 });
@@ -174,6 +180,9 @@ async function selectGraph(graphId) {
 
         graphState.setCurrentGraph(graph);
         await loadGraphList(); // Refresh list to update active state
+
+        // Connect to WebSocket for real-time updates
+        connectWebSocket(graphId);
     } catch (error) {
         console.error('Failed to load graph:', error);
         toastManager.error(`Failed to load graph: ${error.message}`);
@@ -675,6 +684,83 @@ function openAddNodeModalAtPosition(nodeType, position) {
     addNodeModal.open();
     nodeNameInput.focus();
 }
+
+// WebSocket connection management functions
+function connectWebSocket(graphId) {
+    // Disconnect existing connection if any
+    disconnectWebSocket();
+
+    // Determine WebSocket URL (ws:// for http://, wss:// for https://)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/imagegraphs/${graphId}/ws`;
+
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    try {
+        wsConnection = new WebSocket(wsUrl);
+
+        wsConnection.onopen = () => {
+            console.log('WebSocket connected for graph:', graphId);
+            // Clear any pending reconnect attempts
+            if (wsReconnectTimeout) {
+                clearTimeout(wsReconnectTimeout);
+                wsReconnectTimeout = null;
+            }
+        };
+
+        wsConnection.onmessage = async (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                console.log('WebSocket message received:', message);
+
+                // Refresh the graph to get the latest state
+                await reloadCurrentGraph();
+            } catch (error) {
+                console.error('Failed to handle WebSocket message:', error);
+            }
+        };
+
+        wsConnection.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        wsConnection.onclose = (event) => {
+            console.log('WebSocket closed:', event.code, event.reason);
+            wsConnection = null;
+
+            // Attempt to reconnect if the graph is still selected
+            const currentGraphId = graphState.getCurrentGraphId();
+            if (currentGraphId === graphId) {
+                console.log(`Will attempt to reconnect in ${WS_RECONNECT_DELAY}ms`);
+                wsReconnectTimeout = setTimeout(() => {
+                    connectWebSocket(graphId);
+                }, WS_RECONNECT_DELAY);
+            }
+        };
+    } catch (error) {
+        console.error('Failed to create WebSocket connection:', error);
+    }
+}
+
+function disconnectWebSocket() {
+    // Clear any pending reconnect attempts
+    if (wsReconnectTimeout) {
+        clearTimeout(wsReconnectTimeout);
+        wsReconnectTimeout = null;
+    }
+
+    // Close existing connection
+    if (wsConnection) {
+        console.log('Disconnecting WebSocket');
+        wsConnection.close(1000, 'Client disconnecting');
+        wsConnection = null;
+    }
+}
+
+// Clean up WebSocket on page unload
+window.addEventListener('beforeunload', () => {
+    disconnectWebSocket();
+});
 
 // Load initial data
 loadGraphList();
