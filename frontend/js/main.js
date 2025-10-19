@@ -53,13 +53,16 @@ modalManager.register(createGraphModal);
 
 // Add node modal
 const addNodeModalElement = document.getElementById('add-node-modal');
-const nodeTypeSelect = document.getElementById('node-type-select');
+const addNodeModalTitle = document.getElementById('add-node-modal-title');
 const nodeNameInput = document.getElementById('node-name-input');
 const nodeImageUpload = document.getElementById('node-image-upload');
 const nodeImageInput = document.getElementById('node-image-input');
 const nodeConfigFields = document.getElementById('node-config-fields');
 const addNodeCreateBtn = document.getElementById('add-node-create-btn');
 const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
+
+// Track the node type for the add modal (set when opening)
+let addNodeType = null;
 
 const addNodeModal = new Modal('add-node-modal', {
     onOpen: () => {
@@ -225,22 +228,41 @@ function closeCreateGraphModal() {
 }
 
 // Add node modal functions
-function openAddNodeModal() {
+function openAddNodeModal(nodeType) {
     if (!graphState.getCurrentGraphId()) {
         toastManager.warning('Please select a graph first');
         return;
     }
-    nodeTypeSelect.value = '';
+
+    // Store the node type
+    addNodeType = nodeType;
+
+    // Update modal title with capitalized node type
+    const capitalizedType = nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
+    addNodeModalTitle.textContent = `Add ${capitalizedType} Node`;
+
+    // Clear inputs
     nodeNameInput.value = '';
     nodeImageInput.value = '';
-    nodeImageUpload.style.display = 'none';
     nodeConfigFields.innerHTML = '';
+
+    // Show/hide image upload based on node type
+    if (nodeType === 'input') {
+        nodeImageUpload.style.display = 'block';
+    } else {
+        nodeImageUpload.style.display = 'none';
+    }
+
+    // Render config fields for the node type
+    renderNodeConfigFields(nodeType);
+
     addNodeModal.open();
-    nodeTypeSelect.focus();
+    nodeNameInput.focus();
 }
 
 function closeAddNodeModal() {
     addNodeModal.close();
+    addNodeType = null;
 }
 
 function renderNodeConfigFields(nodeType) {
@@ -283,20 +305,6 @@ graphNameInput.addEventListener('keypress', (e) => {
 });
 
 // Add node handlers
-nodeTypeSelect.addEventListener('change', (e) => {
-    const nodeType = e.target.value;
-
-    // Show/hide image upload based on node type
-    if (nodeType === 'input') {
-        nodeImageUpload.style.display = 'block';
-    } else {
-        nodeImageUpload.style.display = 'none';
-        nodeImageInput.value = '';
-    }
-
-    renderNodeConfigFields(nodeType);
-});
-
 addNodeCancelBtn.addEventListener('click', () => {
     closeAddNodeModal();
 });
@@ -305,11 +313,11 @@ addNodeCreateBtn.addEventListener('click', async () => {
     const graphId = graphState.getCurrentGraphId();
     if (!graphId) return;
 
-    const nodeType = nodeTypeSelect.value;
+    const nodeType = addNodeType;
     const nodeName = nodeNameInput.value.trim();
 
     if (!nodeType) {
-        toastManager.warning('Please select a node type');
+        toastManager.warning('Node type not set');
         return;
     }
 
@@ -695,15 +703,8 @@ function openAddNodeModalAtPosition(nodeType, position) {
     addNodeModalElement.dataset.canvasX = position.x;
     addNodeModalElement.dataset.canvasY = position.y;
 
-    nodeTypeSelect.value = nodeType;
-    nodeNameInput.value = '';
-    nodeImageInput.value = '';
-
-    // Trigger the change event to show/hide appropriate fields
-    nodeTypeSelect.dispatchEvent(new Event('change'));
-
-    addNodeModal.open();
-    nodeNameInput.focus();
+    // Open the modal with the specified node type
+    openAddNodeModal(nodeType);
 }
 
 // WebSocket connection management functions
