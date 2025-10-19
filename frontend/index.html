@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artwork - Image Graph Editor</title>
     <link rel="stylesheet" href="/css/main.css">
 </head>
+
 <body>
     <div class="app">
         <!-- Main canvas area -->
@@ -77,7 +79,7 @@
         <div class="modal-content">
             <h3>Edit Node</h3>
 
-            <label for="edit-node-name-input">Node Name</label>
+            <label for="edit-node-name-input">Name</label>
             <input type="text" id="edit-node-name-input" class="form-input" placeholder="Enter node name" />
 
             <div id="edit-config-fields">
@@ -124,7 +126,7 @@
         <div class="context-menu-item context-menu-parent">
             <span>Add Node</span>
             <svg class="context-menu-arrow" width="8" height="12" viewBox="0 0 8 12">
-                <path d="M 1 1 L 6 6 L 1 11" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M 1 1 L 6 6 L 1 11" fill="none" stroke="currentColor" stroke-width="2" />
             </svg>
             <div class="context-menu-submenu">
                 <div class="context-menu-item" data-node-type="input">Input</div>
@@ -136,11 +138,12 @@
     <!-- Context menu for nodes -->
     <div id="node-context-menu" class="context-menu">
         <div class="context-menu-item" data-action="view">View</div>
-        <div class="context-menu-item" data-action="edit-config">Edit Config</div>
+        <div class="context-menu-item" data-action="edit-config">Edit</div>
         <div class="context-menu-item" data-action="delete">Delete</div>
     </div>
 
     <!-- JavaScript modules -->
     <script type="module" src="/js/main.js"></script>
 </body>
+
 </html>

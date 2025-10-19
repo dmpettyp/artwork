@@ -432,7 +432,6 @@ editConfigSaveBtn.addEventListener('click', async () => {
 });
 
 // View image modal
-const viewImageModalElement = document.getElementById('view-image-modal');
 const viewImageTitle = document.getElementById('view-image-title');
 const viewImageImg = document.getElementById('view-image-img');
 const viewImageMessage = document.getElementById('view-image-message');
