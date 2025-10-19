@@ -156,14 +156,14 @@ export class Renderer {
         titleBar.setAttribute('height', titleBarHeight);
         g.appendChild(titleBar);
 
-        // Node title (name and type) - add placeholder first, then truncate after rendering
+        // Node title (type and name) - add placeholder first, then truncate after rendering
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         title.classList.add('node-title');
         title.setAttribute('x', NODE_WIDTH / 2);
         title.setAttribute('y', titleBarHeight / 2 + 5);
         title.setAttribute('text-anchor', 'middle');
 
-        const fullTitle = `${node.name} (${node.type})`;
+        const fullTitle = `${node.type}: ${node.name}`;
         title.textContent = fullTitle;
         g.appendChild(title);
 
@@ -174,12 +174,12 @@ export class Renderer {
 
             if (textLength > maxWidth) {
                 // Truncate the name but always keep the type
-                const typeSuffix = ` (${node.type})`;
+                const typePrefix = `${node.type}: `;
 
                 // Start by trying to fit as much of the name as possible
                 for (let i = node.name.length; i >= 0; i--) {
                     const truncatedName = node.name.substring(0, i);
-                    title.textContent = truncatedName + '...' + typeSuffix;
+                    title.textContent = typePrefix + truncatedName + '...';
 
                     if (title.getComputedTextLength() <= maxWidth) {
                         break;
