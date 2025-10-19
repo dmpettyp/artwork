@@ -6,6 +6,7 @@ const (
 	NodeTypeNone NodeType = iota
 	NodeTypeInput
 	NodeTypeScale
+	NodeTypeBlur
 )
 
 type NodeConfigFieldType int
@@ -38,6 +39,13 @@ var nodeConfigs = map[NodeType]nodeConfig{
 		outputs: []OutputName{"scaled"},
 		fields: map[string]nodeConfigField{
 			"factor": {NodeConfigTypeFloat, true},
+		},
+	},
+	NodeTypeBlur: {
+		inputs:  []InputName{"original"},
+		outputs: []OutputName{"blurred"},
+		fields: map[string]nodeConfigField{
+			"radius": {NodeConfigTypeInt, true},
 		},
 	},
 }

@@ -212,6 +212,11 @@ const nodeTypeConfigs = {
         fields: {
             factor: { type: 'float', required: true }
         }
+    },
+    blur: {
+        fields: {
+            radius: { type: 'int', required: true }
+        }
     }
 };
 

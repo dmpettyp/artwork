@@ -124,6 +124,34 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypeBlur {
+		radius := int(event.NodeConfig["radius"].(float64))
+
+		// Find the "original" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				inputImageID = input.ImageID
+				break
+			}
+		}
+
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForBlurNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				radius,
+				"blurred",
+			)
+		}()
+	}
+
 	return nil, nil
 }
 
