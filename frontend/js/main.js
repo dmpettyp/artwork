@@ -71,6 +71,8 @@ modalManager.register(addNodeModal);
 // Edit config modal
 const editConfigModalElement = document.getElementById('edit-config-modal');
 const editNodeNameInput = document.getElementById('edit-node-name-input');
+const editImageUpload = document.getElementById('edit-image-upload');
+const editImageInput = document.getElementById('edit-image-input');
 const editConfigFields = document.getElementById('edit-config-fields');
 const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
 const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
@@ -375,6 +377,15 @@ function openEditConfigModal(nodeId) {
     currentNodeId = nodeId;
     editNodeNameInput.value = node.name;
 
+    // Show/hide image upload based on node type
+    if (node.type === 'input') {
+        editImageUpload.style.display = 'block';
+        editImageInput.value = ''; // Clear any previous file selection
+    } else {
+        editImageUpload.style.display = 'none';
+        editImageInput.value = '';
+    }
+
     // Render config fields based on node type
     renderEditConfigFields(node.type, node.config);
 
@@ -416,20 +427,30 @@ editConfigSaveBtn.addEventListener('click', async () => {
     // Determine what changed
     const nameChanged = newName !== node.name;
     const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
+    const imageChanged = node.type === 'input' && editImageInput.files.length > 0;
 
-    if (!nameChanged && !configChanged) {
+    if (!nameChanged && !configChanged && !imageChanged) {
         closeEditConfigModal();
         return;
     }
 
     try {
-        // Send both name and config - API will update what's provided
-        await api.updateNode(
-            graphId,
-            currentNodeId,
-            nameChanged ? newName : null,
-            configChanged ? config : null
-        );
+        // Update name and/or config if changed
+        if (nameChanged || configChanged) {
+            await api.updateNode(
+                graphId,
+                currentNodeId,
+                nameChanged ? newName : null,
+                configChanged ? config : null
+            );
+        }
+
+        // Upload new image if selected for input node
+        if (imageChanged) {
+            const imageFile = editImageInput.files[0];
+            await api.uploadNodeOutputImage(graphId, currentNodeId, 'original', imageFile);
+        }
+
         closeEditConfigModal();
         // Refresh graph to show updates
         await reloadCurrentGraph();

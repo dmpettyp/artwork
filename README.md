@@ -37,9 +37,12 @@ to process images in a non-destructive way.
   - create handler that allows images to be uploaded and uses ImageStore the is injected ✅
 - UI
   - show output as thumbnail ✅
-  - drawer for inputs and outputs
+  - drawer for inputs and outputs - not doing this, went with a table approach for inputs and outputs
   - output/input node green when set, red when not
-- websocket implementation for events
+- websocket implementation for events ✅
+- more node types
+  - get rid of scale
+  - resize
 - durable repository/unit of work implementation: postgres?
 
 ## Overview
