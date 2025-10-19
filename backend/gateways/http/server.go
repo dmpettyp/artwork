@@ -17,7 +17,7 @@ type HTTPServer struct {
 	imageGraphViews application.ImageGraphViews
 	uiMetadataViews application.UIMetadataViews
 	imageStorage    filestorage.ImageStorage
-	wsHub           *WebSocketHub
+	notifier        *ImageGraphNotifier
 	server          *http.Server
 	port            string
 }
@@ -40,6 +40,7 @@ func NewHTTPServer(
 	imageGraphViews application.ImageGraphViews,
 	uiMetadataViews application.UIMetadataViews,
 	imageStorage filestorage.ImageStorage,
+	notifier *ImageGraphNotifier,
 	opts ...ServerOption,
 ) *HTTPServer {
 	s := &HTTPServer{
@@ -48,7 +49,7 @@ func NewHTTPServer(
 		imageGraphViews: imageGraphViews,
 		uiMetadataViews: uiMetadataViews,
 		imageStorage:    imageStorage,
-		wsHub:           NewWebSocketHub(logger),
+		notifier:        notifier,
 		port:            "8080", // default port
 	}
 
@@ -107,8 +108,8 @@ func (s *HTTPServer) Start() {
 func (s *HTTPServer) Stop(ctx context.Context) error {
 	s.logger.Info("stopping HTTP server")
 
-	// Close WebSocket hub first
-	s.wsHub.Close()
+	// Close notifier first
+	s.notifier.Close()
 
 	if err := s.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown HTTP server: %w", err)

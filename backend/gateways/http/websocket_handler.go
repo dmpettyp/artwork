@@ -32,12 +32,12 @@ func (s *HTTPServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register the connection with the hub
-	s.wsHub.Register(graphID, conn)
+	// Register the connection with the notifier
+	s.notifier.Register(graphID, conn)
 
 	// Ensure cleanup on exit
 	defer func() {
-		s.wsHub.Unregister(graphID, conn)
+		s.notifier.Unregister(graphID, conn)
 		conn.Close(websocket.StatusNormalClosure, "")
 	}()
 

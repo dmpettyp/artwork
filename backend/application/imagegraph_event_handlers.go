@@ -10,9 +10,15 @@ import (
 	"github.com/dmpettyp/dorky"
 )
 
+// ImageGraphNotifier is an interface for broadcasting graph notifications
+type ImageGraphNotifier interface {
+	BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate interface{})
+}
+
 type ImageGraphEventHandlers struct {
 	uow      UnitOfWork
 	imageGen *imagegen.ImageGen
+	notifier ImageGraphNotifier
 }
 
 // NewImageGraphEventHandlers initializes the handlers struct that processes
@@ -22,6 +28,7 @@ func NewImageGraphEventHandlers(
 	mb *dorky.MessageBus,
 	uow UnitOfWork,
 	imageGen *imagegen.ImageGen,
+	notifier ImageGraphNotifier,
 ) (
 	*ImageGraphEventHandlers,
 	error,
@@ -29,11 +36,17 @@ func NewImageGraphEventHandlers(
 	handlers := &ImageGraphEventHandlers{
 		uow:      uow,
 		imageGen: imageGen,
+		notifier: notifier,
 	}
 
 	err := errors.Join(
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeAddedEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeRemovedEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputConnectedEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputDisconnectedEvent),
 	)
 
 	if err != nil {
@@ -77,6 +90,12 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	[]dorky.Event,
 	error,
 ) {
+	// Broadcast that node is processing
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "processing",
+	})
+
 	if event.NodeType == imagegraph.NodeTypeScale {
 		factor := event.NodeConfig["factor"].(float64)
 
@@ -104,6 +123,89 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 			)
 		}()
 	}
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
+	ctx context.Context,
+	event *imagegraph.NodeOutputImageSetEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	// Broadcast that node output is complete
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "completed",
+		"outputs": map[string]interface{}{
+			string(event.OutputName): event.ImageID.String(),
+		},
+	})
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodeAddedEvent(
+	ctx context.Context,
+	event *imagegraph.NodeAddedEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	// Broadcast that node was added
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "added",
+	})
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodeRemovedEvent(
+	ctx context.Context,
+	event *imagegraph.NodeRemovedEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	// Broadcast that node was removed
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "removed",
+	})
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodeInputConnectedEvent(
+	ctx context.Context,
+	event *imagegraph.NodeInputConnectedEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	// Broadcast that connection was made
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "connected",
+	})
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodeInputDisconnectedEvent(
+	ctx context.Context,
+	event *imagegraph.NodeInputDisconnectedEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	// Broadcast that connection was removed
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+		"state":   "disconnected",
+	})
 
 	return nil, nil
 }
