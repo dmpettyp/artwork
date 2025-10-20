@@ -383,10 +383,11 @@ export class Renderer {
         cellBg.setAttribute('height', height);
         cellGroup.appendChild(cellBg);
 
-        // Port circle at edge
+        // Port circle at node edge
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.classList.add('port');
-        circle.setAttribute('cx', type === 'input' ? x : x + width);
+        // Push ports to the very edge of the node (0 for inputs, NODE_WIDTH for outputs)
+        circle.setAttribute('cx', type === 'input' ? 0 : NODE_WIDTH);
         circle.setAttribute('cy', y + height / 2);
         circle.setAttribute('r', PORT_RADIUS);
         if (hasImage) {
