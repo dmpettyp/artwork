@@ -49,7 +49,6 @@ const modalManager = new ModalManager();
 const toastManager = new ToastManager();
 
 // Create graph modal
-const createGraphModalElement = document.getElementById('create-graph-modal');
 const graphNameInput = document.getElementById('graph-name-input');
 const modalCreateBtn = document.getElementById('modal-create-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
@@ -84,7 +83,6 @@ const addNodeModal = new Modal('add-node-modal', {
 modalManager.register(addNodeModal);
 
 // Edit config modal
-const editConfigModalElement = document.getElementById('edit-config-modal');
 const editNodeNameInput = document.getElementById('edit-node-name-input');
 const editImageUpload = document.getElementById('edit-image-upload');
 const editImageInput = document.getElementById('edit-image-input');
@@ -103,7 +101,6 @@ const editConfigModal = new Modal('edit-config-modal', {
 modalManager.register(editConfigModal);
 
 // Delete node modal
-const deleteNodeModalElement = document.getElementById('delete-node-modal');
 const deleteNodeName = document.getElementById('delete-node-name');
 const deleteNodeConfirmBtn = document.getElementById('delete-node-confirm-btn');
 const deleteNodeCancelBtn = document.getElementById('delete-node-cancel-btn');
@@ -850,8 +847,8 @@ renderOutputs = function(graph) {
                 <div class="output-card-header">${node.name}</div>
                 <div class="output-card-body">
                     ${hasImage
-                        ? `<img src="${imageUrl}" alt="${node.name}" class="output-card-image" />`
-                        : '<p class="output-card-placeholder">No image yet</p>'}
+                ? `<img src="${imageUrl}" alt="${node.name}" class="output-card-image" />`
+                : '<p class="output-card-placeholder">No image yet</p>'}
                 </div>
             </div>
         `;
