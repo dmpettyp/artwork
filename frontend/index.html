@@ -10,25 +10,42 @@
 
 <body>
     <div class="app">
-        <!-- Main canvas area -->
-        <main class="canvas-container">
-            <div class="canvas-header">
-                <h1 style="margin: 0; font-size: 24px; color: #3498db;">Artwork</h1>
-                <select id="graph-select" class="graph-select">
-                    <option value="">Select a graph...</option>
-                </select>
-                <div style="display: flex; gap: 10px;">
-                    <button id="create-graph-btn" class="btn btn-primary">+ New Graph</button>
-                    <button id="refresh-btn" class="btn">Refresh</button>
-                </div>
+        <!-- Top header bar -->
+        <div class="top-header">
+            <h1 style="margin: 0; font-size: 24px; color: #3498db;">Artwork</h1>
+            <select id="graph-select" class="graph-select">
+                <option value="">Select a graph...</option>
+            </select>
+            <div style="display: flex; gap: 10px;">
+                <button id="create-graph-btn" class="btn btn-primary">+ New Graph</button>
+                <button id="refresh-btn" class="btn">Refresh</button>
             </div>
-            <svg id="graph-canvas" class="graph-canvas">
-                <!-- Connections layer -->
-                <g id="connections-layer"></g>
-                <!-- Nodes layer -->
-                <g id="nodes-layer"></g>
-            </svg>
-        </main>
+        </div>
+
+        <div class="main-layout">
+            <!-- Main canvas area -->
+            <main class="canvas-container">
+                <svg id="graph-canvas" class="graph-canvas">
+                    <!-- Connections layer -->
+                    <g id="connections-layer"></g>
+                    <!-- Nodes layer -->
+                    <g id="nodes-layer"></g>
+                </svg>
+            </main>
+
+            <!-- Resize handle -->
+            <div id="sidebar-resize-handle" class="resize-handle"></div>
+
+            <!-- Right sidebar for outputs -->
+            <aside id="outputs-sidebar" class="outputs-sidebar">
+                <div class="sidebar-header">
+                    <h2>Outputs</h2>
+                </div>
+                <div class="sidebar-content">
+                    <!-- Output nodes will be listed here -->
+                </div>
+            </aside>
+        </div>
     </div>
 
     <!-- Modal for creating new graph -->

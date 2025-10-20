@@ -113,8 +113,10 @@ let currentNodeId = null;
 graphState.subscribe((graph) => {
     if (graph) {
         renderer.render(graph);
+        renderOutputs(graph);
     } else {
         renderer.clear();
+        renderOutputs(null);
     }
 });
 
@@ -790,6 +792,98 @@ function disconnectWebSocket() {
 // Clean up WebSocket on page unload
 window.addEventListener('beforeunload', () => {
     disconnectWebSocket();
+});
+
+// Render output nodes in sidebar
+function renderOutputs(graph) {
+    const sidebarContent = document.querySelector('.sidebar-content');
+
+    if (!graph) {
+        sidebarContent.innerHTML = '<p style="color: #7f8c8d; text-align: center; margin-top: 20px;">No graph selected</p>';
+        return;
+    }
+
+    // Filter output nodes
+    const outputNodes = graph.nodes.filter(node => node.type === 'output');
+
+    if (outputNodes.length === 0) {
+        sidebarContent.innerHTML = '<p style="color: #7f8c8d; text-align: center; margin-top: 20px;">No output nodes</p>';
+        return;
+    }
+
+    // Render each output node
+    sidebarContent.innerHTML = outputNodes.map(node => {
+        const output = node.outputs?.find(o => o.name === 'final');
+        const hasImage = output?.image_id;
+        const imageUrl = hasImage ? `/api/images/${output.image_id}` : '';
+
+        return `
+            <div class="output-card">
+                <div class="output-card-header">${node.name}</div>
+                <div class="output-card-body">
+                    ${hasImage
+                        ? `<img src="${imageUrl}" alt="${node.name}" class="output-card-image" />`
+                        : '<p class="output-card-placeholder">No image yet</p>'}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Sidebar resize functionality
+const sidebar = document.getElementById('outputs-sidebar');
+const resizeHandle = document.getElementById('sidebar-resize-handle');
+let isResizing = false;
+let startX = 0;
+let startWidth = 0;
+
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 600;
+const SIDEBAR_WIDTH_KEY = 'artwork-sidebar-width';
+
+// Restore saved width from localStorage
+const savedWidth = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+if (savedWidth) {
+    const width = parseInt(savedWidth, 10);
+    if (width >= SIDEBAR_MIN_WIDTH && width <= SIDEBAR_MAX_WIDTH) {
+        sidebar.style.width = `${width}px`;
+    }
+}
+
+resizeHandle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = sidebar.offsetWidth;
+
+    // Add resizing class to prevent text selection
+    document.body.classList.add('resizing-active');
+    resizeHandle.classList.add('resizing');
+
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    // Calculate new width (resize from left, so subtract the delta)
+    const deltaX = startX - e.clientX;
+    const newWidth = startWidth + deltaX;
+
+    // Constrain width
+    const constrainedWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, newWidth));
+
+    sidebar.style.width = `${constrainedWidth}px`;
+});
+
+document.addEventListener('mouseup', () => {
+    if (isResizing) {
+        isResizing = false;
+        document.body.classList.remove('resizing-active');
+        resizeHandle.classList.remove('resizing');
+
+        // Save width to localStorage
+        localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebar.offsetWidth);
+    }
 });
 
 // Load initial data
