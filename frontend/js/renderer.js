@@ -191,6 +191,12 @@ export class Renderer {
         // Render thumbnail if first output has an image
         if (defaultImageId) {
             this.renderThumbnail(g, defaultImageId, thumbnailY);
+        } else if (node.state === 'waiting') {
+            // Show "Waiting For Inputs..." message when in waiting state
+            this.renderWaitingMessage(g, thumbnailY);
+        } else if (node.state === 'generating') {
+            // Show "Generating Outputs..." message when in generating state
+            this.renderGeneratingMessage(g, thumbnailY);
         }
 
         // Render port table
@@ -209,6 +215,30 @@ export class Renderer {
         image.setAttribute('href', `/api/images/${imageId}`);
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         parentG.appendChild(image);
+    }
+
+    renderWaitingMessage(parentG, yPos = THUMBNAIL_Y) {
+        // Create a centered text message in the thumbnail area
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.classList.add('node-waiting-message');
+        text.setAttribute('x', NODE_WIDTH / 2);
+        text.setAttribute('y', yPos + THUMBNAIL_HEIGHT / 2);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.textContent = 'Waiting For Inputs...';
+        parentG.appendChild(text);
+    }
+
+    renderGeneratingMessage(parentG, yPos = THUMBNAIL_Y) {
+        // Create a centered text message in the thumbnail area
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.classList.add('node-generating-message');
+        text.setAttribute('x', NODE_WIDTH / 2);
+        text.setAttribute('y', yPos + THUMBNAIL_HEIGHT / 2);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.textContent = 'Generating Outputs...';
+        parentG.appendChild(text);
     }
 
     updateThumbnail(nodeGroup, imageId) {

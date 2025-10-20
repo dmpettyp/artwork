@@ -1,11 +1,13 @@
 // User interaction handlers for drag and drop
 
 export class InteractionHandler {
-    constructor(svgElement, renderer, graphState, api) {
+    constructor(svgElement, renderer, graphState, api, renderOutputsCallback = null, openEditConfigCallback = null) {
         this.svg = svgElement;
         this.renderer = renderer;
         this.graphState = graphState;
         this.api = api;
+        this.renderOutputsCallback = renderOutputsCallback;
+        this.openEditConfigCallback = openEditConfigCallback;
 
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
@@ -22,6 +24,7 @@ export class InteractionHandler {
         this.svg.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        this.svg.addEventListener('dblclick', this.handleDoubleClick.bind(this));
     }
 
     handleMouseDown(e) {
@@ -77,6 +80,17 @@ export class InteractionHandler {
         }
     }
 
+    handleDoubleClick(e) {
+        // Check if double-clicking on a node
+        const nodeElement = e.target.closest('.node');
+        if (nodeElement && this.openEditConfigCallback) {
+            const nodeId = nodeElement.getAttribute('data-node-id');
+            if (nodeId) {
+                this.openEditConfigCallback(nodeId);
+            }
+        }
+    }
+
     screenToCanvas(screenX, screenY) {
         // Convert screen coordinates to canvas coordinates accounting for zoom and pan
         const canvasX = (screenX - this.renderer.panX) / this.renderer.zoom;
@@ -121,6 +135,11 @@ export class InteractionHandler {
         const graph = this.graphState.getCurrentGraph();
         if (graph) {
             this.renderer.render(graph);
+
+            // Re-render output panel to update sorting
+            if (this.renderOutputsCallback) {
+                this.renderOutputsCallback(graph);
+            }
         }
     }
 

@@ -14,7 +14,19 @@ const svg = document.getElementById('graph-canvas');
 const nodesLayer = document.getElementById('nodes-layer');
 const connectionsLayer = document.getElementById('connections-layer');
 const renderer = new Renderer(svg, nodesLayer, connectionsLayer);
-const interactions = new InteractionHandler(svg, renderer, graphState, api);
+
+// Declare functions early so they can be passed to InteractionHandler
+let renderOutputs;
+let openEditConfigModal;
+
+const interactions = new InteractionHandler(
+    svg,
+    renderer,
+    graphState,
+    api,
+    (graph) => renderOutputs(graph),
+    (nodeId) => openEditConfigModal(nodeId)
+);
 
 // WebSocket connection management
 let wsConnection = null;
@@ -388,7 +400,7 @@ addNodeCreateBtn.addEventListener('click', async () => {
 });
 
 // Edit config modal handlers
-function openEditConfigModal(nodeId) {
+openEditConfigModal = function(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
@@ -795,7 +807,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 // Render output nodes in sidebar
-function renderOutputs(graph) {
+renderOutputs = function(graph) {
     const sidebarContent = document.querySelector('.sidebar-content');
 
     if (!graph) {
@@ -811,8 +823,18 @@ function renderOutputs(graph) {
         return;
     }
 
+    // Sort output nodes by y position (top to bottom)
+    const sortedOutputNodes = outputNodes.sort((a, b) => {
+        const posA = renderer.getNodePosition(a.id);
+        const posB = renderer.getNodePosition(b.id);
+
+        // If positions aren't available, maintain original order
+        if (!posA || !posB) return 0;
+        return posA.y - posB.y;
+    });
+
     // Render each output node
-    sidebarContent.innerHTML = outputNodes.map(node => {
+    sidebarContent.innerHTML = sortedOutputNodes.map(node => {
         const output = node.outputs?.find(o => o.name === 'final');
         const hasImage = output?.image_id;
         const imageUrl = hasImage ? `/api/images/${output.image_id}` : '';

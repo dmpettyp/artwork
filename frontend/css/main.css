@@ -113,15 +113,15 @@ body {
 }
 
 .node.state-waiting .node-rect {
-    stroke: #95a5a6;
+    stroke: #34495e;
 }
 
 .node.state-generating .node-rect {
-    stroke: #f39c12;
+    stroke: #34495e;
 }
 
 .node.state-generated .node-rect {
-    stroke: #27ae60;
+    stroke: #34495e;
 }
 
 .node-title-bar {
@@ -139,6 +139,20 @@ body {
 .node-type {
     fill: #7f8c8d;
     font-size: 11px;
+    user-select: none;
+}
+
+.node-waiting-message {
+    fill: #95a5a6;
+    font-size: 12px;
+    font-style: italic;
+    user-select: none;
+}
+
+.node-generating-message {
+    fill: #3498db;
+    font-size: 12px;
+    font-style: italic;
     user-select: none;
 }
 
