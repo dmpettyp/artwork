@@ -177,6 +177,13 @@ func (n *Node) SetConfig(config NodeConfig) error {
 		}
 	}
 
+	// Call custom validation function if it exists
+	if nodeConfig.validate != nil {
+		if err := nodeConfig.validate(config); err != nil {
+			return fmt.Errorf("config validation failed: %w", err)
+		}
+	}
+
 	n.Config = config
 
 	n.addEvent(NewNodeConfigSetEvent(n))
