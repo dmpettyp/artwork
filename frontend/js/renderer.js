@@ -405,54 +405,6 @@ export class Renderer {
         parentG.appendChild(cellGroup);
     }
 
-    renderInputPort(parentG, inputName, y) {
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.classList.add('input-port');
-        g.setAttribute('data-input-name', inputName);
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.classList.add('port');
-        circle.setAttribute('cx', 0);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', PORT_RADIUS);
-        g.appendChild(circle);
-
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.classList.add('port-label');
-        label.setAttribute('x', 12);
-        label.setAttribute('y', y + 4);
-        label.textContent = inputName;
-        g.appendChild(label);
-
-        parentG.appendChild(g);
-    }
-
-    renderOutputPort(parentG, outputName, y, hasImage) {
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.classList.add('output-port');
-        g.setAttribute('data-output-name', outputName);
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.classList.add('port');
-        circle.setAttribute('cx', NODE_WIDTH);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', PORT_RADIUS);
-        if (hasImage) {
-            circle.style.fill = '#27ae60';
-        }
-        g.appendChild(circle);
-
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.classList.add('port-label');
-        label.setAttribute('x', NODE_WIDTH - 12);
-        label.setAttribute('y', y + 4);
-        label.setAttribute('text-anchor', 'end');
-        label.textContent = outputName;
-        g.appendChild(label);
-
-        parentG.appendChild(g);
-    }
-
     renderConnection(sourceNodeId, sourceOutput, targetNodeId, targetInput, hasImage) {
         const sourcePosNode = this.nodePositions.get(sourceNodeId);
         const targetPosNode = this.nodePositions.get(targetNodeId);

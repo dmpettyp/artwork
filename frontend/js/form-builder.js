@@ -186,11 +186,4 @@ export class NodeConfigFormBuilder {
         return config;
     }
 
-    /**
-     * Clear all fields in a container
-     * @param {HTMLElement} container - The container to clear
-     */
-    clear(container) {
-        container.innerHTML = '';
-    }
 }
