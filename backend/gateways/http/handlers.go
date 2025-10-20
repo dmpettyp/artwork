@@ -103,6 +103,7 @@ var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"scale", imagegraph.NodeTypeScale,
 	"blur", imagegraph.NodeTypeBlur,
 	"output", imagegraph.NodeTypeOutput,
+	"resize", imagegraph.NodeTypeResize,
 )
 
 var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](

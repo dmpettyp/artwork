@@ -152,6 +152,44 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypeResize {
+		// Extract width and height (either or both may be present)
+		var width, height *int
+		if w, ok := event.NodeConfig["width"]; ok {
+			wInt := int(w.(float64))
+			width = &wInt
+		}
+		if h, ok := event.NodeConfig["height"]; ok {
+			hInt := int(h.(float64))
+			height = &hInt
+		}
+
+		// Find the "original" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				inputImageID = input.ImageID
+				break
+			}
+		}
+
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForResizeNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				width,
+				height,
+				"resized",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeOutput {
 		// Find the "input" input
 		var inputImageID imagegraph.ImageID

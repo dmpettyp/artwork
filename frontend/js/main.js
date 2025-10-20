@@ -232,6 +232,12 @@ const nodeTypeConfigs = {
             radius: { type: 'int', required: true }
         }
     },
+    resize: {
+        fields: {
+            width: { type: 'int', required: false },
+            height: { type: 'int', required: false }
+        }
+    },
     output: {
         fields: {}
     }

@@ -3,22 +3,9 @@
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 180;
 const PORT_RADIUS = 6;
-const PORT_SPACING = 30;
 const THUMBNAIL_WIDTH = 120;
 const THUMBNAIL_HEIGHT = 90;
 const THUMBNAIL_Y = 48;
-
-// Node type configurations (matches backend node_type.go)
-const nodeTypeConfigs = {
-    input: {
-        fields: {}
-    },
-    scale: {
-        fields: {
-            factor: { type: 'float', required: true }
-        }
-    }
-};
 
 export class Renderer {
     constructor(svgElement, nodesLayer, connectionsLayer) {
