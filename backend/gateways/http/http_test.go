@@ -75,6 +75,9 @@ func setupTestServer(t *testing.T) *testServer {
 	// Create ImageGen with dependencies
 	imageGen := imagegen.NewImageGen(imageStorage, outputSetter)
 
+	// Create notifier
+	notifier := httpgateway.NewImageGraphNotifier(logger)
+
 	// Register command handlers
 	_, err = application.NewImageGraphCommandHandlers(mb, uow)
 	if err != nil {
@@ -82,13 +85,13 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Register event handlers
-	_, err = application.NewImageGraphEventHandlers(mb, uow, imageGen)
+	_, err = application.NewImageGraphEventHandlers(mb, uow, imageGen, notifier)
 	if err != nil {
 		t.Fatalf("failed to create event handlers: %v", err)
 	}
 
 	// Create HTTP server
-	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews, imageStorage)
+	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews, imageStorage, notifier)
 
 	// Start the message bus
 	ctx, cancel := context.WithCancel(context.Background())
@@ -302,10 +305,10 @@ func TestEndToEndGraphCreationAndRetrieval(t *testing.T) {
 
 	// Add two nodes
 	inputNodeID := server.addNode(t, graphID, "input", "Input Node", `{}`)
-	scaleNodeID := server.addNode(t, graphID, "scale", "Scale Node", `{"factor": 2.0}`)
+	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800}`)
 
 	// Connect them
-	server.connectNodes(t, graphID, inputNodeID, "original", scaleNodeID, "original")
+	server.connectNodes(t, graphID, inputNodeID, "original", resizeNodeID, "original")
 
 	// Get the graph
 	graph := server.getImageGraph(t, graphID)
@@ -324,27 +327,27 @@ func TestEndToEndGraphCreationAndRetrieval(t *testing.T) {
 		t.Fatalf("expected 2 nodes, got %d", len(nodes))
 	}
 
-	// Find the scale node and verify its input is connected
-	var scaleNode map[string]interface{}
+	// Find the resize node and verify its input is connected
+	var resizeNode map[string]interface{}
 	for _, n := range nodes {
 		node := n.(map[string]interface{})
-		if node["id"].(string) == scaleNodeID {
-			scaleNode = node
+		if node["id"].(string) == resizeNodeID {
+			resizeNode = node
 			break
 		}
 	}
 
-	if scaleNode == nil {
-		t.Fatal("scale node not found")
+	if resizeNode == nil {
+		t.Fatal("resize node not found")
 	}
 
 	// Verify node state
-	if scaleNode["state"].(string) != "waiting" {
-		t.Errorf("expected state 'waiting', got %s", scaleNode["state"])
+	if resizeNode["state"].(string) != "waiting" {
+		t.Errorf("expected state 'waiting', got %s", resizeNode["state"])
 	}
 
 	// Verify inputs
-	inputs := scaleNode["inputs"].([]interface{})
+	inputs := resizeNode["inputs"].([]interface{})
 	if len(inputs) != 1 {
 		t.Fatalf("expected 1 input, got %d", len(inputs))
 	}
@@ -372,8 +375,8 @@ func TestStateTransitionAndEventPropagation(t *testing.T) {
 
 	// Add two connected nodes
 	inputNodeID := server.addNode(t, graphID, "input", "Input Node", `{}`)
-	scaleNodeID := server.addNode(t, graphID, "scale", "Scale Node", `{"factor": 2.0}`)
-	server.connectNodes(t, graphID, inputNodeID, "original", scaleNodeID, "original")
+	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800}`)
+	server.connectNodes(t, graphID, inputNodeID, "original", resizeNodeID, "original")
 
 	// Set output image on input node
 	imageID := imagegraph.MustNewImageID().String()
@@ -386,22 +389,22 @@ func TestStateTransitionAndEventPropagation(t *testing.T) {
 	graph := server.getImageGraph(t, graphID)
 	nodes := graph["nodes"].([]interface{})
 
-	// Find the scale node
-	var scaleNode map[string]interface{}
+	// Find the resize node
+	var resizeNode map[string]interface{}
 	for _, n := range nodes {
 		node := n.(map[string]interface{})
-		if node["id"].(string) == scaleNodeID {
-			scaleNode = node
+		if node["id"].(string) == resizeNodeID {
+			resizeNode = node
 			break
 		}
 	}
 
-	if scaleNode == nil {
-		t.Fatal("scale node not found")
+	if resizeNode == nil {
+		t.Fatal("resize node not found")
 	}
 
 	// Verify the input received the image
-	inputs := scaleNode["inputs"].([]interface{})
+	inputs := resizeNode["inputs"].([]interface{})
 	input := inputs[0].(map[string]interface{})
 
 	if input["image_id"].(string) != imageID {
@@ -409,8 +412,8 @@ func TestStateTransitionAndEventPropagation(t *testing.T) {
 	}
 
 	// Verify state transitioned to "generating"
-	if scaleNode["state"].(string) != "generating" {
-		t.Errorf("expected state 'generating', got %s", scaleNode["state"])
+	if resizeNode["state"].(string) != "generating" {
+		t.Errorf("expected state 'generating', got %s", resizeNode["state"])
 	}
 }
 

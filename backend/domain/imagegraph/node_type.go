@@ -7,7 +7,6 @@ type NodeType int
 const (
 	NodeTypeNone NodeType = iota
 	NodeTypeInput
-	NodeTypeScale
 	NodeTypeBlur
 	NodeTypeOutput
 	NodeTypeResize
@@ -38,23 +37,6 @@ type nodeConfig struct {
 var nodeConfigs = map[NodeType]nodeConfig{
 	NodeTypeInput: {
 		outputs: []OutputName{"original"},
-	},
-	NodeTypeScale: {
-		inputs:  []InputName{"original"},
-		outputs: []OutputName{"scaled"},
-		fields: map[string]nodeConfigField{
-			"factor": {NodeConfigTypeFloat, true},
-		},
-		validate: func(config NodeConfig) error {
-			factor := config["factor"].(float64)
-			if factor <= 0 {
-				return fmt.Errorf("factor must be positive")
-			}
-			if factor > 10 {
-				return fmt.Errorf("factor must be 10 or less")
-			}
-			return nil
-		},
 	},
 	NodeTypeBlur: {
 		inputs:  []InputName{"original"},

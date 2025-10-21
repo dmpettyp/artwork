@@ -100,7 +100,6 @@ type outputConnectionResponse struct {
 
 var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"input", imagegraph.NodeTypeInput,
-	"scale", imagegraph.NodeTypeScale,
 	"blur", imagegraph.NodeTypeBlur,
 	"output", imagegraph.NodeTypeOutput,
 	"resize", imagegraph.NodeTypeResize,

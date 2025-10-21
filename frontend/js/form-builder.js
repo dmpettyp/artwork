@@ -8,7 +8,7 @@ export class NodeConfigFormBuilder {
     /**
      * Render form fields for a given node type into a container
      * @param {HTMLElement} container - The DOM element to render fields into
-     * @param {string} nodeType - The type of node (e.g., 'input', 'scale')
+     * @param {string} nodeType - The type of node (e.g., 'input', 'blur', 'resize')
      * @param {string} idPrefix - Prefix for field IDs (e.g., 'config' or 'edit-config')
      * @param {Object} currentValues - Optional current values to populate fields with
      */

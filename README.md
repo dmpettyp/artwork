@@ -47,8 +47,9 @@ to process images in a non-destructive way.
   - get rid of scale
   - output ✅
   - blur ✅
-  - resize
+  - resize ✅
   - resizeTo
+- implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that?
 - durable repository/unit of work implementation: sqlite
 
 ## Overview
