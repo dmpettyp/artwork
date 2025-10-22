@@ -193,6 +193,7 @@ export class Renderer {
         image.setAttribute('height', NODE_DESIGN.thumbnail.height);
         image.setAttribute('href', API_PATHS.images(imageId));
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        image.style.imageRendering = 'pixelated';
         parentG.appendChild(image);
     }
 

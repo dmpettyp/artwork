@@ -40,18 +40,18 @@ to process images in a non-destructive way.
   - drawer for inputs and outputs - not doing this, went with a table approach for inputs and outputs
   - output/input node green when set, red when not
 - websocket implementation for events ✅
-- spinner when outputs are being generated
-- ? when outputs can't be generated
-- output nodes should have side bar or something that shows the output images
+- message when outputs are being generated ✅
+- output nodes should have side bar or something that shows the output images ✅
 - more node types
   - get rid of scale
   - output ✅
   - blur ✅
   - resize ✅
   - resizeTo
+- split up viewport/layout ✅
+- separate ws notifications for graph and layout changes
 - implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that?
 - download functionality for output panel
-- split up viewport/layout ✅
 - durable repository/unit of work implementation: sqlite
 
 ## Overview
