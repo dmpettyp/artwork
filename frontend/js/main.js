@@ -803,23 +803,41 @@ renderOutputs = function(graph) {
         return posA.y - posB.y;
     });
 
-    // Render each output node
-    sidebarContent.innerHTML = sortedOutputNodes.map(node => {
+    // Render each output node safely (avoiding XSS)
+    sidebarContent.innerHTML = ''; // Clear existing content
+
+    sortedOutputNodes.forEach(node => {
         const output = node.outputs?.find(o => o.name === 'final');
         const hasImage = output?.image_id;
-        const imageUrl = hasImage ? API_PATHS.images(output.image_id) : '';
 
-        return `
-            <div class="output-card">
-                <div class="output-card-header">${node.name}</div>
-                <div class="output-card-body">
-                    ${hasImage
-                ? `<img src="${imageUrl}" alt="${node.name}" class="output-card-image" />`
-                : '<p class="output-card-placeholder">No image yet</p>'}
-                </div>
-            </div>
-        `;
-    }).join('');
+        // Create output card elements using DOM API (safe from XSS)
+        const card = document.createElement('div');
+        card.className = 'output-card';
+
+        const header = document.createElement('div');
+        header.className = 'output-card-header';
+        header.textContent = node.name; // textContent is safe from XSS
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'output-card-body';
+
+        if (hasImage) {
+            const img = document.createElement('img');
+            img.src = API_PATHS.images(output.image_id);
+            img.alt = node.name; // alt attribute is also escaped
+            img.className = 'output-card-image';
+            body.appendChild(img);
+        } else {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'output-card-placeholder';
+            placeholder.textContent = 'No image yet';
+            body.appendChild(placeholder);
+        }
+
+        card.appendChild(body);
+        sidebarContent.appendChild(card);
+    });
 }
 
 // Sidebar resize functionality
