@@ -15,7 +15,8 @@ type HTTPServer struct {
 	logger          *slog.Logger
 	messageBus      *dorky.MessageBus
 	imageGraphViews application.ImageGraphViews
-	uiMetadataViews application.UIMetadataViews
+	layoutViews     application.LayoutViews
+	viewportViews   application.ViewportViews
 	imageStorage    filestorage.ImageStorage
 	notifier        *ImageGraphNotifier
 	server          *http.Server
@@ -38,7 +39,8 @@ func NewHTTPServer(
 	logger *slog.Logger,
 	messageBus *dorky.MessageBus,
 	imageGraphViews application.ImageGraphViews,
-	uiMetadataViews application.UIMetadataViews,
+	layoutViews application.LayoutViews,
+	viewportViews application.ViewportViews,
 	imageStorage filestorage.ImageStorage,
 	notifier *ImageGraphNotifier,
 	opts ...ServerOption,
@@ -47,7 +49,8 @@ func NewHTTPServer(
 		logger:          logger,
 		messageBus:      messageBus,
 		imageGraphViews: imageGraphViews,
-		uiMetadataViews: uiMetadataViews,
+		layoutViews:     layoutViews,
+		viewportViews:   viewportViews,
 		imageStorage:    imageStorage,
 		notifier:        notifier,
 		port:            "8080", // default port
@@ -75,9 +78,13 @@ func NewHTTPServer(
 	// Image retrieval
 	mux.HandleFunc("GET /api/images/{image_id}", s.handleGetImage)
 
-	// UI Metadata routes
-	mux.HandleFunc("GET /api/imagegraphs/{id}/ui-metadata", s.handleGetUIMetadata)
-	mux.HandleFunc("PUT /api/imagegraphs/{id}/ui-metadata", s.handleUpdateUIMetadata)
+	// Layout routes
+	mux.HandleFunc("GET /api/imagegraphs/{id}/layout", s.handleGetLayout)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/layout", s.handleUpdateLayout)
+
+	// Viewport routes
+	mux.HandleFunc("GET /api/imagegraphs/{id}/viewport", s.handleGetViewport)
+	mux.HandleFunc("PUT /api/imagegraphs/{id}/viewport", s.handleUpdateViewport)
 
 	// WebSocket route
 	mux.HandleFunc("GET /api/imagegraphs/{id}/ws", s.handleWebSocket)

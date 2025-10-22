@@ -22,12 +22,22 @@ type ImageGraphViews interface {
 	)
 }
 
-type UIMetadataViews interface {
+type LayoutViews interface {
 	Get(
 		ctx context.Context,
 		graphID imagegraph.ImageGraphID,
 	) (
-		*ui.UIMetadata,
+		*ui.Layout,
+		error,
+	)
+}
+
+type ViewportViews interface {
+	Get(
+		ctx context.Context,
+		graphID imagegraph.ImageGraphID,
+	) (
+		*ui.Viewport,
 		error,
 	)
 }

@@ -134,17 +134,17 @@ export async function uploadNodeOutputImage(graphId, nodeId, outputName, imageFi
     return data.image_id;
 }
 
-// UI Metadata API functions
+// Layout API functions
 
-export async function getUIMetadata(graphId) {
-    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/ui-metadata`);
+export async function getLayout(graphId) {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/layout`);
     if (!response.ok) {
-        throw new Error(`Failed to get UI metadata: ${response.statusText}`);
+        throw new Error(`Failed to get layout: ${response.statusText}`);
     }
     return response.json();
 }
 
-export async function updateUIMetadata(graphId, viewport, nodePositions) {
+export async function updateLayout(graphId, nodePositions) {
     // Convert nodePositions Map to array format
     const nodePositionsArray = Array.from(nodePositions.entries()).map(([nodeId, pos]) => ({
         node_id: nodeId,
@@ -152,17 +152,43 @@ export async function updateUIMetadata(graphId, viewport, nodePositions) {
         y: pos.y,
     }));
 
-    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/ui-metadata`, {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/layout`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            viewport,
             node_positions: nodePositionsArray,
         }),
     });
     if (!response.ok) {
-        throw new Error(`Failed to update UI metadata: ${response.statusText}`);
+        throw new Error(`Failed to update layout: ${response.statusText}`);
+    }
+}
+
+// Viewport API functions
+
+export async function getViewport(graphId) {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/viewport`);
+    if (!response.ok) {
+        throw new Error(`Failed to get viewport: ${response.statusText}`);
+    }
+    return response.json();
+}
+
+export async function updateViewport(graphId, viewport) {
+    const response = await fetch(`${API_BASE}/imagegraphs/${graphId}/viewport`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            zoom: viewport.zoom,
+            pan_x: viewport.panX,
+            pan_y: viewport.panY,
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to update viewport: ${response.statusText}`);
     }
 }

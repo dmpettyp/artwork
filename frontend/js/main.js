@@ -295,10 +295,9 @@ addNodeCreateBtn.addEventListener('click', async () => {
             const y = parseFloat(addNodeModalElement.dataset.canvasY);
             renderer.updateNodePosition(nodeId, x, y);
 
-            // Persist the position
-            const viewport = renderer.exportViewport();
+            // Persist the layout (node positions)
             const nodePositions = renderer.exportNodePositions();
-            await api.updateUIMetadata(graphId, viewport, nodePositions);
+            await api.updateLayout(graphId, nodePositions);
 
             // Clear the stored position
             delete addNodeModalElement.dataset.canvasX;

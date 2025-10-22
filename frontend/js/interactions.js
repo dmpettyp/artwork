@@ -15,7 +15,8 @@ export class InteractionHandler {
         this.connectionDrag = null;
         this.canvasDrag = null;
 
-        // Debounce timer for persisting UI state
+        // Debounce timers for persisting UI state
+        this.saveLayoutTimeout = null;
         this.saveViewportTimeout = null;
 
         this.setupEventListeners();
@@ -152,8 +153,8 @@ export class InteractionHandler {
             }
         }
 
-        // Persist all UI state (viewport + all node positions) to backend
-        this.debouncedSaveViewport();
+        // Persist layout (node positions) to backend
+        this.debouncedSaveLayout();
 
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
@@ -184,11 +185,30 @@ export class InteractionHandler {
     endCanvasDrag() {
         if (!this.canvasDrag) return;
 
-        // Persist all UI state to backend (debounced)
+        // Persist viewport to backend (debounced)
         this.debouncedSaveViewport();
 
         this.canvasDrag = null;
         this.svg.style.cursor = 'grab';
+    }
+
+    debouncedSaveLayout() {
+        const graphId = this.graphState.getCurrentGraphId();
+        if (!graphId) return;
+
+        // Clear any existing timeout to debounce
+        clearTimeout(this.saveLayoutTimeout);
+        this.saveLayoutTimeout = setTimeout(async () => {
+            try {
+                const nodePositions = this.renderer.exportNodePositions();
+                await this.api.updateLayout(graphId, nodePositions);
+            } catch (error) {
+                console.error('Failed to save layout:', error);
+                if (this.toastManager) {
+                    this.toastManager.error('Failed to save layout');
+                }
+            }
+        }, 500); // 500ms debounce
     }
 
     debouncedSaveViewport() {
@@ -200,10 +220,12 @@ export class InteractionHandler {
         this.saveViewportTimeout = setTimeout(async () => {
             try {
                 const viewport = this.renderer.exportViewport();
-                const nodePositions = this.renderer.exportNodePositions();
-                await this.api.updateUIMetadata(graphId, viewport, nodePositions);
+                await this.api.updateViewport(graphId, viewport);
             } catch (error) {
-                console.error('Failed to save UI metadata:', error);
+                console.error('Failed to save viewport:', error);
+                if (this.toastManager) {
+                    this.toastManager.error('Failed to save viewport');
+                }
             }
         }, 500); // 500ms debounce
     }

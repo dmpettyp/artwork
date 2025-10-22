@@ -560,8 +560,8 @@ export class Renderer {
     exportViewport() {
         return {
             zoom: this.zoom,
-            pan_x: this.panX,
-            pan_y: this.panY
+            panX: this.panX,
+            panY: this.panY
         };
     }
 

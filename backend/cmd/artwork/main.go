@@ -72,10 +72,17 @@ func main() {
 		return
 	}
 
-	_, err = application.NewUIMetadataCommandHandlers(messageBus, uow)
+	_, err = application.NewLayoutCommandHandlers(messageBus, uow)
 
 	if err != nil {
-		logger.Error("could not create ui metadata command handlers", "error", err)
+		logger.Error("could not create layout command handlers", "error", err)
+		return
+	}
+
+	_, err = application.NewViewportCommandHandlers(messageBus, uow)
+
+	if err != nil {
+		logger.Error("could not create viewport command handlers", "error", err)
 		return
 	}
 
@@ -83,7 +90,8 @@ func main() {
 		logger,
 		messageBus,
 		uow.ImageGraphViews,
-		uow.UIMetadataViews,
+		uow.LayoutViews,
+		uow.ViewportViews,
 		imageStorage,
 		notifier,
 	)

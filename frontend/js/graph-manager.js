@@ -67,14 +67,21 @@ export class GraphManager {
         try {
             const graph = await this.api.getImageGraph(graphId);
 
-            // Load UI metadata and restore viewport/positions
+            // Load layout and viewport separately
             try {
-                const uiMetadata = await this.api.getUIMetadata(graphId);
-                this.renderer.restoreViewport(uiMetadata.viewport);
-                this.renderer.restoreNodePositions(uiMetadata.node_positions);
+                const layout = await this.api.getLayout(graphId);
+                this.renderer.restoreNodePositions(layout.node_positions);
             } catch (error) {
-                console.log('No UI metadata found, using defaults:', error);
-                // Not an error - just means no metadata was saved yet
+                console.log('No layout found, using defaults:', error);
+                // Not an error - just means no layout was saved yet
+            }
+
+            try {
+                const viewport = await this.api.getViewport(graphId);
+                this.renderer.restoreViewport(viewport);
+            } catch (error) {
+                console.log('No viewport found, using defaults:', error);
+                // Not an error - just means no viewport was saved yet
             }
 
             this.graphState.setCurrentGraph(graph);

@@ -7,7 +7,8 @@ import (
 
 type Repos struct {
 	ImageGraphRepository ImageGraphRepository
-	UIMetadataRepository UIMetadataRepository
+	LayoutRepository     LayoutRepository
+	ViewportRepository   ViewportRepository
 }
 
 type ImageGraphRepository interface {
@@ -15,7 +16,12 @@ type ImageGraphRepository interface {
 	Get(imagegraph.ImageGraphID) (*imagegraph.ImageGraph, error)
 }
 
-type UIMetadataRepository interface {
-	Get(graphID imagegraph.ImageGraphID) (*ui.UIMetadata, error)
-	Add(metadata *ui.UIMetadata) error
+type LayoutRepository interface {
+	Get(graphID imagegraph.ImageGraphID) (*ui.Layout, error)
+	Add(layout *ui.Layout) error
+}
+
+type ViewportRepository interface {
+	Get(graphID imagegraph.ImageGraphID) (*ui.Viewport, error)
+	Add(viewport *ui.Viewport) error
 }

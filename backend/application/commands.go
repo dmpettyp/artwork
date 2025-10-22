@@ -249,29 +249,46 @@ func NewSetImageGraphNodeNameCommand(
 	return command
 }
 
-// UIMetadata Commands
+// Layout Commands
 
-type UpdateUIMetadataCommand struct {
+type UpdateLayoutCommand struct {
 	dorky.BaseCommand
 	GraphID       imagegraph.ImageGraphID
-	Zoom          float64
-	PanX          float64
-	PanY          float64
 	NodePositions []ui.NodePosition
 }
 
-func NewUpdateUIMetadataCommand(
+func NewUpdateLayoutCommand(
 	graphID imagegraph.ImageGraphID,
-	zoom, panX, panY float64,
 	nodePositions []ui.NodePosition,
-) *UpdateUIMetadataCommand {
-	command := &UpdateUIMetadataCommand{
+) *UpdateLayoutCommand {
+	command := &UpdateLayoutCommand{
 		GraphID:       graphID,
-		Zoom:          zoom,
-		PanX:          panX,
-		PanY:          panY,
 		NodePositions: nodePositions,
 	}
-	command.Init("UpdateUIMetadataCommand")
+	command.Init("UpdateLayoutCommand")
+	return command
+}
+
+// Viewport Commands
+
+type UpdateViewportCommand struct {
+	dorky.BaseCommand
+	GraphID imagegraph.ImageGraphID
+	Zoom    float64
+	PanX    float64
+	PanY    float64
+}
+
+func NewUpdateViewportCommand(
+	graphID imagegraph.ImageGraphID,
+	zoom, panX, panY float64,
+) *UpdateViewportCommand {
+	command := &UpdateViewportCommand{
+		GraphID: graphID,
+		Zoom:    zoom,
+		PanX:    panX,
+		PanY:    panY,
+	}
+	command.Init("UpdateViewportCommand")
 	return command
 }

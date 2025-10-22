@@ -724,18 +724,11 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// UI Metadata Handlers
+// Layout Handlers
 
-type uiMetadataResponse struct {
+type layoutResponse struct {
 	GraphID       string                 `json:"graph_id"`
-	Viewport      viewportResponse       `json:"viewport"`
 	NodePositions []nodePositionResponse `json:"node_positions"`
-}
-
-type viewportResponse struct {
-	Zoom float64 `json:"zoom"`
-	PanX float64 `json:"pan_x"`
-	PanY float64 `json:"pan_y"`
 }
 
 type nodePositionResponse struct {
@@ -744,12 +737,26 @@ type nodePositionResponse struct {
 	Y      float64 `json:"y"`
 }
 
-type updateUIMetadataRequest struct {
-	Viewport      viewportResponse       `json:"viewport"`
+type updateLayoutRequest struct {
 	NodePositions []nodePositionResponse `json:"node_positions"`
 }
 
-func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request) {
+// Viewport Handlers
+
+type viewportResponse struct {
+	GraphID string  `json:"graph_id"`
+	Zoom    float64 `json:"zoom"`
+	PanX    float64 `json:"pan_x"`
+	PanY    float64 `json:"pan_y"`
+}
+
+type updateViewportRequest struct {
+	Zoom float64 `json:"zoom"`
+	PanX float64 `json:"pan_x"`
+	PanY float64 `json:"pan_y"`
+}
+
+func (s *HTTPServer) handleGetLayout(w http.ResponseWriter, r *http.Request) {
 	// Extract ID from path
 	idStr := r.PathValue("id")
 
@@ -760,37 +767,25 @@ func (s *HTTPServer) handleGetUIMetadata(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Fetch UI metadata from view
-	metadata, err := s.uiMetadataViews.Get(r.Context(), imageGraphID)
+	// Fetch layout from view
+	layout, err := s.layoutViews.Get(r.Context(), imageGraphID)
 	if err != nil {
-		// If not found, return default metadata
-		if errors.Is(err, application.ErrUIMetadataNotFound) {
-			respondJSON(w, http.StatusOK, uiMetadataResponse{
-				GraphID: imageGraphID.String(),
-				Viewport: viewportResponse{
-					Zoom: 1.0,
-					PanX: 0,
-					PanY: 0,
-				},
+		// If not found, return empty layout with 200 OK
+		if errors.Is(err, application.ErrLayoutNotFound) {
+			respondJSON(w, http.StatusOK, layoutResponse{
+				GraphID:       imageGraphID.String(),
 				NodePositions: []nodePositionResponse{},
 			})
 			return
 		}
-		s.logger.Error("failed to get ui metadata", "error", err, "id", imageGraphID)
-		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to retrieve ui metadata"})
+		s.logger.Error("failed to get layout", "error", err, "id", imageGraphID)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to retrieve layout"})
 		return
 	}
 
 	// Map domain model to response DTO
-	response := mapUIMetadataToResponse(metadata)
-
-	// Return successful response
-	respondJSON(w, http.StatusOK, response)
-}
-
-func mapUIMetadataToResponse(metadata *ui.UIMetadata) uiMetadataResponse {
-	nodePositions := make([]nodePositionResponse, 0, len(metadata.NodePositions))
-	for _, pos := range metadata.NodePositions {
+	nodePositions := make([]nodePositionResponse, 0, len(layout.NodePositions))
+	for _, pos := range layout.NodePositions {
 		nodePositions = append(nodePositions, nodePositionResponse{
 			NodeID: pos.NodeID.String(),
 			X:      pos.X,
@@ -798,18 +793,16 @@ func mapUIMetadataToResponse(metadata *ui.UIMetadata) uiMetadataResponse {
 		})
 	}
 
-	return uiMetadataResponse{
-		GraphID: metadata.GraphID.String(),
-		Viewport: viewportResponse{
-			Zoom: metadata.Viewport.Zoom,
-			PanX: metadata.Viewport.PanX,
-			PanY: metadata.Viewport.PanY,
-		},
+	response := layoutResponse{
+		GraphID:       layout.GraphID.String(),
 		NodePositions: nodePositions,
 	}
+
+	// Return successful response
+	respondJSON(w, http.StatusOK, response)
 }
 
-func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) handleUpdateLayout(w http.ResponseWriter, r *http.Request) {
 	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
@@ -821,7 +814,7 @@ func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Parse request body
-	var req updateUIMetadataRequest
+	var req updateLayoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
@@ -844,18 +837,94 @@ func (s *HTTPServer) handleUpdateUIMetadata(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Create command
-	command := application.NewUpdateUIMetadataCommand(
+	command := application.NewUpdateLayoutCommand(
 		imageGraphID,
-		req.Viewport.Zoom,
-		req.Viewport.PanX,
-		req.Viewport.PanY,
 		nodePositions,
 	)
 
 	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		s.logger.Error("failed to handle UpdateUIMetadataCommand", "error", err)
-		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update ui metadata"})
+		s.logger.Error("failed to handle UpdateLayoutCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update layout"})
+		return
+	}
+
+	// Return successful response with no content
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *HTTPServer) handleGetViewport(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from path
+	idStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(idStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Fetch viewport from view
+	viewport, err := s.viewportViews.Get(r.Context(), imageGraphID)
+	if err != nil {
+		// If not found, return default viewport with 200 OK
+		if errors.Is(err, application.ErrViewportNotFound) {
+			respondJSON(w, http.StatusOK, viewportResponse{
+				GraphID: imageGraphID.String(),
+				Zoom:    1.0,
+				PanX:    0,
+				PanY:    0,
+			})
+			return
+		}
+		s.logger.Error("failed to get viewport", "error", err, "id", imageGraphID)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to retrieve viewport"})
+		return
+	}
+
+	// Map domain model to response DTO
+	response := viewportResponse{
+		GraphID: viewport.GraphID.String(),
+		Zoom:    viewport.Zoom,
+		PanX:    viewport.PanX,
+		PanY:    viewport.PanY,
+	}
+
+	// Return successful response
+	respondJSON(w, http.StatusOK, response)
+}
+
+func (s *HTTPServer) handleUpdateViewport(w http.ResponseWriter, r *http.Request) {
+	// Extract ImageGraph ID from path
+	imageGraphIDStr := r.PathValue("id")
+
+	// Parse ImageGraphID
+	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
+		return
+	}
+
+	// Parse request body
+	var req updateViewportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.Error("failed to parse request body", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
+		return
+	}
+
+	// Create command
+	command := application.NewUpdateViewportCommand(
+		imageGraphID,
+		req.Zoom,
+		req.PanX,
+		req.PanY,
+	)
+
+	// Send command to message bus
+	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		s.logger.Error("failed to handle UpdateViewportCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update viewport"})
 		return
 	}
 
