@@ -102,15 +102,19 @@ export class InteractionHandler {
         return { x: canvasX, y: canvasY };
     }
 
+    getCanvasPosition(e) {
+        // Helper to convert mouse event to canvas coordinates
+        const svgRect = this.svg.getBoundingClientRect();
+        const screenX = e.clientX - svgRect.left;
+        const screenY = e.clientY - svgRect.top;
+        return this.screenToCanvas(screenX, screenY);
+    }
+
     startNodeDrag(nodeElement, e) {
         const nodeId = nodeElement.getAttribute('data-node-id');
         const pos = this.renderer.getNodePosition(nodeId);
 
-        const svgRect = this.svg.getBoundingClientRect();
-        const screenX = e.clientX - svgRect.left;
-        const screenY = e.clientY - svgRect.top;
-
-        const canvasPos = this.screenToCanvas(screenX, screenY);
+        const canvasPos = this.getCanvasPosition(e);
 
         this.draggedNode = nodeId;
         this.dragOffset = {
@@ -124,11 +128,7 @@ export class InteractionHandler {
     updateNodeDrag(e) {
         if (!this.draggedNode) return;
 
-        const svgRect = this.svg.getBoundingClientRect();
-        const screenX = e.clientX - svgRect.left;
-        const screenY = e.clientY - svgRect.top;
-
-        const canvasPos = this.screenToCanvas(screenX, screenY);
+        const canvasPos = this.getCanvasPosition(e);
 
         const newX = canvasPos.x - this.dragOffset.x;
         const newY = canvasPos.y - this.dragOffset.y;
@@ -263,11 +263,7 @@ export class InteractionHandler {
     updateConnectionDrag(e) {
         if (!this.connectionDrag) return;
 
-        const svgRect = this.svg.getBoundingClientRect();
-        const screenX = e.clientX - svgRect.left;
-        const screenY = e.clientY - svgRect.top;
-
-        const canvasPos = this.screenToCanvas(screenX, screenY);
+        const canvasPos = this.getCanvasPosition(e);
 
         this.renderer.renderTempConnection(
             this.connectionDrag.startX,
