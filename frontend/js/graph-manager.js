@@ -104,6 +104,22 @@ export class GraphManager {
         this.graphState.setCurrentGraph(graph);
     }
 
+    // Reload just the layout for a graph
+    async reloadLayout(graphId) {
+        try {
+            const layout = await this.api.getLayout(graphId);
+            this.renderer.restoreNodePositions(layout.node_positions);
+
+            // Re-render the current graph to apply the new positions
+            const currentGraph = this.graphState.getCurrentGraph();
+            if (currentGraph) {
+                this.graphState.setCurrentGraph(currentGraph);
+            }
+        } catch (error) {
+            console.error('Failed to reload layout:', error);
+        }
+    }
+
     // WebSocket connection management
     connectWebSocket(graphId) {
         // Disconnect existing connection if any
@@ -132,8 +148,17 @@ export class GraphManager {
                     const message = JSON.parse(event.data);
                     console.log('WebSocket message received:', message);
 
-                    // Refresh the graph to get the latest state
-                    await this.reloadCurrentGraph();
+                    // Handle different message types
+                    if (message.type === 'layout_update') {
+                        // Layout changed - fetch and apply new layout
+                        await this.reloadLayout(graphId);
+                    } else if (message.type === 'node_update') {
+                        // Node state changed - refresh the entire graph
+                        await this.reloadCurrentGraph();
+                    } else {
+                        // Unknown message type - refresh everything
+                        await this.reloadCurrentGraph();
+                    }
                 } catch (error) {
                     console.error('Failed to handle WebSocket message:', error);
                 }

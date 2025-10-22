@@ -43,9 +43,7 @@ func NewLayout(
 // SetNodePositions replaces all node positions and emits a LayoutUpdatedEvent
 func (l *Layout) SetNodePositions(nodePositions []NodePosition) {
 	l.NodePositions = nodePositions
-	event := NewLayoutUpdatedEvent(l)
-	event.SetEntity("Layout", l.GraphID.ID)
-	l.AddEvent(event)
+	l.AddEvent(NewLayoutUpdatedEvent(l))
 }
 
 // Clone creates a deep copy of the Layout
