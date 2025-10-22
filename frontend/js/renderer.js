@@ -1,6 +1,6 @@
 // SVG rendering for nodes and connections
 
-import { NODE_DESIGN, API_PATHS } from './constants.js';
+import { NODE_DESIGN, API_PATHS, ZOOM_CONFIG, LAYOUT_CONFIG, CONNECTION_DELETE_BUTTON } from './constants.js';
 
 export class Renderer {
     constructor(svgElement, nodesLayer, connectionsLayer, graphState = null) {
@@ -21,7 +21,7 @@ export class Renderer {
             e.preventDefault();
 
             const delta = -e.deltaY;
-            const zoomFactor = delta > 0 ? 1.1 : 0.9;
+            const zoomFactor = delta > 0 ? ZOOM_CONFIG.factor.in : ZOOM_CONFIG.factor.out;
 
             // Get mouse position relative to SVG
             const rect = this.svg.getBoundingClientRect();
@@ -29,7 +29,7 @@ export class Renderer {
             const mouseY = e.clientY - rect.top;
 
             // Calculate new zoom
-            const newZoom = Math.max(0.1, Math.min(5, this.zoom * zoomFactor));
+            const newZoom = Math.max(ZOOM_CONFIG.limits.min, Math.min(ZOOM_CONFIG.limits.max, this.zoom * zoomFactor));
 
             // Adjust pan to zoom towards mouse position
             const scale = newZoom / this.zoom;
@@ -74,11 +74,11 @@ export class Renderer {
         graph.nodes.forEach((node, index) => {
             // Simple grid layout if no position stored
             if (!this.nodePositions.has(node.id)) {
-                const col = index % 3;
-                const row = Math.floor(index / 3);
+                const col = index % LAYOUT_CONFIG.gridColumns;
+                const row = Math.floor(index / LAYOUT_CONFIG.gridColumns);
                 this.nodePositions.set(node.id, {
-                    x: 100 + col * (NODE_DESIGN.width + 100),
-                    y: 100 + row * (NODE_DESIGN.height + 100)
+                    x: LAYOUT_CONFIG.initialOffset + col * (NODE_DESIGN.width + LAYOUT_CONFIG.gridSpacing),
+                    y: LAYOUT_CONFIG.initialOffset + row * (NODE_DESIGN.height + LAYOUT_CONFIG.gridSpacing)
                 });
             }
 
@@ -453,7 +453,7 @@ export class Renderer {
         const btnCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         btnCircle.setAttribute('cx', midX);
         btnCircle.setAttribute('cy', midY);
-        btnCircle.setAttribute('r', 12);
+        btnCircle.setAttribute('r', CONNECTION_DELETE_BUTTON.radius);
         btnCircle.classList.add('connection-delete-bg');
 
         const btnText = document.createElementNS('http://www.w3.org/2000/svg', 'text');

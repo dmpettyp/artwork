@@ -8,7 +8,7 @@ import { Modal, ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
 import { NodeConfigFormBuilder } from './form-builder.js';
 import { GraphManager } from './graph-manager.js';
-import { API_PATHS, SIDEBAR_CONFIG } from './constants.js';
+import { API_PATHS, SIDEBAR_CONFIG, NODE_TYPE_CONFIGS } from './constants.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -145,29 +145,8 @@ graphSelect.addEventListener('change', (e) => {
     }
 });
 
-// Node type configuration (matches backend node_type.go)
-const nodeTypeConfigs = {
-    input: {
-        fields: {}
-    },
-    blur: {
-        fields: {
-            radius: { type: 'int', required: true }
-        }
-    },
-    resize: {
-        fields: {
-            width: { type: 'int', required: false },
-            height: { type: 'int', required: false }
-        }
-    },
-    output: {
-        fields: {}
-    }
-};
-
-// Initialize form builder
-const formBuilder = new NodeConfigFormBuilder(nodeTypeConfigs);
+// Initialize form builder with node type configurations from constants
+const formBuilder = new NodeConfigFormBuilder(NODE_TYPE_CONFIGS);
 
 // Add node modal functions
 function openAddNodeModal(nodeType) {

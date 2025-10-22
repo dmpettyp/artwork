@@ -1,5 +1,7 @@
 // User interaction handlers for drag and drop
 
+import { DEBOUNCE_DELAYS } from './constants.js';
+
 export class InteractionHandler {
     constructor(svgElement, renderer, graphState, api, renderOutputsCallback = null, openEditConfigCallback = null, toastManager = null) {
         this.svg = svgElement;
@@ -208,7 +210,7 @@ export class InteractionHandler {
                     this.toastManager.error('Failed to save layout');
                 }
             }
-        }, 500); // 500ms debounce
+        }, DEBOUNCE_DELAYS.layoutSave);
     }
 
     debouncedSaveViewport() {
@@ -227,7 +229,7 @@ export class InteractionHandler {
                     this.toastManager.error('Failed to save viewport');
                 }
             }
-        }, 500); // 500ms debounce
+        }, DEBOUNCE_DELAYS.viewportSave);
     }
 
     startConnectionDrag(portElement, e) {

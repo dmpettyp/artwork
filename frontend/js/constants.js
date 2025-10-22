@@ -37,3 +37,83 @@ export const SIDEBAR_CONFIG = {
     maxWidth: 600,
     storageKey: 'artwork-sidebar-width'
 };
+
+// Debounce delays (in milliseconds)
+export const DEBOUNCE_DELAYS = {
+    layoutSave: 500,
+    viewportSave: 500
+};
+
+// Zoom configuration
+export const ZOOM_CONFIG = {
+    factor: {
+        in: 1.1,   // Zoom in multiplier
+        out: 0.9   // Zoom out multiplier
+    },
+    limits: {
+        min: 0.1,  // Minimum zoom level
+        max: 5     // Maximum zoom level
+    }
+};
+
+// Layout configuration for auto-layout
+export const LAYOUT_CONFIG = {
+    gridColumns: 3,
+    gridSpacing: 100,
+    initialOffset: 100
+};
+
+// Connection delete button configuration
+export const CONNECTION_DELETE_BUTTON = {
+    radius: 12,
+    fontSize: 20,
+    hoverColor: '#e74c3c'
+};
+
+// Node type field configurations
+export const NODE_TYPE_CONFIGS = {
+    input: {
+        fields: {}
+    },
+    blur: {
+        fields: {
+            radius: { type: 'int', required: true }
+        }
+    },
+    resize: {
+        fields: {
+            width: { type: 'int', required: false },
+            height: { type: 'int', required: false }
+        }
+    },
+    output: {
+        fields: {}
+    }
+};
+
+// DOM data attributes
+export const DATA_ATTRIBUTES = {
+    nodeId: 'data-node-id',
+    inputName: 'data-input-name',
+    outputName: 'data-output-name',
+    imageId: 'data-image-id'
+};
+
+// CSS class names
+export const CSS_CLASSES = {
+    node: 'node',
+    nodeRect: 'node-rect',
+    nodeTitleBar: 'node-title-bar',
+    nodeTitle: 'node-title',
+    nodeThumbnail: 'node-thumbnail',
+    portCell: 'port-cell',
+    portCellInput: 'port-cell-input',
+    portCellOutput: 'port-cell-output',
+    port: 'port',
+    portLabel: 'port-label',
+    connection: 'connection',
+    connectionGroup: 'connection-group',
+    connectionPath: 'connection-path',
+    tempConnection: 'temp-connection',
+    deleteButton: 'connection-delete-button'
+};
