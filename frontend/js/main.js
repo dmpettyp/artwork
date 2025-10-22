@@ -686,6 +686,43 @@ renderOutputs = function(graph) {
             img.alt = node.name; // alt attribute is also escaped
             img.className = 'output-card-image';
             body.appendChild(img);
+
+            // Add download button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'output-card-download-btn';
+            downloadBtn.textContent = 'Download';
+            downloadBtn.onclick = async () => {
+                try {
+                    const response = await fetch(API_PATHS.images(output.image_id));
+                    const blob = await response.blob();
+
+                    // Determine extension from content type
+                    const contentType = response.headers.get('content-type') || 'image/png';
+                    const extension = contentType.split('/')[1] || 'png';
+
+                    // Create filename: {node_name}.{extension}
+                    // Convert to lowercase and replace spaces with underscores
+                    const sanitizedName = node.name.toLowerCase().replace(/ /g, '_');
+                    const filename = `${sanitizedName}.${extension}`;
+
+                    // Create download link and trigger
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // Show success toast
+                    toastManager.success(`Downloaded ${filename}`);
+                } catch (error) {
+                    console.error('Failed to download image:', error);
+                    toastManager.error('Failed to download image');
+                }
+            };
+            body.appendChild(downloadBtn);
         } else {
             const placeholder = document.createElement('p');
             placeholder.className = 'output-card-placeholder';

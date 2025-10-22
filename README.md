@@ -50,8 +50,8 @@ to process images in a non-destructive way.
   - resizeTo
 - split up viewport/layout ✅
 - implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that? ✅
-- separate ws notifications for graph and layout changes
-- download functionality for output panel
+- separate ws notifications for graph and layout changes ✅
+- download functionality for output panel ✅
 - durable repository/unit of work implementation: sqlite
 
 ## Overview
