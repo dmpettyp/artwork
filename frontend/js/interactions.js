@@ -1,13 +1,14 @@
 // User interaction handlers for drag and drop
 
 export class InteractionHandler {
-    constructor(svgElement, renderer, graphState, api, renderOutputsCallback = null, openEditConfigCallback = null) {
+    constructor(svgElement, renderer, graphState, api, renderOutputsCallback = null, openEditConfigCallback = null, toastManager = null) {
         this.svg = svgElement;
         this.renderer = renderer;
         this.graphState = graphState;
         this.api = api;
         this.renderOutputsCallback = renderOutputsCallback;
         this.openEditConfigCallback = openEditConfigCallback;
+        this.toastManager = toastManager;
 
         this.draggedNode = null;
         this.dragOffset = { x: 0, y: 0 };
@@ -131,16 +132,8 @@ export class InteractionHandler {
 
         this.renderer.updateNodePosition(this.draggedNode, newX, newY);
 
-        // Re-render to update connections
-        const graph = this.graphState.getCurrentGraph();
-        if (graph) {
-            this.renderer.render(graph);
-
-            // Re-render output panel to update sorting
-            if (this.renderOutputsCallback) {
-                this.renderOutputsCallback(graph);
-            }
-        }
+        // Update connections for this node only (without full re-render)
+        this.renderer.updateNodeConnections(this.draggedNode);
     }
 
     endNodeDrag() {
@@ -149,6 +142,14 @@ export class InteractionHandler {
         const nodeElement = this.svg.querySelector(`[data-node-id="${this.draggedNode}"]`);
         if (nodeElement) {
             nodeElement.style.cursor = 'move';
+        }
+
+        // Re-render output panel to update sorting (only once, after drag ends)
+        if (this.renderOutputsCallback) {
+            const graph = this.graphState.getCurrentGraph();
+            if (graph) {
+                this.renderOutputsCallback(graph);
+            }
         }
 
         // Persist all UI state (viewport + all node positions) to backend
@@ -303,7 +304,9 @@ export class InteractionHandler {
             this.graphState.setCurrentGraph(graph);
         } catch (error) {
             console.error('Failed to create connection:', error);
-            alert(`Failed to create connection: ${error.message}`);
+            if (this.toastManager) {
+                this.toastManager.error(`Failed to create connection: ${error.message}`);
+            }
         }
     }
 

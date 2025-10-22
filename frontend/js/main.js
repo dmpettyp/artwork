@@ -7,13 +7,18 @@ import { InteractionHandler } from './interactions.js';
 import { Modal, ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
 import { NodeConfigFormBuilder } from './form-builder.js';
+import { API_PATHS, WS_CONFIG, SIDEBAR_CONFIG } from './constants.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
 const svg = document.getElementById('graph-canvas');
 const nodesLayer = document.getElementById('nodes-layer');
 const connectionsLayer = document.getElementById('connections-layer');
-const renderer = new Renderer(svg, nodesLayer, connectionsLayer);
+const renderer = new Renderer(svg, nodesLayer, connectionsLayer, graphState);
+
+// Initialize modal manager and toast manager early so they can be passed to InteractionHandler
+const modalManager = new ModalManager();
+const toastManager = new ToastManager();
 
 // Declare functions early so they can be passed to InteractionHandler
 let renderOutputs;
@@ -25,13 +30,13 @@ const interactions = new InteractionHandler(
     graphState,
     api,
     (graph) => renderOutputs(graph),
-    (nodeId) => openEditConfigModal(nodeId)
+    (nodeId) => openEditConfigModal(nodeId),
+    toastManager
 );
 
 // WebSocket connection management
 let wsConnection = null;
 let wsReconnectTimeout = null;
-const WS_RECONNECT_DELAY = 3000; // 3 seconds
 
 // UI elements
 const graphSelect = document.getElementById('graph-select');
@@ -44,23 +49,31 @@ const nodeContextMenu = document.getElementById('node-context-menu');
 let contextMenuPosition = { x: 0, y: 0 };
 let contextMenuNodeId = null;
 
-// Initialize modal manager and toast manager
-const modalManager = new ModalManager();
-const toastManager = new ToastManager();
+// Modal factory function to reduce duplication
+function createAndRegisterModal(modalId, options = {}) {
+    const modal = new Modal(modalId, {
+        onOpen: () => {
+            interactions.cancelAllDrags();
+            if (options.onOpen) options.onOpen();
+        },
+        onClose: options.onClose,
+        beforeClose: options.beforeClose
+    });
+    modalManager.register(modal);
+    return modal;
+}
 
 // Create graph modal
 const graphNameInput = document.getElementById('graph-name-input');
 const modalCreateBtn = document.getElementById('modal-create-btn');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
-const createGraphModal = new Modal('create-graph-modal', {
+const createGraphModal = createAndRegisterModal('create-graph-modal', {
     onOpen: () => {
-        interactions.cancelAllDrags();
         graphNameInput.value = '';
         graphNameInput.focus();
     }
 });
-modalManager.register(createGraphModal);
 
 // Add node modal
 const addNodeModalElement = document.getElementById('add-node-modal');
@@ -75,12 +88,7 @@ const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
 // Track the node type for the add modal (set when opening)
 let addNodeType = null;
 
-const addNodeModal = new Modal('add-node-modal', {
-    onOpen: () => {
-        interactions.cancelAllDrags();
-    }
-});
-modalManager.register(addNodeModal);
+const addNodeModal = createAndRegisterModal('add-node-modal');
 
 // Edit config modal
 const editNodeNameInput = document.getElementById('edit-node-name-input');
@@ -90,30 +98,22 @@ const editConfigFields = document.getElementById('edit-config-fields');
 const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
 const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
 
-const editConfigModal = new Modal('edit-config-modal', {
-    onOpen: () => {
-        interactions.cancelAllDrags();
-    },
+const editConfigModal = createAndRegisterModal('edit-config-modal', {
     onClose: () => {
         currentNodeId = null;
     }
 });
-modalManager.register(editConfigModal);
 
 // Delete node modal
 const deleteNodeName = document.getElementById('delete-node-name');
 const deleteNodeConfirmBtn = document.getElementById('delete-node-confirm-btn');
 const deleteNodeCancelBtn = document.getElementById('delete-node-cancel-btn');
 
-const deleteNodeModal = new Modal('delete-node-modal', {
-    onOpen: () => {
-        interactions.cancelAllDrags();
-    },
+const deleteNodeModal = createAndRegisterModal('delete-node-modal', {
     onClose: () => {
         currentNodeId = null;
     }
 });
-modalManager.register(deleteNodeModal);
 
 // Track current node being edited/deleted
 let currentNodeId = null;
@@ -238,15 +238,6 @@ const nodeTypeConfigs = {
 // Initialize form builder
 const formBuilder = new NodeConfigFormBuilder(nodeTypeConfigs);
 
-// Create graph modal functions
-function openCreateGraphModal() {
-    createGraphModal.open();
-}
-
-function closeCreateGraphModal() {
-    createGraphModal.close();
-}
-
 // Add node modal functions
 function openAddNodeModal(nodeType) {
     if (!graphState.getCurrentGraphId()) {
@@ -280,11 +271,6 @@ function openAddNodeModal(nodeType) {
     nodeNameInput.focus();
 }
 
-function closeAddNodeModal() {
-    addNodeModal.close();
-    addNodeType = null;
-}
-
 function renderNodeConfigFields(nodeType) {
     formBuilder.renderFields(nodeConfigFields, nodeType, 'config');
 }
@@ -295,11 +281,11 @@ function getNodeConfig() {
 
 // Create new graph handlers
 createGraphBtn.addEventListener('click', () => {
-    openCreateGraphModal();
+    createGraphModal.open();
 });
 
 modalCancelBtn.addEventListener('click', () => {
-    closeCreateGraphModal();
+    createGraphModal.close();
 });
 
 modalCreateBtn.addEventListener('click', async () => {
@@ -308,7 +294,7 @@ modalCreateBtn.addEventListener('click', async () => {
 
     try {
         const graph_id = await api.createImageGraph(name);
-        closeCreateGraphModal();
+        createGraphModal.close();
         await loadGraphList();
         await selectGraph(graph_id);
         toastManager.success(`Graph "${name}" created successfully`);
@@ -326,7 +312,8 @@ graphNameInput.addEventListener('keypress', (e) => {
 
 // Add node handlers
 addNodeCancelBtn.addEventListener('click', () => {
-    closeAddNodeModal();
+    addNodeModal.close();
+    addNodeType = null;
 });
 
 addNodeCreateBtn.addEventListener('click', async () => {
@@ -387,7 +374,8 @@ addNodeCreateBtn.addEventListener('click', async () => {
             delete addNodeModalElement.dataset.canvasY;
         }
 
-        closeAddNodeModal();
+        addNodeModal.close();
+        addNodeType = null;
         // Refresh graph to show new node
         await reloadCurrentGraph();
         toastManager.success(`Node "${nodeName}" added successfully`);
@@ -420,10 +408,6 @@ openEditConfigModal = function(nodeId) {
     editConfigModal.open();
 }
 
-function closeEditConfigModal() {
-    editConfigModal.close();
-}
-
 function renderEditConfigFields(nodeType, currentConfig) {
     formBuilder.renderFields(editConfigFields, nodeType, 'edit-config', currentConfig);
 }
@@ -433,7 +417,7 @@ function getEditConfigValues() {
 }
 
 editConfigCancelBtn.addEventListener('click', () => {
-    closeEditConfigModal();
+    editConfigModal.close();
 });
 
 editConfigSaveBtn.addEventListener('click', async () => {
@@ -458,7 +442,7 @@ editConfigSaveBtn.addEventListener('click', async () => {
     const imageChanged = node.type === 'input' && editImageInput.files.length > 0;
 
     if (!nameChanged && !configChanged && !imageChanged) {
-        closeEditConfigModal();
+        editConfigModal.close();
         return;
     }
 
@@ -479,7 +463,7 @@ editConfigSaveBtn.addEventListener('click', async () => {
             await api.uploadNodeOutputImage(graphId, currentNodeId, 'original', imageFile);
         }
 
-        closeEditConfigModal();
+        editConfigModal.close();
         // Refresh graph to show updates
         await reloadCurrentGraph();
         toastManager.success('Node updated successfully');
@@ -495,17 +479,13 @@ const viewImageImg = document.getElementById('view-image-img');
 const viewImageMessage = document.getElementById('view-image-message');
 const viewImageCloseBtn = document.getElementById('view-image-close-btn');
 
-const viewImageModal = new Modal('view-image-modal', {
-    onOpen: () => {
-        interactions.cancelAllDrags();
-    },
+const viewImageModal = createAndRegisterModal('view-image-modal', {
     onClose: () => {
         viewImageImg.src = '';
         viewImageImg.onerror = null;
         currentNodeId = null;
     }
 });
-modalManager.register(viewImageModal);
 
 // Delete node modal handlers
 function openDeleteNodeModal(nodeId) {
@@ -517,12 +497,8 @@ function openDeleteNodeModal(nodeId) {
     deleteNodeModal.open();
 }
 
-function closeDeleteNodeModal() {
-    deleteNodeModal.close();
-}
-
 deleteNodeCancelBtn.addEventListener('click', () => {
-    closeDeleteNodeModal();
+    deleteNodeModal.close();
 });
 
 deleteNodeConfirmBtn.addEventListener('click', async () => {
@@ -534,7 +510,7 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
         const nodeName = node ? node.name : 'Node';
 
         await api.deleteNode(graphId, currentNodeId);
-        closeDeleteNodeModal();
+        deleteNodeModal.close();
         // Refresh graph to show node removed
         await reloadCurrentGraph();
         toastManager.success(`"${nodeName}" deleted successfully`);
@@ -561,7 +537,7 @@ function openViewImageModal(nodeId) {
     } else {
         // Load and display the image
         const imageId = outputs[0].image_id;
-        const imageUrl = `/api/images/${imageId}`;
+        const imageUrl = API_PATHS.images(imageId);
 
         viewImageImg.src = imageUrl;
         viewImageImg.style.display = 'block';
@@ -578,12 +554,8 @@ function openViewImageModal(nodeId) {
     viewImageModal.open();
 }
 
-function closeViewImageModal() {
-    viewImageModal.close();
-}
-
 viewImageCloseBtn.addEventListener('click', () => {
-    closeViewImageModal();
+    viewImageModal.close();
 });
 
 // Handle connection delete button clicks
@@ -734,7 +706,7 @@ function connectWebSocket(graphId) {
 
     // Determine WebSocket URL (ws:// for http://, wss:// for https://)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/imagegraphs/${graphId}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}${API_PATHS.graphWebSocket(graphId)}`;
 
     console.log('Connecting to WebSocket:', wsUrl);
 
@@ -773,10 +745,10 @@ function connectWebSocket(graphId) {
             // Attempt to reconnect if the graph is still selected
             const currentGraphId = graphState.getCurrentGraphId();
             if (currentGraphId === graphId) {
-                console.log(`Will attempt to reconnect in ${WS_RECONNECT_DELAY}ms`);
+                console.log(`Will attempt to reconnect in ${WS_CONFIG.reconnectDelay}ms`);
                 wsReconnectTimeout = setTimeout(() => {
                     connectWebSocket(graphId);
-                }, WS_RECONNECT_DELAY);
+                }, WS_CONFIG.reconnectDelay);
             }
         };
     } catch (error) {
@@ -835,7 +807,7 @@ renderOutputs = function(graph) {
     sidebarContent.innerHTML = sortedOutputNodes.map(node => {
         const output = node.outputs?.find(o => o.name === 'final');
         const hasImage = output?.image_id;
-        const imageUrl = hasImage ? `/api/images/${output.image_id}` : '';
+        const imageUrl = hasImage ? API_PATHS.images(output.image_id) : '';
 
         return `
             <div class="output-card">
@@ -857,15 +829,11 @@ let isResizing = false;
 let startX = 0;
 let startWidth = 0;
 
-const SIDEBAR_MIN_WIDTH = 200;
-const SIDEBAR_MAX_WIDTH = 600;
-const SIDEBAR_WIDTH_KEY = 'artwork-sidebar-width';
-
 // Restore saved width from localStorage
-const savedWidth = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+const savedWidth = localStorage.getItem(SIDEBAR_CONFIG.storageKey);
 if (savedWidth) {
     const width = parseInt(savedWidth, 10);
-    if (width >= SIDEBAR_MIN_WIDTH && width <= SIDEBAR_MAX_WIDTH) {
+    if (width >= SIDEBAR_CONFIG.minWidth && width <= SIDEBAR_CONFIG.maxWidth) {
         sidebar.style.width = `${width}px`;
     }
 }
@@ -890,7 +858,7 @@ document.addEventListener('mousemove', (e) => {
     const newWidth = startWidth + deltaX;
 
     // Constrain width
-    const constrainedWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, newWidth));
+    const constrainedWidth = Math.max(SIDEBAR_CONFIG.minWidth, Math.min(SIDEBAR_CONFIG.maxWidth, newWidth));
 
     sidebar.style.width = `${constrainedWidth}px`;
 });
@@ -902,7 +870,7 @@ document.addEventListener('mouseup', () => {
         resizeHandle.classList.remove('resizing');
 
         // Save width to localStorage
-        localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebar.offsetWidth);
+        localStorage.setItem(SIDEBAR_CONFIG.storageKey, sidebar.offsetWidth);
     }
 });
 

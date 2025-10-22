@@ -1,17 +1,13 @@
 // SVG rendering for nodes and connections
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 180;
-const PORT_RADIUS = 6;
-const THUMBNAIL_WIDTH = 120;
-const THUMBNAIL_HEIGHT = 90;
-const THUMBNAIL_Y = 48;
+import { NODE_DESIGN, API_PATHS } from './constants.js';
 
 export class Renderer {
-    constructor(svgElement, nodesLayer, connectionsLayer) {
+    constructor(svgElement, nodesLayer, connectionsLayer, graphState = null) {
         this.svg = svgElement;
         this.nodesLayer = nodesLayer;
         this.connectionsLayer = connectionsLayer;
+        this.graphState = graphState;
         this.nodePositions = new Map();
         this.zoom = 1;
         this.panX = 0;
@@ -81,8 +77,8 @@ export class Renderer {
                 const col = index % 3;
                 const row = Math.floor(index / 3);
                 this.nodePositions.set(node.id, {
-                    x: 100 + col * (NODE_WIDTH + 100),
-                    y: 100 + row * (NODE_HEIGHT + 100)
+                    x: 100 + col * (NODE_DESIGN.width + 100),
+                    y: 100 + row * (NODE_DESIGN.height + 100)
                 });
             }
 
@@ -119,35 +115,31 @@ export class Renderer {
         }
 
         // Layout constants
-        const titleBarHeight = 30;
-        const tablePadding = 8;
-        const thumbnailY = titleBarHeight + 10;
-        const portTableY = thumbnailY + THUMBNAIL_HEIGHT + 10;
+        const thumbnailY = NODE_DESIGN.titleBarHeight + 10;
+        const portTableY = thumbnailY + NODE_DESIGN.thumbnail.height + 10;
         const maxRows = Math.max(inputs.length, outputs.length, 1);
-        const rowHeight = 24;
-        const headerHeight = 20;
-        const portTableHeight = headerHeight + maxRows * rowHeight;
-        const nodeHeight = portTableY + portTableHeight + tablePadding;
+        const portTableHeight = NODE_DESIGN.headerHeight + maxRows * NODE_DESIGN.rowHeight;
+        const nodeHeight = portTableY + portTableHeight + NODE_DESIGN.tablePadding;
 
         // Node rectangle (main body)
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.classList.add('node-rect');
-        rect.setAttribute('width', NODE_WIDTH);
+        rect.setAttribute('width', NODE_DESIGN.width);
         rect.setAttribute('height', nodeHeight);
         g.appendChild(rect);
 
         // Title bar background
         const titleBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         titleBar.classList.add('node-title-bar');
-        titleBar.setAttribute('width', NODE_WIDTH);
-        titleBar.setAttribute('height', titleBarHeight);
+        titleBar.setAttribute('width', NODE_DESIGN.width);
+        titleBar.setAttribute('height', NODE_DESIGN.titleBarHeight);
         g.appendChild(titleBar);
 
         // Node title (type and name) - add placeholder first, then truncate after rendering
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         title.classList.add('node-title');
-        title.setAttribute('x', NODE_WIDTH / 2);
-        title.setAttribute('y', titleBarHeight / 2 + 5);
+        title.setAttribute('x', NODE_DESIGN.width / 2);
+        title.setAttribute('y', NODE_DESIGN.titleBarHeight / 2 + 5);
         title.setAttribute('text-anchor', 'middle');
 
         const fullTitle = `${node.type}: ${node.name}`;
@@ -156,7 +148,7 @@ export class Renderer {
 
         // Need to wait for next frame for text to be rendered and measurable
         requestAnimationFrame(() => {
-            const maxWidth = NODE_WIDTH - 20; // 10px padding on each side
+            const maxWidth = NODE_DESIGN.width - 20; // 10px padding on each side
             const textLength = title.getComputedTextLength();
 
             if (textLength > maxWidth) {
@@ -187,41 +179,41 @@ export class Renderer {
         }
 
         // Render port table
-        this.renderPortTable(g, inputs, outputs, portTableY, tablePadding);
+        this.renderPortTable(g, inputs, outputs, portTableY, NODE_DESIGN.tablePadding);
 
         this.nodesLayer.appendChild(g);
     }
 
-    renderThumbnail(parentG, imageId, yPos = THUMBNAIL_Y) {
+    renderThumbnail(parentG, imageId, yPos = NODE_DESIGN.thumbnail.y) {
         const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         image.classList.add('node-thumbnail');
-        image.setAttribute('x', (NODE_WIDTH - THUMBNAIL_WIDTH) / 2);
+        image.setAttribute('x', (NODE_DESIGN.width - NODE_DESIGN.thumbnail.width) / 2);
         image.setAttribute('y', yPos);
-        image.setAttribute('width', THUMBNAIL_WIDTH);
-        image.setAttribute('height', THUMBNAIL_HEIGHT);
-        image.setAttribute('href', `/api/images/${imageId}`);
+        image.setAttribute('width', NODE_DESIGN.thumbnail.width);
+        image.setAttribute('height', NODE_DESIGN.thumbnail.height);
+        image.setAttribute('href', API_PATHS.images(imageId));
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         parentG.appendChild(image);
     }
 
-    renderWaitingMessage(parentG, yPos = THUMBNAIL_Y) {
+    renderWaitingMessage(parentG, yPos = NODE_DESIGN.thumbnail.y) {
         // Create a centered text message in the thumbnail area
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.classList.add('node-waiting-message');
-        text.setAttribute('x', NODE_WIDTH / 2);
-        text.setAttribute('y', yPos + THUMBNAIL_HEIGHT / 2);
+        text.setAttribute('x', NODE_DESIGN.width / 2);
+        text.setAttribute('y', yPos + NODE_DESIGN.thumbnail.height / 2);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
         text.textContent = 'Waiting For Inputs...';
         parentG.appendChild(text);
     }
 
-    renderGeneratingMessage(parentG, yPos = THUMBNAIL_Y) {
+    renderGeneratingMessage(parentG, yPos = NODE_DESIGN.thumbnail.y) {
         // Create a centered text message in the thumbnail area
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.classList.add('node-generating-message');
-        text.setAttribute('x', NODE_WIDTH / 2);
-        text.setAttribute('y', yPos + THUMBNAIL_HEIGHT / 2);
+        text.setAttribute('x', NODE_DESIGN.width / 2);
+        text.setAttribute('y', yPos + NODE_DESIGN.thumbnail.height / 2);
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('dominant-baseline', 'middle');
         text.textContent = 'Generating Outputs...';
@@ -234,7 +226,7 @@ export class Renderer {
 
         if (existingThumbnail) {
             // Update the href to show the new image
-            existingThumbnail.setAttribute('href', `/api/images/${imageId}`);
+            existingThumbnail.setAttribute('href', API_PATHS.images(imageId));
         } else {
             // Create thumbnail if it doesn't exist
             this.renderThumbnail(nodeGroup, imageId);
@@ -247,7 +239,7 @@ export class Renderer {
 
         if (defaultImageId && existingThumbnail) {
             // Restore to default image
-            existingThumbnail.setAttribute('href', `/api/images/${defaultImageId}`);
+            existingThumbnail.setAttribute('href', API_PATHS.images(defaultImageId));
         } else if (!defaultImageId && existingThumbnail) {
             // Remove thumbnail if there's no default
             existingThumbnail.remove();
@@ -256,28 +248,26 @@ export class Renderer {
 
     renderPortTable(parentG, inputs, outputs, startY, padding) {
         const maxRows = Math.max(inputs.length, outputs.length);
-        const rowHeight = 24;
-        const headerHeight = 20;
-        const tableWidth = NODE_WIDTH - padding * 2; // Account for left and right padding
+        const tableWidth = NODE_DESIGN.width - padding * 2; // Account for left and right padding
         const halfWidth = tableWidth / 2;
 
         // Render header row
-        this.renderTableHeader(parentG, startY, padding, halfWidth, headerHeight, inputs.length > 0, outputs.length > 0);
+        this.renderTableHeader(parentG, startY, padding, halfWidth, NODE_DESIGN.headerHeight, inputs.length > 0, outputs.length > 0);
 
         // Render port rows
         for (let i = 0; i < maxRows; i++) {
-            const rowY = startY + headerHeight + i * rowHeight;
+            const rowY = startY + NODE_DESIGN.headerHeight + i * NODE_DESIGN.rowHeight;
 
             // Left cell (input)
             if (i < inputs.length) {
                 const imageId = inputs[i].image_id;
-                this.renderPortCell(parentG, inputs[i].name, padding, rowY, halfWidth, rowHeight, 'input', imageId);
+                this.renderPortCell(parentG, inputs[i].name, padding, rowY, halfWidth, NODE_DESIGN.rowHeight, 'input', imageId);
             }
 
             // Right cell (output)
             if (i < outputs.length) {
                 const imageId = outputs[i].image_id;
-                this.renderPortCell(parentG, outputs[i].name, padding + halfWidth, rowY, halfWidth, rowHeight, 'output', imageId);
+                this.renderPortCell(parentG, outputs[i].name, padding + halfWidth, rowY, halfWidth, NODE_DESIGN.rowHeight, 'output', imageId);
             }
 
             // Divider line between left and right
@@ -287,7 +277,7 @@ export class Renderer {
                 divider.setAttribute('x1', padding + halfWidth);
                 divider.setAttribute('y1', rowY);
                 divider.setAttribute('x2', padding + halfWidth);
-                divider.setAttribute('y2', rowY + rowHeight);
+                divider.setAttribute('y2', rowY + NODE_DESIGN.rowHeight);
                 parentG.appendChild(divider);
             }
         }
@@ -373,10 +363,10 @@ export class Renderer {
         // Port circle at node edge
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.classList.add('port');
-        // Push ports to the very edge of the node (0 for inputs, NODE_WIDTH for outputs)
-        circle.setAttribute('cx', type === 'input' ? 0 : NODE_WIDTH);
+        // Push ports to the very edge of the node (0 for inputs, NODE_DESIGN.width for outputs)
+        circle.setAttribute('cx', type === 'input' ? 0 : NODE_DESIGN.width);
         circle.setAttribute('cy', y + height / 2);
-        circle.setAttribute('r', PORT_RADIUS);
+        circle.setAttribute('r', NODE_DESIGN.ports.radius);
         if (hasImage) {
             circle.style.fill = '#27ae60';
         }
@@ -513,6 +503,53 @@ export class Renderer {
         if (nodeElement) {
             nodeElement.setAttribute('transform', `translate(${x},${y})`);
         }
+    }
+
+    updateNodeConnections(nodeId) {
+        // Find and update all connections involving this node (both as source and target)
+        const graph = this.graphState.getCurrentGraph();
+        if (!graph) return;
+
+        // Remove old connections involving this node
+        const connections = this.connectionsLayer.querySelectorAll(
+            `[data-from-node="${nodeId}"], [data-to-node="${nodeId}"]`
+        );
+        connections.forEach(conn => conn.remove());
+
+        // Find the node in the graph
+        const node = graph.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        // Re-render connections FROM this node
+        (node.outputs || []).forEach(output => {
+            (output.connections || []).forEach(conn => {
+                this.renderConnection(
+                    node.id,
+                    output.name,
+                    conn.node_id,
+                    conn.input_name,
+                    output.image_id !== null && output.image_id !== ''
+                );
+            });
+        });
+
+        // Re-render connections TO this node (from other nodes)
+        graph.nodes.forEach(otherNode => {
+            if (otherNode.id === nodeId) return;
+            (otherNode.outputs || []).forEach(output => {
+                (output.connections || []).forEach(conn => {
+                    if (conn.node_id === nodeId) {
+                        this.renderConnection(
+                            otherNode.id,
+                            output.name,
+                            conn.node_id,
+                            conn.input_name,
+                            output.image_id !== null && output.image_id !== ''
+                        );
+                    }
+                });
+            });
+        });
     }
 
     getNodePosition(nodeId) {
