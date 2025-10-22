@@ -61,7 +61,7 @@ func (h *ViewportCommandHandlers) HandleUpdateViewportCommand(
 			}
 		}
 
-		// Update viewport (mutates the domain object directly)
+		// Update viewport using domain method (emits event internally)
 		err = viewport.Set(command.Zoom, command.PanX, command.PanY)
 		if err != nil {
 			return fmt.Errorf("could not update Viewport for ImageGraph %q: %w", command.GraphID, err)

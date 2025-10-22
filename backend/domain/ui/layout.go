@@ -40,51 +40,12 @@ func NewLayout(
 	}, nil
 }
 
-// SetNodePosition sets the position for a specific node
-func (l *Layout) SetNodePosition(nodeID imagegraph.NodeID, x, y float64) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot set position for nil NodeID")
-	}
-
-	// Find existing position and update it
-	for i := range l.NodePositions {
-		if l.NodePositions[i].NodeID == nodeID {
-			l.NodePositions[i].X = x
-			l.NodePositions[i].Y = y
-			return nil
-		}
-	}
-
-	// Not found, add new position
-	l.NodePositions = append(l.NodePositions, NodePosition{
-		NodeID: nodeID,
-		X:      x,
-		Y:      y,
-	})
-
-	return nil
-}
-
-// GetNodePosition retrieves the position for a specific node
-func (l *Layout) GetNodePosition(nodeID imagegraph.NodeID) (NodePosition, bool) {
-	for _, pos := range l.NodePositions {
-		if pos.NodeID == nodeID {
-			return pos, true
-		}
-	}
-	return NodePosition{}, false
-}
-
-// RemoveNodePosition removes the position for a specific node
-func (l *Layout) RemoveNodePosition(nodeID imagegraph.NodeID) {
-	for i, pos := range l.NodePositions {
-		if pos.NodeID == nodeID {
-			// Remove by replacing with last element and truncating
-			l.NodePositions[i] = l.NodePositions[len(l.NodePositions)-1]
-			l.NodePositions = l.NodePositions[:len(l.NodePositions)-1]
-			return
-		}
-	}
+// SetNodePositions replaces all node positions and emits a LayoutUpdatedEvent
+func (l *Layout) SetNodePositions(nodePositions []NodePosition) {
+	l.NodePositions = nodePositions
+	event := NewLayoutUpdatedEvent(l)
+	event.SetEntity("Layout", l.GraphID.ID)
+	l.AddEvent(event)
 }
 
 // Clone creates a deep copy of the Layout

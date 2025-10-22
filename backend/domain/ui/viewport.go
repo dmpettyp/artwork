@@ -41,23 +41,7 @@ func NewViewport(
 	}, nil
 }
 
-// SetZoom updates the zoom level
-func (v *Viewport) SetZoom(zoom float64) error {
-	if zoom <= 0 {
-		return fmt.Errorf("zoom must be greater than 0, got %f", zoom)
-	}
-
-	v.Zoom = zoom
-	return nil
-}
-
-// SetPan updates the pan offsets
-func (v *Viewport) SetPan(panX, panY float64) {
-	v.PanX = panX
-	v.PanY = panY
-}
-
-// Set updates all viewport properties at once
+// Set updates all viewport properties at once and emits a ViewportUpdatedEvent
 func (v *Viewport) Set(zoom, panX, panY float64) error {
 	if zoom <= 0 {
 		return fmt.Errorf("zoom must be greater than 0, got %f", zoom)
@@ -66,6 +50,10 @@ func (v *Viewport) Set(zoom, panX, panY float64) error {
 	v.Zoom = zoom
 	v.PanX = panX
 	v.PanY = panY
+
+	event := NewViewportUpdatedEvent(v)
+	event.SetEntity("Viewport", v.GraphID.ID)
+	v.AddEvent(event)
 
 	return nil
 }

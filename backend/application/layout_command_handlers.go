@@ -61,8 +61,8 @@ func (h *LayoutCommandHandlers) HandleUpdateLayoutCommand(
 			}
 		}
 
-		// Replace all node positions
-		layout.NodePositions = command.NodePositions
+		// Update node positions using domain method (emits event internally)
+		layout.SetNodePositions(command.NodePositions)
 
 		return nil
 	})
