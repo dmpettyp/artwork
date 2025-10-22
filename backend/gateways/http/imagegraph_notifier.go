@@ -146,6 +146,15 @@ func (n *ImageGraphNotifier) BroadcastNodeUpdate(graphID imagegraph.ImageGraphID
 	n.Broadcast(graphID, msg)
 }
 
+// BroadcastLayoutUpdate sends a layout update notification to all clients viewing the graph
+func (n *ImageGraphNotifier) BroadcastLayoutUpdate(graphID imagegraph.ImageGraphID) {
+	msg := WebSocketMessage{
+		Type: "layout_update",
+		Data: map[string]interface{}{},
+	}
+	n.Broadcast(graphID, msg)
+}
+
 // Close shuts down the notifier
 func (n *ImageGraphNotifier) Close() {
 	close(n.done)

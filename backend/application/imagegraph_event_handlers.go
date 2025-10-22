@@ -13,6 +13,7 @@ import (
 // ImageGraphNotifier is an interface for broadcasting graph notifications
 type ImageGraphNotifier interface {
 	BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate interface{})
+	BroadcastLayoutUpdate(graphID imagegraph.ImageGraphID)
 }
 
 type ImageGraphEventHandlers struct {

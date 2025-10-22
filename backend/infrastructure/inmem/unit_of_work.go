@@ -42,6 +42,8 @@ func NewUnitOfWork() (*UnitOfWork, error) {
 		UnitOfWork: inmem.NewUnitOfWork(
 			repos,
 			imageGraphRepository,
+			layoutRepository,
+			viewportRepository,
 		),
 		ImageGraphViews: NewImageGraphViews(imageGraphRepository),
 		LayoutViews:     NewLayoutViews(layoutRepository),

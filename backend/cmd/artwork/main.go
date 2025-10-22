@@ -79,6 +79,13 @@ func main() {
 		return
 	}
 
+	_, err = application.NewLayoutEventHandlers(messageBus, notifier)
+
+	if err != nil {
+		logger.Error("could not create layout event handlers", "error", err)
+		return
+	}
+
 	_, err = application.NewViewportCommandHandlers(messageBus, uow)
 
 	if err != nil {
