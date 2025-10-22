@@ -7,7 +7,8 @@ import { InteractionHandler } from './interactions.js';
 import { Modal, ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
 import { NodeConfigFormBuilder } from './form-builder.js';
-import { API_PATHS, WS_CONFIG, SIDEBAR_CONFIG } from './constants.js';
+import { GraphManager } from './graph-manager.js';
+import { API_PATHS, SIDEBAR_CONFIG } from './constants.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -19,6 +20,9 @@ const renderer = new Renderer(svg, nodesLayer, connectionsLayer, graphState);
 // Initialize modal manager and toast manager early so they can be passed to InteractionHandler
 const modalManager = new ModalManager();
 const toastManager = new ToastManager();
+
+// Initialize graph manager
+const graphManager = new GraphManager(api, graphState, renderer, toastManager);
 
 // Declare functions early so they can be passed to InteractionHandler
 let renderOutputs;
@@ -33,10 +37,6 @@ const interactions = new InteractionHandler(
     (nodeId) => openEditConfigModal(nodeId),
     toastManager
 );
-
-// WebSocket connection management
-let wsConnection = null;
-let wsReconnectTimeout = null;
 
 // UI elements
 const graphSelect = document.getElementById('graph-select');
@@ -134,85 +134,16 @@ renderer.setViewportChangeCallback(() => {
     interactions.debouncedSaveViewport();
 });
 
-// Load and display graph list
-async function loadGraphList() {
-    try {
-        const graphs = await api.listImageGraphs();
-        renderGraphList(graphs);
-
-        // Auto-select the first graph if none is selected
-        if (graphs.length > 0 && !graphState.getCurrentGraphId()) {
-            await selectGraph(graphs[0].id);
-        }
-    } catch (error) {
-        console.error('Failed to load graphs:', error);
-    }
-}
-
-function renderGraphList(graphs) {
-    const currentGraphId = graphState.getCurrentGraphId();
-
-    // Clear and add default option
-    graphSelect.innerHTML = '<option value="">Select a graph...</option>';
-
-    graphs.forEach(graph => {
-        const option = document.createElement('option');
-        option.value = graph.id;
-        option.textContent = graph.name;
-
-        if (graph.id === currentGraphId) {
-            option.selected = true;
-        }
-
-        graphSelect.appendChild(option);
-    });
-}
-
 // Handle graph selection from dropdown
 graphSelect.addEventListener('change', (e) => {
     const graphId = e.target.value;
     if (graphId) {
-        selectGraph(graphId);
+        graphManager.selectGraph(graphId);
     } else {
-        disconnectWebSocket();
+        graphManager.disconnectWebSocket();
         graphState.setCurrentGraph(null);
     }
 });
-
-// Select and load a graph
-async function selectGraph(graphId) {
-    try {
-        const graph = await api.getImageGraph(graphId);
-
-        // Load UI metadata and restore viewport/positions
-        try {
-            const uiMetadata = await api.getUIMetadata(graphId);
-            renderer.restoreViewport(uiMetadata.viewport);
-            renderer.restoreNodePositions(uiMetadata.node_positions);
-        } catch (error) {
-            console.log('No UI metadata found, using defaults:', error);
-            // Not an error - just means no metadata was saved yet
-        }
-
-        graphState.setCurrentGraph(graph);
-        await loadGraphList(); // Refresh list to update active state
-
-        // Connect to WebSocket for real-time updates
-        connectWebSocket(graphId);
-    } catch (error) {
-        console.error('Failed to load graph:', error);
-        toastManager.error(`Failed to load graph: ${error.message}`);
-    }
-}
-
-// Reload the currently selected graph
-async function reloadCurrentGraph() {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId) return;
-
-    const graph = await api.getImageGraph(graphId);
-    graphState.setCurrentGraph(graph);
-}
 
 // Node type configuration (matches backend node_type.go)
 const nodeTypeConfigs = {
@@ -295,8 +226,8 @@ modalCreateBtn.addEventListener('click', async () => {
     try {
         const graph_id = await api.createImageGraph(name);
         createGraphModal.close();
-        await loadGraphList();
-        await selectGraph(graph_id);
+        await graphManager.loadGraphList();
+        await graphManager.selectGraph(graph_id);
         toastManager.success(`Graph "${name}" created successfully`);
     } catch (error) {
         console.error('Failed to create graph:', error);
@@ -377,7 +308,7 @@ addNodeCreateBtn.addEventListener('click', async () => {
         addNodeModal.close();
         addNodeType = null;
         // Refresh graph to show new node
-        await reloadCurrentGraph();
+        await graphManager.reloadCurrentGraph();
         toastManager.success(`Node "${nodeName}" added successfully`);
     } catch (error) {
         console.error('Failed to add node:', error);
@@ -465,7 +396,7 @@ editConfigSaveBtn.addEventListener('click', async () => {
 
         editConfigModal.close();
         // Refresh graph to show updates
-        await reloadCurrentGraph();
+        await graphManager.reloadCurrentGraph();
         toastManager.success('Node updated successfully');
     } catch (error) {
         console.error('Failed to update node:', error);
@@ -512,7 +443,7 @@ deleteNodeConfirmBtn.addEventListener('click', async () => {
         await api.deleteNode(graphId, currentNodeId);
         deleteNodeModal.close();
         // Refresh graph to show node removed
-        await reloadCurrentGraph();
+        await graphManager.reloadCurrentGraph();
         toastManager.success(`"${nodeName}" deleted successfully`);
     } catch (error) {
         console.error('Failed to delete node:', error);
@@ -583,7 +514,7 @@ async function handleDisconnectConnection(fromNodeId, fromOutput, toNodeId, toIn
     try {
         await api.disconnectNodes(graphId, fromNodeId, fromOutput, toNodeId, toInput);
         // Refresh graph to show connection removed
-        await reloadCurrentGraph();
+        await graphManager.reloadCurrentGraph();
         toastManager.success('Connection removed');
     } catch (error) {
         console.error('Failed to disconnect nodes:', error);
@@ -596,7 +527,7 @@ refreshBtn.addEventListener('click', async () => {
     if (!graphState.getCurrentGraphId()) return;
 
     try {
-        await reloadCurrentGraph();
+        await graphManager.reloadCurrentGraph();
         toastManager.info('Graph refreshed');
     } catch (error) {
         console.error('Failed to refresh graph:', error);
@@ -699,81 +630,9 @@ function openAddNodeModalAtPosition(nodeType, position) {
     openAddNodeModal(nodeType);
 }
 
-// WebSocket connection management functions
-function connectWebSocket(graphId) {
-    // Disconnect existing connection if any
-    disconnectWebSocket();
-
-    // Determine WebSocket URL (ws:// for http://, wss:// for https://)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}${API_PATHS.graphWebSocket(graphId)}`;
-
-    console.log('Connecting to WebSocket:', wsUrl);
-
-    try {
-        wsConnection = new WebSocket(wsUrl);
-
-        wsConnection.onopen = () => {
-            console.log('WebSocket connected for graph:', graphId);
-            // Clear any pending reconnect attempts
-            if (wsReconnectTimeout) {
-                clearTimeout(wsReconnectTimeout);
-                wsReconnectTimeout = null;
-            }
-        };
-
-        wsConnection.onmessage = async (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                console.log('WebSocket message received:', message);
-
-                // Refresh the graph to get the latest state
-                await reloadCurrentGraph();
-            } catch (error) {
-                console.error('Failed to handle WebSocket message:', error);
-            }
-        };
-
-        wsConnection.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-
-        wsConnection.onclose = (event) => {
-            console.log('WebSocket closed:', event.code, event.reason);
-            wsConnection = null;
-
-            // Attempt to reconnect if the graph is still selected
-            const currentGraphId = graphState.getCurrentGraphId();
-            if (currentGraphId === graphId) {
-                console.log(`Will attempt to reconnect in ${WS_CONFIG.reconnectDelay}ms`);
-                wsReconnectTimeout = setTimeout(() => {
-                    connectWebSocket(graphId);
-                }, WS_CONFIG.reconnectDelay);
-            }
-        };
-    } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
-    }
-}
-
-function disconnectWebSocket() {
-    // Clear any pending reconnect attempts
-    if (wsReconnectTimeout) {
-        clearTimeout(wsReconnectTimeout);
-        wsReconnectTimeout = null;
-    }
-
-    // Close existing connection
-    if (wsConnection) {
-        console.log('Disconnecting WebSocket');
-        wsConnection.close(1000, 'Client disconnecting');
-        wsConnection = null;
-    }
-}
-
 // Clean up WebSocket on page unload
 window.addEventListener('beforeunload', () => {
-    disconnectWebSocket();
+    graphManager.cleanup();
 });
 
 // Render output nodes in sidebar
@@ -893,4 +752,4 @@ document.addEventListener('mouseup', () => {
 });
 
 // Load initial data
-loadGraphList();
+graphManager.loadGraphList();
