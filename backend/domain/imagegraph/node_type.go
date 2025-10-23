@@ -106,3 +106,21 @@ var nodeConfigs = map[NodeType]nodeConfig{
 		outputs: []OutputName{"resized"},
 	},
 }
+
+// InputNames returns the ordered list of input names for this node type
+func (nt NodeType) InputNames() []InputName {
+	cfg, ok := nodeConfigs[nt]
+	if !ok {
+		return []InputName{}
+	}
+	return cfg.inputs
+}
+
+// OutputNames returns the ordered list of output names for this node type
+func (nt NodeType) OutputNames() []OutputName {
+	cfg, ok := nodeConfigs[nt]
+	if !ok {
+		return []OutputName{}
+	}
+	return cfg.outputs
+}

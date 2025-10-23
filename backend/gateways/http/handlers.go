@@ -206,9 +206,15 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 	nodes := make([]nodeResponse, 0, len(ig.Nodes))
 
 	for _, node := range ig.Nodes {
-		// Map inputs
-		inputs := make([]inputResponse, 0, len(node.Inputs))
-		for _, input := range node.Inputs {
+		// Map inputs in the order defined by the node type configuration
+		inputNames := node.Type.InputNames()
+		inputs := make([]inputResponse, 0, len(inputNames))
+		for _, inputName := range inputNames {
+			input, ok := node.Inputs[inputName]
+			if !ok {
+				continue
+			}
+
 			inputResp := inputResponse{
 				Name:      string(input.Name),
 				Connected: input.Connected,
@@ -228,9 +234,15 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 			inputs = append(inputs, inputResp)
 		}
 
-		// Map outputs
-		outputs := make([]outputResponse, 0, len(node.Outputs))
-		for _, output := range node.Outputs {
+		// Map outputs in the order defined by the node type configuration
+		outputNames := node.Type.OutputNames()
+		outputs := make([]outputResponse, 0, len(outputNames))
+		for _, outputName := range outputNames {
+			output, ok := node.Outputs[outputName]
+			if !ok {
+				continue
+			}
+
 			outputResp := outputResponse{
 				Name:        string(output.Name),
 				Connections: make([]outputConnectionResponse, 0, len(output.Connections)),

@@ -52,7 +52,8 @@ to process images in a non-destructive way.
 - implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that? ✅
 - separate ws notifications for graph and layout changes ✅
 - download functionality for output panel ✅
-- extract current graph for bootstrap
+- extract current graph for bootstrap ✅
+- ensure that input and output order is stable as defined in node type ✅
 - resizeMatch - multiple resize options
 - durable repository/unit of work implementation: sqlite
 
