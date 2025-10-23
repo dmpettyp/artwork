@@ -86,6 +86,9 @@ export const NODE_TYPE_CONFIGS = {
             height: { type: 'int', required: false }
         }
     },
+    resize_match: {
+        fields: {}
+    },
     output: {
         fields: {}
     }

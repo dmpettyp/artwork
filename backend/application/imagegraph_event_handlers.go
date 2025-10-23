@@ -163,6 +163,45 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypeResizeMatch {
+		// Find the "original" input
+		var originalImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				originalImageID = input.ImageID
+				break
+			}
+		}
+
+		// Find the "size_match" input
+		var sizeMatchImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "size_match" {
+				sizeMatchImageID = input.ImageID
+				break
+			}
+		}
+
+		if originalImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		if sizeMatchImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'size_match' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForResizeMatchNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				originalImageID,
+				sizeMatchImageID,
+				"resized",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeOutput {
 		// Find the "input" input
 		var inputImageID imagegraph.ImageID

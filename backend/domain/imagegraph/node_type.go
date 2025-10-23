@@ -10,6 +10,7 @@ const (
 	NodeTypeBlur
 	NodeTypeOutput
 	NodeTypeResize
+	NodeTypeResizeMatch
 )
 
 type NodeConfigFieldType int
@@ -99,5 +100,9 @@ var nodeConfigs = map[NodeType]nodeConfig{
 
 			return nil
 		},
+	},
+	NodeTypeResizeMatch: {
+		inputs:  []InputName{"original", "size_match"},
+		outputs: []OutputName{"resized"},
 	},
 }

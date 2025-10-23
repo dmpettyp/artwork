@@ -10,6 +10,7 @@ import (
 	"image/png"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/nfnt/resize"
 )
 
 type imageStorage interface {
@@ -218,6 +219,80 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 			resizedImg.Set(x, y, img.At(srcX, srcY))
 		}
 	}
+
+	// Encode the resized image
+	var buf bytes.Buffer
+	switch format {
+	case "png":
+		err = png.Encode(&buf, resizedImg)
+	case "jpeg", "jpg":
+		err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 90})
+	default:
+		return fmt.Errorf("unsupported image format: %s", format)
+	}
+	if err != nil {
+		return fmt.Errorf("could not encode resized image: %w", err)
+	}
+
+	// Generate new image ID and save
+	outputImageID, err := imagegraph.NewImageID()
+	if err != nil {
+		return fmt.Errorf("could not generate image ID: %w", err)
+	}
+
+	err = ig.imageStorage.Save(outputImageID, buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("could not save resized image: %w", err)
+	}
+
+	// Set the output image on the node
+	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
+	if err != nil {
+		return fmt.Errorf("could not set node output image: %w", err)
+	}
+
+	return nil
+}
+
+func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	originalImageID imagegraph.ImageID,
+	sizeMatchImageID imagegraph.ImageID,
+	outputName imagegraph.OutputName,
+) error {
+	// Get the original image
+	originalImageData, err := ig.imageStorage.Get(originalImageID)
+	if err != nil {
+		return fmt.Errorf("could not get original image: %w", err)
+	}
+
+	// Get the size_match image
+	sizeMatchImageData, err := ig.imageStorage.Get(sizeMatchImageID)
+	if err != nil {
+		return fmt.Errorf("could not get size_match image: %w", err)
+	}
+
+	// Decode the original image
+	originalImg, format, err := image.Decode(bytes.NewReader(originalImageData))
+	if err != nil {
+		return fmt.Errorf("could not decode original image: %w", err)
+	}
+
+	// Decode the size_match image to get dimensions
+	sizeMatchImg, _, err := image.Decode(bytes.NewReader(sizeMatchImageData))
+	if err != nil {
+		return fmt.Errorf("could not decode size_match image: %w", err)
+	}
+
+	// Get target dimensions from size_match image
+	targetBounds := sizeMatchImg.Bounds()
+	targetWidth := uint(targetBounds.Dx())
+	targetHeight := uint(targetBounds.Dy())
+
+	// Resize original image to match size_match dimensions using LANCZOS
+	resizedImg := resize.Resize(targetWidth, targetHeight, originalImg, resize.Lanczos3)
 
 	// Encode the resized image
 	var buf bytes.Buffer
