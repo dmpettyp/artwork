@@ -128,11 +128,23 @@ export class Renderer {
         rect.setAttribute('height', nodeHeight);
         g.appendChild(rect);
 
-        // Title bar background
-        const titleBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        // Title bar background - rounded top, square bottom
+        const titleBar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         titleBar.classList.add('node-title-bar');
-        titleBar.setAttribute('width', NODE_DESIGN.width);
-        titleBar.setAttribute('height', NODE_DESIGN.titleBarHeight);
+        const radius = 12;
+        const width = NODE_DESIGN.width;
+        const height = NODE_DESIGN.titleBarHeight;
+        // Path: start at bottom-left, go to top-left with curve, across top with curve, down to bottom-right, across bottom
+        const d = `
+            M 0,${height}
+            L 0,${radius}
+            Q 0,0 ${radius},0
+            L ${width - radius},0
+            Q ${width},0 ${width},${radius}
+            L ${width},${height}
+            Z
+        `;
+        titleBar.setAttribute('d', d);
         g.appendChild(titleBar);
 
         // Node title (type and name) - add placeholder first, then truncate after rendering
