@@ -110,6 +110,7 @@ func main() {
 	// Bootstrap the application with default ImageGraph
 	if err := bootstrap(context.Background(), logger, messageBus); err != nil {
 		logger.Error("bootstrap failed", "error", err)
+		return
 	}
 
 	// Set up signal handling for graceful shutdown

@@ -112,7 +112,9 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		resizeMatchNodeID,
 		imagegraph.NodeTypeResizeMatch,
 		"balh",
-		imagegraph.NodeConfig{},
+		imagegraph.NodeConfig{
+			"interpolation": "NearestNeighbor",
+		},
 	)
 	if err := messageBus.HandleCommand(ctx, addResizeMatchCmd); err != nil {
 		return err

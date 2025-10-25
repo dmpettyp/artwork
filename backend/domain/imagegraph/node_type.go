@@ -21,21 +21,23 @@ const (
 	NodeConfigTypeInt
 	NodeConfigTypeFloat
 	NodeConfigTypeBool
+	NodeConfigTypeOption
 )
 
 type nodeConfigField struct {
 	fieldType NodeConfigFieldType
 	required  bool
+	options   []string
 }
 
-type nodeConfig struct {
+type nodeTypeConfig struct {
 	inputs   []InputName
 	outputs  []OutputName
 	fields   map[string]nodeConfigField
 	validate func(NodeConfig) error
 }
 
-var nodeConfigs = map[NodeType]nodeConfig{
+var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 	NodeTypeInput: {
 		outputs: []OutputName{"original"},
 	},
@@ -43,7 +45,7 @@ var nodeConfigs = map[NodeType]nodeConfig{
 		inputs:  []InputName{"original"},
 		outputs: []OutputName{"blurred"},
 		fields: map[string]nodeConfigField{
-			"radius": {NodeConfigTypeInt, true},
+			"radius": {NodeConfigTypeInt, true, nil},
 		},
 		validate: func(config NodeConfig) error {
 			radius := config["radius"].(float64)
@@ -64,8 +66,8 @@ var nodeConfigs = map[NodeType]nodeConfig{
 		inputs:  []InputName{"original"},
 		outputs: []OutputName{"resized"},
 		fields: map[string]nodeConfigField{
-			"width":  {NodeConfigTypeInt, false},
-			"height": {NodeConfigTypeInt, false},
+			"width":  {NodeConfigTypeInt, false, nil},
+			"height": {NodeConfigTypeInt, false, nil},
 		},
 		validate: func(config NodeConfig) error {
 			width, hasWidth := config["width"]
@@ -104,12 +106,99 @@ var nodeConfigs = map[NodeType]nodeConfig{
 	NodeTypeResizeMatch: {
 		inputs:  []InputName{"original", "size_match"},
 		outputs: []OutputName{"resized"},
+		fields: map[string]nodeConfigField{
+			"interpolation": {NodeConfigTypeOption, true, []string{
+				"NearestNeighbor",
+				"Bilinear",
+				"Bicubic",
+				"MitchellNetravali",
+				"Lanczos2",
+				"Lanczos3",
+			}},
+		},
 	},
+}
+
+func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
+	nodeTypeConfig, ok := nodeTypeConfigs[nt]
+	if !ok {
+		return fmt.Errorf("node type %q does not have config", nt)
+	}
+
+	// Validate required fields are present
+	for fieldName, fieldDef := range nodeTypeConfig.fields {
+		if fieldDef.required {
+			if !nodeConfig.Exists(fieldName) {
+				return fmt.Errorf("required field %q is missing", fieldName)
+			}
+		}
+	}
+
+	// Validate field types and reject unknown fields
+	err := nodeConfig.Each(func(key string, value interface{}) error {
+		fieldDef, exists := nodeTypeConfig.fields[key]
+		if !exists {
+			return fmt.Errorf("unknown field %q", key)
+		}
+
+		switch fieldDef.fieldType {
+		case NodeConfigTypeString:
+			if _, ok := value.(string); !ok {
+				return fmt.Errorf("field %q must be a string", key)
+			}
+		case NodeConfigTypeInt:
+			// JSON numbers are float64, check if it's a whole number
+			if num, ok := value.(float64); !ok {
+				return fmt.Errorf("field %q must be an integer", key)
+			} else if num != float64(int(num)) {
+				return fmt.Errorf("field %q must be an integer", key)
+			}
+		case NodeConfigTypeFloat:
+			if _, ok := value.(float64); !ok {
+				return fmt.Errorf("field %q must be a number", key)
+			}
+		case NodeConfigTypeBool:
+			if _, ok := value.(bool); !ok {
+				return fmt.Errorf("field %q must be a boolean", key)
+			}
+		case NodeConfigTypeOption:
+			str, ok := value.(string)
+			if !ok {
+				return fmt.Errorf("field %q must be a string", key)
+			}
+			// Check if value is in allowed options
+			validOption := false
+			for _, opt := range fieldDef.options {
+				if str == opt {
+					validOption = true
+					break
+				}
+			}
+			if !validOption {
+				return fmt.Errorf("field %q has invalid value %q, must be one of: %v", key, str, fieldDef.options)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Run custom validator once after all fields are validated
+	if nodeTypeConfig.validate != nil {
+		if err := nodeTypeConfig.validate(nodeConfig); err != nil {
+			return fmt.Errorf("config validation failed: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // InputNames returns the ordered list of input names for this node type
 func (nt NodeType) InputNames() []InputName {
-	cfg, ok := nodeConfigs[nt]
+	cfg, ok := nodeTypeConfigs[nt]
 	if !ok {
 		return []InputName{}
 	}
@@ -118,7 +207,7 @@ func (nt NodeType) InputNames() []InputName {
 
 // OutputNames returns the ordered list of output names for this node type
 func (nt NodeType) OutputNames() []OutputName {
-	cfg, ok := nodeConfigs[nt]
+	cfg, ok := nodeTypeConfigs[nt]
 	if !ok {
 		return []OutputName{}
 	}

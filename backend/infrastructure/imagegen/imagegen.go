@@ -291,8 +291,7 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	targetWidth := uint(targetBounds.Dx())
 	targetHeight := uint(targetBounds.Dy())
 
-	// Resize original image to match size_match dimensions using LANCZOS
-	resizedImg := resize.Resize(targetWidth, targetHeight, originalImg, resize.Lanczos3)
+	resizedImg := resize.Resize(targetWidth, targetHeight, originalImg, resize.NearestNeighbor)
 
 	// Encode the resized image
 	var buf bytes.Buffer

@@ -6,6 +6,52 @@ to process images in a non-destructive way.
 
 ## TODO
 
+- implement different scaling types
+- why is resize width/height float? make int
+- publish node field config to frontend?
+- resizeMatch - multiple resize options
+- durable repository/unit of work implementation: sqlite
+
+## Overview
+
+The core model in this project is called an "ImageGraph". An ImageGraph
+consists of a name, a version, and a collection of nodes which may be connected
+to each other.
+
+The ImageGraph is the primary way to interact with the pipeline, and provides
+an interface that enables clients to manipulate the pipeline. This includes:
+- adding nodes
+- removing nodes
+- connecting nodes
+- disconnecting nodes
+- setting node output images
+- unsetting node output images
+
+The ImageGraph model attempts to use domain driven design principles. As such, 
+it does not have any dependencies that are specific to the implementation of
+the service that is built around it. This includes storage (i.e. database) 
+concerns, API concerns, or any other integrations that need to access or 
+manipulated the ImageGraph.
+
+The ImageGraph is primarily responsible for maintaining the Nodes that make
+up the image pipeline. Nodes are modeled with:
+- a name
+- a version
+- a type that indicates what transformation the node represents
+- a generic configuration object that is used to configure the node's 
+  image transoformation
+- inputs which feed source images into the node for processing
+- outputs which provide output images to be used as inputs for downstream nodes
+
+The ImageGraph and Nodes are primarily used as a control plane to model and
+configure the image pipeline. The actual image creation/manipulation is 
+performed by processes external to the domain models, which set their output
+in the domain models to drive further changes in the ImageGraph pipeline.
+
+
+
+## Done
+
 - NewImageGraph ✅
 - AddNode ✅
 - RemoveNode ✅
@@ -54,42 +100,3 @@ to process images in a non-destructive way.
 - download functionality for output panel ✅
 - extract current graph for bootstrap ✅
 - ensure that input and output order is stable as defined in node type ✅
-- resizeMatch - multiple resize options
-- durable repository/unit of work implementation: sqlite
-
-## Overview
-
-The core model in this project is called an "ImageGraph". An ImageGraph
-consists of a name, a version, and a collection of nodes which may be connected
-to each other.
-
-The ImageGraph is the primary way to interact with the pipeline, and provides
-an interface that enables clients to manipulate the pipeline. This includes:
-- adding nodes
-- removing nodes
-- connecting nodes
-- disconnecting nodes
-- setting node output images
-- unsetting node output images
-
-The ImageGraph model attempts to use domain driven design principles. As such, 
-it does not have any dependencies that are specific to the implementation of
-the service that is built around it. This includes storage (i.e. database) 
-concerns, API concerns, or any other integrations that need to access or 
-manipulated the ImageGraph.
-
-The ImageGraph is primarily responsible for maintaining the Nodes that make
-up the image pipeline. Nodes are modeled with:
-- a name
-- a version
-- a type that indicates what transformation the node represents
-- a generic configuration object that is used to configure the node's 
-  image transoformation
-- inputs which feed source images into the node for processing
-- outputs which provide output images to be used as inputs for downstream nodes
-
-The ImageGraph and Nodes are primarily used as a control plane to model and
-configure the image pipeline. The actual image creation/manipulation is 
-performed by processes external to the domain models, which set their output
-in the domain models to drive further changes in the ImageGraph pipeline.
-

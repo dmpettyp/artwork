@@ -8,8 +8,6 @@ import (
 	"github.com/dmpettyp/state"
 )
 
-type NodeConfig map[string]interface{}
-
 // Node represents a node in the ImageGraph that define the image pipeline.
 // Node are connected to upstream nodes through thier inputs, and to their
 // downstream nodes through their outputs.
@@ -72,12 +70,6 @@ func NewNode(
 		return nil, fmt.Errorf("cannot create Node of type none")
 	}
 
-	nodeConfig, ok := nodeConfigs[nodeType]
-
-	if !ok {
-		return nil, fmt.Errorf("node type %q does not have config", nodeType)
-	}
-
 	initState, err := state.NewState(Waiting)
 
 	if err != nil {
@@ -95,7 +87,7 @@ func NewNode(
 		Outputs:  make(map[OutputName]*Output),
 	}
 
-	for _, inputName := range nodeConfig.inputs {
+	for _, inputName := range nodeType.InputNames() {
 		if _, ok := n.Inputs[inputName]; ok {
 			return nil, fmt.Errorf("node already has an input named %q", inputName)
 		}
@@ -103,7 +95,7 @@ func NewNode(
 		n.Inputs[inputName] = &input
 	}
 
-	for _, outputName := range nodeConfig.outputs {
+	for _, outputName := range nodeType.OutputNames() {
 		if _, ok := n.Outputs[outputName]; ok {
 			return nil, fmt.Errorf("node already has an output named %q", outputName)
 		}
@@ -131,57 +123,10 @@ func (n *Node) SetConfig(config NodeConfig) error {
 		return fmt.Errorf("config cannot be nil")
 	}
 
-	// Get node type configuration
-	nodeConfig, ok := nodeConfigs[n.Type]
-	if !ok {
-		return fmt.Errorf("node type %q does not have config", n.Type)
-	}
-
-	// Validate required fields are present
-	for fieldName, fieldDef := range nodeConfig.fields {
-		if fieldDef.required {
-			if _, exists := config[fieldName]; !exists {
-				return fmt.Errorf("required field %q is missing", fieldName)
-			}
-		}
-	}
-
-	// Validate field types and reject unknown fields
-	for key, value := range config {
-		fieldDef, exists := nodeConfig.fields[key]
-		if !exists {
-			return fmt.Errorf("unknown field %q", key)
-		}
-
-		// Validate field type
-		switch fieldDef.fieldType {
-		case NodeConfigTypeString:
-			if _, ok := value.(string); !ok {
-				return fmt.Errorf("field %q must be a string", key)
-			}
-		case NodeConfigTypeInt:
-			// JSON numbers are float64, check if it's a whole number
-			if num, ok := value.(float64); !ok {
-				return fmt.Errorf("field %q must be an integer", key)
-			} else if num != float64(int(num)) {
-				return fmt.Errorf("field %q must be an integer", key)
-			}
-		case NodeConfigTypeFloat:
-			if _, ok := value.(float64); !ok {
-				return fmt.Errorf("field %q must be a number", key)
-			}
-		case NodeConfigTypeBool:
-			if _, ok := value.(bool); !ok {
-				return fmt.Errorf("field %q must be a boolean", key)
-			}
-		}
-	}
-
-	// Call custom validation function if it exists
-	if nodeConfig.validate != nil {
-		if err := nodeConfig.validate(config); err != nil {
-			return fmt.Errorf("config validation failed: %w", err)
-		}
+	if err := n.Type.ValidateConfig(config); err != nil {
+		return fmt.Errorf(
+			"could not set config for node %q: %w", n.ID, err,
+		)
 	}
 
 	n.Config = config
