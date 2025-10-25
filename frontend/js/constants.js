@@ -74,16 +74,19 @@ export const CONNECTION_DELETE_BUTTON = {
 export const NODE_TYPE_CONFIGS = {
     input: {
         name: 'Input',
+        nameRequired: false,
         fields: {}
     },
     blur: {
         name: 'Blur',
+        nameRequired: false,
         fields: {
             radius: { type: 'int', required: true }
         }
     },
     resize: {
         name: 'Resize',
+        nameRequired: false,
         fields: {
             width: { type: 'int', required: false },
             height: { type: 'int', required: false }
@@ -91,6 +94,7 @@ export const NODE_TYPE_CONFIGS = {
     },
     resize_match: {
         name: 'Resize Match',
+        nameRequired: false,
         fields: {
             interpolation: {
                 type: 'option',
@@ -108,6 +112,7 @@ export const NODE_TYPE_CONFIGS = {
     },
     output: {
         name: 'Output',
+        nameRequired: true,
         fields: {}
     }
 };

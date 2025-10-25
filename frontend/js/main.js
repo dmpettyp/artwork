@@ -168,6 +168,11 @@ function openAddNodeModal(nodeType) {
     nodeImageInput.value = '';
     nodeConfigFields.innerHTML = '';
 
+    // Update name field based on whether it's required
+    const nameRequired = NODE_TYPE_CONFIGS[nodeType]?.nameRequired !== false;
+    nodeNameInput.required = nameRequired;
+    nodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
+
     // Show/hide image upload based on node type
     if (nodeType === 'input') {
         nodeImageUpload.style.display = 'block';
@@ -239,7 +244,9 @@ addNodeCreateBtn.addEventListener('click', async () => {
         return;
     }
 
-    if (!nodeName) {
+    // Check if name is required for this node type
+    const nameRequired = NODE_TYPE_CONFIGS[nodeType]?.nameRequired !== false;
+    if (nameRequired && !nodeName) {
         toastManager.warning('Please enter a node name');
         return;
     }
@@ -301,11 +308,16 @@ openEditConfigModal = function(nodeId) {
     if (!node) return;
 
     currentNodeId = nodeId;
-    editNodeNameInput.value = node.name;
+    editNodeNameInput.value = node.name || '';
 
     // Update modal title with display name from config
     const displayName = NODE_TYPE_CONFIGS[node.type]?.name || node.type;
     editConfigModalTitle.textContent = `Edit ${displayName} Node`;
+
+    // Update name field based on whether it's required
+    const nameRequired = NODE_TYPE_CONFIGS[node.type]?.nameRequired !== false;
+    editNodeNameInput.required = nameRequired;
+    editNodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
 
     // Show/hide image upload based on node type
     if (node.type === 'input') {
@@ -341,6 +353,13 @@ editConfigSaveBtn.addEventListener('click', async () => {
     const node = graphState.getNode(currentNodeId);
     const newName = editNodeNameInput.value.trim();
 
+    // Check if name is required for this node type
+    const nameRequired = NODE_TYPE_CONFIGS[node.type]?.nameRequired !== false;
+    if (nameRequired && !newName) {
+        toastManager.warning('Please enter a node name');
+        return;
+    }
+
     // Validate config fields
     const validation = formBuilder.validate(editConfigFields, node.type);
     if (!validation.valid) {
@@ -350,8 +369,9 @@ editConfigSaveBtn.addEventListener('click', async () => {
 
     const config = getEditConfigValues();
 
-    // Determine what changed
-    const nameChanged = newName !== node.name;
+    // Determine what changed (handle empty string vs null for optional names)
+    const oldName = node.name || '';
+    const nameChanged = newName !== oldName;
     const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
     const imageChanged = node.type === 'input' && editImageInput.files.length > 0;
 

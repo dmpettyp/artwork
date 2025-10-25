@@ -155,7 +155,8 @@ export class Renderer {
         title.setAttribute('text-anchor', 'middle');
 
         const displayType = NODE_TYPE_CONFIGS[node.type]?.name || node.type;
-        const fullTitle = `${displayType}: ${node.name}`;
+        // Show only type name if node name is empty, otherwise show "Type: Name"
+        const fullTitle = node.name ? `${displayType}: ${node.name}` : displayType;
         title.textContent = fullTitle;
         g.appendChild(title);
 
@@ -165,16 +166,28 @@ export class Renderer {
             const textLength = title.getComputedTextLength();
 
             if (textLength > maxWidth) {
-                // Truncate the name but always keep the type
-                const typePrefix = `${node.type}: `;
+                // If node has a name, truncate the name but always keep the type
+                if (node.name) {
+                    const typePrefix = `${displayType}: `;
 
-                // Start by trying to fit as much of the name as possible
-                for (let i = node.name.length; i >= 0; i--) {
-                    const truncatedName = node.name.substring(0, i);
-                    title.textContent = typePrefix + truncatedName + '...';
+                    // Start by trying to fit as much of the name as possible
+                    for (let i = node.name.length; i >= 0; i--) {
+                        const truncatedName = node.name.substring(0, i);
+                        title.textContent = typePrefix + truncatedName + '...';
 
-                    if (title.getComputedTextLength() <= maxWidth) {
-                        break;
+                        if (title.getComputedTextLength() <= maxWidth) {
+                            break;
+                        }
+                    }
+                } else {
+                    // If node has no name and type is too long, truncate the type
+                    for (let i = displayType.length; i >= 0; i--) {
+                        const truncatedType = displayType.substring(0, i);
+                        title.textContent = truncatedType + '...';
+
+                        if (title.getComputedTextLength() <= maxWidth) {
+                            break;
+                        }
                     }
                 }
             }

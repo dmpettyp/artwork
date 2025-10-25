@@ -98,7 +98,11 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	})
 
 	if event.NodeType == imagegraph.NodeTypeBlur {
-		radius := event.NodeConfig["radius"].(int)
+		radius, err := event.NodeConfig.GetInt("radius")
+
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
 
 		// Find the "original" input
 		var inputImageID imagegraph.ImageID

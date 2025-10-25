@@ -143,7 +143,7 @@ func (n *Node) SetConfig(config NodeConfig) error {
 }
 
 func (n *Node) SetName(name string) error {
-	if len(name) == 0 {
+	if n.Type.NameRequired() && len(name) == 0 {
 		return fmt.Errorf("cannot set node name to empty string")
 	}
 
