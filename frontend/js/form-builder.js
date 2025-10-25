@@ -40,35 +40,67 @@ export class NodeConfigFormBuilder {
         label.setAttribute('for', `${idPrefix}-${fieldName}`);
         label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
 
-        const input = document.createElement('input');
-        input.id = `${idPrefix}-${fieldName}`;
-        input.className = 'form-input';
-        input.setAttribute('data-field-name', fieldName);
-        input.setAttribute('data-field-type', fieldDef.type);
+        let input;
 
-        // Set input type based on field type
-        if (fieldDef.type === 'float' || fieldDef.type === 'int') {
-            input.type = 'number';
-            if (fieldDef.type === 'float') {
-                input.step = 'any';
+        // Handle option type (dropdown)
+        if (fieldDef.type === 'option') {
+            input = document.createElement('select');
+            input.id = `${idPrefix}-${fieldName}`;
+            input.className = 'form-input';
+            input.setAttribute('data-field-name', fieldName);
+            input.setAttribute('data-field-type', fieldDef.type);
+
+            // Add options
+            if (fieldDef.options && Array.isArray(fieldDef.options)) {
+                fieldDef.options.forEach(optionValue => {
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = optionValue;
+                    input.appendChild(option);
+                });
             }
-        } else if (fieldDef.type === 'bool') {
-            input.type = 'checkbox';
-        } else {
-            input.type = 'text';
-        }
 
-        // Set required attribute
-        if (fieldDef.required) {
-            input.required = true;
-        }
+            // Set required attribute
+            if (fieldDef.required) {
+                input.required = true;
+            }
 
-        // Set current value if provided
-        if (currentValues && currentValues[fieldName] !== undefined) {
-            if (fieldDef.type === 'bool') {
-                input.checked = currentValues[fieldName];
-            } else {
+            // Set current value if provided
+            if (currentValues && currentValues[fieldName] !== undefined) {
                 input.value = currentValues[fieldName];
+            }
+        } else {
+            // Standard input field
+            input = document.createElement('input');
+            input.id = `${idPrefix}-${fieldName}`;
+            input.className = 'form-input';
+            input.setAttribute('data-field-name', fieldName);
+            input.setAttribute('data-field-type', fieldDef.type);
+
+            // Set input type based on field type
+            if (fieldDef.type === 'float' || fieldDef.type === 'int') {
+                input.type = 'number';
+                if (fieldDef.type === 'float') {
+                    input.step = 'any';
+                }
+            } else if (fieldDef.type === 'bool') {
+                input.type = 'checkbox';
+            } else {
+                input.type = 'text';
+            }
+
+            // Set required attribute
+            if (fieldDef.required) {
+                input.required = true;
+            }
+
+            // Set current value if provided
+            if (currentValues && currentValues[fieldName] !== undefined) {
+                if (fieldDef.type === 'bool') {
+                    input.checked = currentValues[fieldName];
+                } else {
+                    input.value = currentValues[fieldName];
+                }
             }
         }
 
@@ -89,7 +121,7 @@ export class NodeConfigFormBuilder {
             return { valid: true, errors: [] };
         }
 
-        const inputs = container.querySelectorAll('input');
+        const inputs = container.querySelectorAll('input, select');
         const fieldMap = new Map();
 
         // Build map of field values
@@ -162,7 +194,7 @@ export class NodeConfigFormBuilder {
      */
     getValues(container) {
         const config = {};
-        const inputs = container.querySelectorAll('input');
+        const inputs = container.querySelectorAll('input, select');
 
         inputs.forEach(input => {
             const fieldName = input.getAttribute('data-field-name');
@@ -175,10 +207,16 @@ export class NodeConfigFormBuilder {
                 value = parseFloat(value);
             } else if (fieldType === 'bool') {
                 value = input.checked;
+            } else if (fieldType === 'option') {
+                // Keep as string
+                value = input.value;
             }
 
             // Only include valid values
             if (value !== '' && !isNaN(value)) {
+                config[fieldName] = value;
+            } else if (fieldType === 'option' && value !== '') {
+                // Include option values even if they're strings
                 config[fieldName] = value;
             }
         });

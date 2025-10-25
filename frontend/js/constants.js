@@ -87,7 +87,20 @@ export const NODE_TYPE_CONFIGS = {
         }
     },
     resize_match: {
-        fields: {}
+        fields: {
+            interpolation: {
+                type: 'option',
+                required: true,
+                options: [
+                    'NearestNeighbor',
+                    'Bilinear',
+                    'Bicubic',
+                    'MitchellNetravali',
+                    'Lanczos2',
+                    'Lanczos3'
+                ]
+            }
+        }
     },
     output: {
         fields: {}
