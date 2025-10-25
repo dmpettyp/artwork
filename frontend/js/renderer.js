@@ -1,6 +1,6 @@
 // SVG rendering for nodes and connections
 
-import { NODE_DESIGN, API_PATHS, ZOOM_CONFIG, LAYOUT_CONFIG, CONNECTION_DELETE_BUTTON } from './constants.js';
+import { NODE_DESIGN, API_PATHS, ZOOM_CONFIG, LAYOUT_CONFIG, CONNECTION_DELETE_BUTTON, NODE_TYPE_CONFIGS } from './constants.js';
 
 export class Renderer {
     constructor(svgElement, nodesLayer, connectionsLayer, graphState = null) {
@@ -154,7 +154,8 @@ export class Renderer {
         title.setAttribute('y', NODE_DESIGN.titleBarHeight / 2 + 5);
         title.setAttribute('text-anchor', 'middle');
 
-        const fullTitle = `${node.type}: ${node.name}`;
+        const displayType = NODE_TYPE_CONFIGS[node.type]?.name || node.type;
+        const fullTitle = `${displayType}: ${node.name}`;
         title.textContent = fullTitle;
         g.appendChild(title);
 

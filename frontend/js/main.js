@@ -91,6 +91,7 @@ let addNodeType = null;
 const addNodeModal = createAndRegisterModal('add-node-modal');
 
 // Edit config modal
+const editConfigModalTitle = document.getElementById('edit-config-modal-title');
 const editNodeNameInput = document.getElementById('edit-node-name-input');
 const editImageUpload = document.getElementById('edit-image-upload');
 const editImageInput = document.getElementById('edit-image-input');
@@ -158,9 +159,9 @@ function openAddNodeModal(nodeType) {
     // Store the node type
     addNodeType = nodeType;
 
-    // Update modal title with capitalized node type
-    const capitalizedType = nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
-    addNodeModalTitle.textContent = `Add ${capitalizedType} Node`;
+    // Update modal title with display name from config
+    const displayName = NODE_TYPE_CONFIGS[nodeType]?.name || nodeType;
+    addNodeModalTitle.textContent = `Add ${displayName} Node`;
 
     // Clear inputs
     nodeNameInput.value = '';
@@ -301,6 +302,10 @@ openEditConfigModal = function(nodeId) {
 
     currentNodeId = nodeId;
     editNodeNameInput.value = node.name;
+
+    // Update modal title with display name from config
+    const displayName = NODE_TYPE_CONFIGS[node.type]?.name || node.type;
+    editConfigModalTitle.textContent = `Edit ${displayName} Node`;
 
     // Show/hide image upload based on node type
     if (node.type === 'input') {
