@@ -62,12 +62,12 @@ func NewNode(
 		return nil, fmt.Errorf("cannot create Node with nil ID")
 	}
 
-	if len(name) == 0 {
-		return nil, fmt.Errorf("cannot create Node with empty name")
-	}
-
 	if nodeType == NodeTypeNone {
 		return nil, fmt.Errorf("cannot create Node of type none")
+	}
+
+	if nodeType.NameRequired() && len(name) == 0 {
+		return nil, fmt.Errorf("Node requires a name")
 	}
 
 	initState, err := state.NewState(Waiting)

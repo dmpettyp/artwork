@@ -31,10 +31,11 @@ type nodeConfigField struct {
 }
 
 type nodeTypeConfig struct {
-	inputs   []InputName
-	outputs  []OutputName
-	fields   map[string]nodeConfigField
-	validate func(NodeConfig) error
+	inputs       []InputName
+	outputs      []OutputName
+	nameRequired bool
+	fields       map[string]nodeConfigField
+	validate     func(NodeConfig) error
 }
 
 var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
@@ -59,8 +60,9 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 		},
 	},
 	NodeTypeOutput: {
-		inputs:  []InputName{"input"},
-		outputs: []OutputName{"final"},
+		inputs:       []InputName{"input"},
+		outputs:      []OutputName{"final"},
+		nameRequired: true,
 	},
 	NodeTypeResize: {
 		inputs:  []InputName{"original"},
@@ -208,4 +210,12 @@ func (nt NodeType) OutputNames() []OutputName {
 		return []OutputName{}
 	}
 	return cfg.outputs
+}
+
+func (nt NodeType) NameRequired() bool {
+	cfg, ok := nodeTypeConfigs[nt]
+	if !ok {
+		return false
+	}
+	return cfg.nameRequired
 }
