@@ -48,7 +48,7 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 			"radius": {NodeConfigTypeInt, true, nil},
 		},
 		validate: func(config NodeConfig) error {
-			radius := config["radius"].(float64)
+			radius := config["radius"].(int)
 			if radius < 1 {
 				return fmt.Errorf("radius must be at least 1")
 			}
@@ -80,7 +80,7 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 
 			// Validate width if present
 			if hasWidth {
-				w := width.(float64)
+				w := width.(int)
 				if w < 1 {
 					return fmt.Errorf("width must be at least 1")
 				}
@@ -91,7 +91,7 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 
 			// Validate height if present
 			if hasHeight {
-				h := height.(float64)
+				h := height.(int)
 				if h < 1 {
 					return fmt.Errorf("height must be at least 1")
 				}
@@ -135,7 +135,7 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 	}
 
 	// Validate field types and reject unknown fields
-	err := nodeConfig.Each(func(key string, value interface{}) error {
+	for key, value := range nodeConfig {
 		fieldDef, exists := nodeTypeConfig.fields[key]
 		if !exists {
 			return fmt.Errorf("unknown field %q", key)
@@ -147,10 +147,12 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 				return fmt.Errorf("field %q must be a string", key)
 			}
 		case NodeConfigTypeInt:
-			// JSON numbers are float64, check if it's a whole number
-			if num, ok := value.(float64); !ok {
-				return fmt.Errorf("field %q must be an integer", key)
-			} else if num != float64(int(num)) {
+			if num, ok := value.(float64); ok {
+				if num != float64(int(num)) {
+					return fmt.Errorf("field %q must be an integer", key)
+				}
+				nodeConfig[key] = int(num)
+			} else if _, ok := value.(int); !ok {
 				return fmt.Errorf("field %q must be an integer", key)
 			}
 		case NodeConfigTypeFloat:
@@ -178,12 +180,6 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 				return fmt.Errorf("field %q has invalid value %q, must be one of: %v", key, str, fieldDef.options)
 			}
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		return err
 	}
 
 	// Run custom validator once after all fields are validated

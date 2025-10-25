@@ -98,7 +98,7 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	})
 
 	if event.NodeType == imagegraph.NodeTypeBlur {
-		radius := int(event.NodeConfig["radius"].(float64))
+		radius := event.NodeConfig["radius"].(int)
 
 		// Find the "original" input
 		var inputImageID imagegraph.ImageID
@@ -129,11 +129,11 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		// Extract width and height (either or both may be present)
 		var width, height *int
 		if w, ok := event.NodeConfig["width"]; ok {
-			wInt := int(w.(float64))
+			wInt := w.(int)
 			width = &wInt
 		}
 		if h, ok := event.NodeConfig["height"]; ok {
-			hInt := int(h.(float64))
+			hInt := h.(int)
 			height = &hInt
 		}
 
