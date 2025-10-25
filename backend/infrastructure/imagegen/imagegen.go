@@ -260,6 +260,7 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	nodeID imagegraph.NodeID,
 	originalImageID imagegraph.ImageID,
 	sizeMatchImageID imagegraph.ImageID,
+	interpolation string,
 	outputName imagegraph.OutputName,
 ) error {
 	// Get the original image
@@ -291,7 +292,27 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	targetWidth := uint(targetBounds.Dx())
 	targetHeight := uint(targetBounds.Dy())
 
-	resizedImg := resize.Resize(targetWidth, targetHeight, originalImg, resize.NearestNeighbor)
+	interpolationFunctions := map[string]resize.InterpolationFunction{
+		"NearestNeighbor":   resize.NearestNeighbor,
+		"Bilinear":          resize.Bilinear,
+		"Bicubic":           resize.Bicubic,
+		"MitchellNetravali": resize.MitchellNetravali,
+		"Lanczos2":          resize.Lanczos2,
+		"Lanczos3":          resize.Lanczos3,
+	}
+
+	interpolationFunction, ok := interpolationFunctions[interpolation]
+
+	if !ok {
+		return fmt.Errorf("unsupported interpolation function %q", interpolation)
+	}
+
+	resizedImg := resize.Resize(
+		targetWidth,
+		targetHeight,
+		originalImg,
+		interpolationFunction,
+	)
 
 	// Encode the resized image
 	var buf bytes.Buffer

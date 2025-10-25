@@ -182,6 +182,8 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 			}
 		}
 
+		interpolation := event.NodeConfig["interpolation"].(string)
+
 		if originalImageID.IsNil() {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
 		}
@@ -197,6 +199,7 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 				event.NodeID,
 				originalImageID,
 				sizeMatchImageID,
+				interpolation,
 				"resized",
 			)
 		}()

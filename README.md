@@ -6,11 +6,14 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- implement different scaling types
+- all the nodeconfig casting sucks, let's add some methods
 - publish node field config to frontend?
-- resizeMatch - multiple resize options
 - durable repository/unit of work implementation: sqlite
+
 - DONE - why is resize width/height float? make int 
+- implement different scaling types
+  - DONE - frontend
+  - DONE - backend
 
 ## Overview
 
