@@ -628,10 +628,13 @@ async function handleImageDownload(imageId, nodeName) {
         const contentType = response.headers.get('content-type') || 'image/png';
         const extension = contentType.split('/')[1] || 'png';
 
-        // Create filename: {node_name}.{extension}
+        // Create filename: {imagegraph_name}-{output_node_name}.{extension}
         // Convert to lowercase and replace spaces with underscores
-        const sanitizedName = nodeName.toLowerCase().replace(/ /g, '_');
-        const filename = `${sanitizedName}.${extension}`;
+        const currentGraph = graphState.getCurrentGraph();
+        const graphName = currentGraph?.name || 'graph';
+        const sanitizedGraphName = graphName.toLowerCase().replace(/ /g, '_');
+        const sanitizedNodeName = nodeName.toLowerCase().replace(/ /g, '_');
+        const filename = `${sanitizedGraphName}-${sanitizedNodeName}.${extension}`;
 
         // Create download link and trigger
         const url = URL.createObjectURL(blob);

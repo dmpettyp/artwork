@@ -6,10 +6,13 @@ to process images in a non-destructive way.
 
 ## TODO
 
+- optional Node name
 - all the nodeconfig casting sucks, let's add some methods
 - publish node field config to frontend?
+
 - durable repository/unit of work implementation: sqlite
 
+- DONE - better output file name, {graph_name}-{output_name}
 - DONE - why is resize width/height float? make int 
 - implement different scaling types
   - DONE - frontend
