@@ -64,6 +64,23 @@ func (ig *ImageGen) encodeImage(img image.Image, format string) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
+// loadImage fetches an image from storage and decodes it
+func (ig *ImageGen) loadImage(imageID imagegraph.ImageID) (image.Image, string, error) {
+	// Get the image data from storage
+	imageData, err := ig.imageStorage.Get(imageID)
+	if err != nil {
+		return nil, "", fmt.Errorf("could not get image: %w", err)
+	}
+
+	// Decode the image
+	img, format, err := image.Decode(bytes.NewReader(imageData))
+	if err != nil {
+		return nil, "", fmt.Errorf("could not decode image: %w", err)
+	}
+
+	return img, format, nil
+}
+
 // saveAndSetOutput encodes an image, saves it to storage, and sets it as a node output
 func (ig *ImageGen) saveAndSetOutput(
 	ctx context.Context,
@@ -108,16 +125,10 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	radius int,
 	outputName imagegraph.OutputName,
 ) error {
-	// Get the input image
-	imageData, err := ig.imageStorage.Get(inputImageID)
+	// Load the input image
+	img, format, err := ig.loadImage(inputImageID)
 	if err != nil {
-		return fmt.Errorf("could not get input image: %w", err)
-	}
-
-	// Decode the image
-	img, format, err := image.Decode(bytes.NewReader(imageData))
-	if err != nil {
-		return fmt.Errorf("could not decode image: %w", err)
+		return err
 	}
 
 	// Apply Gaussian blur
@@ -196,16 +207,10 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	interpolation string,
 	outputName imagegraph.OutputName,
 ) error {
-	// Get the input image
-	imageData, err := ig.imageStorage.Get(inputImageID)
+	// Load the input image
+	img, format, err := ig.loadImage(inputImageID)
 	if err != nil {
-		return fmt.Errorf("could not get input image: %w", err)
-	}
-
-	// Decode the image
-	img, format, err := image.Decode(bytes.NewReader(imageData))
-	if err != nil {
-		return fmt.Errorf("could not decode image: %w", err)
+		return err
 	}
 
 	// Get interpolation function
@@ -258,28 +263,16 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	interpolation string,
 	outputName imagegraph.OutputName,
 ) error {
-	// Get the original image
-	originalImageData, err := ig.imageStorage.Get(originalImageID)
+	// Load the original image
+	originalImg, format, err := ig.loadImage(originalImageID)
 	if err != nil {
-		return fmt.Errorf("could not get original image: %w", err)
+		return err
 	}
 
-	// Get the size_match image
-	sizeMatchImageData, err := ig.imageStorage.Get(sizeMatchImageID)
+	// Load the size_match image to get dimensions
+	sizeMatchImg, _, err := ig.loadImage(sizeMatchImageID)
 	if err != nil {
-		return fmt.Errorf("could not get size_match image: %w", err)
-	}
-
-	// Decode the original image
-	originalImg, format, err := image.Decode(bytes.NewReader(originalImageData))
-	if err != nil {
-		return fmt.Errorf("could not decode original image: %w", err)
-	}
-
-	// Decode the size_match image to get dimensions
-	sizeMatchImg, _, err := image.Decode(bytes.NewReader(sizeMatchImageData))
-	if err != nil {
-		return fmt.Errorf("could not decode size_match image: %w", err)
+		return err
 	}
 
 	// Get target dimensions from size_match image
