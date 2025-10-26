@@ -141,6 +141,11 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
 
+		interpolation, err := event.NodeConfig.GetString("interpolation")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
 		// Find the "original" input
 		var inputImageID imagegraph.ImageID
 		for _, input := range event.Inputs {
@@ -162,6 +167,7 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 				inputImageID,
 				width,
 				height,
+				interpolation,
 				"resized",
 			)
 		}()

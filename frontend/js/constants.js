@@ -89,7 +89,19 @@ export const NODE_TYPE_CONFIGS = {
         nameRequired: false,
         fields: {
             width: { type: 'int', required: false },
-            height: { type: 'int', required: false }
+            height: { type: 'int', required: false },
+            interpolation: {
+                type: 'option',
+                required: true,
+                options: [
+                    'NearestNeighbor',
+                    'Bilinear',
+                    'Bicubic',
+                    'MitchellNetravali',
+                    'Lanczos2',
+                    'Lanczos3'
+                ]
+            }
         }
     },
     resize_match: {

@@ -47,7 +47,8 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Resize Small node (width: 30)
 	resize1Config := imagegraph.NodeConfig{
-		"width": 30,
+		"width":         30,
+		"interpolation": "NearestNeighbor",
 	}
 	addResize1Cmd := application.NewAddImageGraphNodeCommand(
 		graphID,
@@ -79,7 +80,8 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Resize Large node (width: 500)
 	resize2Config := imagegraph.NodeConfig{
-		"width": 500,
+		"width":         500,
+		"interpolation": "NearestNeighbor",
 	}
 	addResize2Cmd := application.NewAddImageGraphNodeCommand(
 		graphID,

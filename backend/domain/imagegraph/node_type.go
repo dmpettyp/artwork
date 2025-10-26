@@ -70,6 +70,14 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 		fields: map[string]nodeConfigField{
 			"width":  {NodeConfigTypeInt, false, nil},
 			"height": {NodeConfigTypeInt, false, nil},
+			"interpolation": {NodeConfigTypeOption, true, []string{
+				"NearestNeighbor",
+				"Bilinear",
+				"Bicubic",
+				"MitchellNetravali",
+				"Lanczos2",
+				"Lanczos3",
+			}},
 		},
 		validate: func(config NodeConfig) error {
 			width, hasWidth := config["width"]

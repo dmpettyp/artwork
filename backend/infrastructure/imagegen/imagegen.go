@@ -193,6 +193,7 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	inputImageID imagegraph.ImageID,
 	width *int,
 	height *int,
+	interpolation string,
 	outputName imagegraph.OutputName,
 ) error {
 	// Get the input image
@@ -207,48 +208,45 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 		return fmt.Errorf("could not decode image: %w", err)
 	}
 
-	// Calculate target dimensions
-	bounds := img.Bounds()
-	originalWidth := bounds.Dx()
-	originalHeight := bounds.Dy()
+	// Get interpolation function
+	interpolationFunction, ok := resizeInterpolationFunctions[interpolation]
+	if !ok {
+		return fmt.Errorf("unsupported interpolation function %q", interpolation)
+	}
 
-	var newWidth, newHeight int
+	// Calculate target dimensions
+	var targetWidth, targetHeight uint
 
 	if width != nil && height != nil {
 		// Both set: use exact dimensions
-		newWidth = *width
-		newHeight = *height
+		targetWidth = uint(*width)
+		targetHeight = uint(*height)
 	} else if width != nil {
 		// Only width set: calculate height proportionally
-		newWidth = *width
-		aspectRatio := float64(originalHeight) / float64(originalWidth)
-		newHeight = int(float64(newWidth) * aspectRatio)
+		targetWidth = uint(*width)
+		targetHeight = 0 // resize library will maintain aspect ratio
 	} else if height != nil {
 		// Only height set: calculate width proportionally
-		newHeight = *height
-		aspectRatio := float64(originalWidth) / float64(originalHeight)
-		newWidth = int(float64(newHeight) * aspectRatio)
+		targetWidth = 0 // resize library will maintain aspect ratio
+		targetHeight = uint(*height)
 	} else {
 		return fmt.Errorf("at least one of width or height must be set")
 	}
 
-	// Create resized image
-	resizedImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-
-	// Simple nearest-neighbor scaling
-	scaleX := float64(originalWidth) / float64(newWidth)
-	scaleY := float64(originalHeight) / float64(newHeight)
-
-	for y := 0; y < newHeight; y++ {
-		for x := 0; x < newWidth; x++ {
-			srcX := int(float64(x) * scaleX)
-			srcY := int(float64(y) * scaleY)
-			resizedImg.Set(x, y, img.At(srcX, srcY))
-		}
-	}
+	// Resize using the library
+	resizedImg := resize.Resize(targetWidth, targetHeight, img, interpolationFunction)
 
 	// Save and set output
 	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
+}
+
+var resizeInterpolationFunctions = map[string]resize.InterpolationFunction{
+	"NearestNeighbor":   resize.NearestNeighbor,
+	"Bilinear":          resize.Bilinear,
+	"Bicubic":           resize.Bicubic,
+	"MitchellNetravali": resize.MitchellNetravali,
+	"Lanczos2":          resize.Lanczos2,
+	"Lanczos3":          resize.Lanczos3,
 }
 
 func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
@@ -289,16 +287,7 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	targetWidth := uint(targetBounds.Dx())
 	targetHeight := uint(targetBounds.Dy())
 
-	interpolationFunctions := map[string]resize.InterpolationFunction{
-		"NearestNeighbor":   resize.NearestNeighbor,
-		"Bilinear":          resize.Bilinear,
-		"Bicubic":           resize.Bicubic,
-		"MitchellNetravali": resize.MitchellNetravali,
-		"Lanczos2":          resize.Lanczos2,
-		"Lanczos3":          resize.Lanczos3,
-	}
-
-	interpolationFunction, ok := interpolationFunctions[interpolation]
+	interpolationFunction, ok := resizeInterpolationFunctions[interpolation]
 
 	if !ok {
 		return fmt.Errorf("unsupported interpolation function %q", interpolation)
