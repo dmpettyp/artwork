@@ -143,12 +143,8 @@
             <svg class="context-menu-arrow" width="8" height="12" viewBox="0 0 8 12">
                 <path d="M 1 1 L 6 6 L 1 11" fill="none" stroke="currentColor" stroke-width="2" />
             </svg>
-            <div class="context-menu-submenu">
-                <div class="context-menu-item" data-node-type="input">Input</div>
-                <div class="context-menu-item" data-node-type="blur">Blur</div>
-                <div class="context-menu-item" data-node-type="resize">Resize</div>
-                <div class="context-menu-item" data-node-type="resize_match">Resize Match</div>
-                <div class="context-menu-item" data-node-type="output">Output</div>
+            <!-- Submenu items populated dynamically from backend node type schemas -->
+            <div class="context-menu-submenu" id="add-node-submenu">
             </div>
         </div>
     </div>

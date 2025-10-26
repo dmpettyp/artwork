@@ -809,6 +809,32 @@ document.addEventListener('mouseup', () => {
     }
 });
 
+// Populate the "Add Node" context menu submenu with node types
+function populateAddNodeContextMenu(schemas) {
+    const submenu = document.getElementById('add-node-submenu');
+    if (!submenu) {
+        console.error('Add node submenu element not found');
+        return;
+    }
+
+    // Clear existing items
+    submenu.innerHTML = '';
+
+    // Create menu items for each node type
+    // Sort by display name for consistent ordering
+    const nodeTypes = Object.entries(schemas).sort((a, b) => {
+        return a[1].name.localeCompare(b[1].name);
+    });
+
+    nodeTypes.forEach(([nodeType, config]) => {
+        const item = document.createElement('div');
+        item.className = 'context-menu-item';
+        item.setAttribute('data-node-type', nodeType);
+        item.textContent = config.name;
+        submenu.appendChild(item);
+    });
+}
+
 // Load initial data
 async function initialize() {
     try {
@@ -818,6 +844,9 @@ async function initialize() {
 
         // Initialize form builder with loaded schemas
         formBuilder = new NodeConfigFormBuilder(schemas);
+
+        // Populate context menu with node types
+        populateAddNodeContextMenu(schemas);
 
         // Load graph list
         await graphManager.loadGraphList();

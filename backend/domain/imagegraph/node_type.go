@@ -42,6 +42,11 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 	NodeTypeInput: {
 		outputs: []OutputName{"original"},
 	},
+	NodeTypeOutput: {
+		inputs:       []InputName{"input"},
+		outputs:      []OutputName{"final"},
+		nameRequired: true,
+	},
 	NodeTypeBlur: {
 		inputs:  []InputName{"original"},
 		outputs: []OutputName{"blurred"},
@@ -58,11 +63,6 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 			}
 			return nil
 		},
-	},
-	NodeTypeOutput: {
-		inputs:       []InputName{"input"},
-		outputs:      []OutputName{"final"},
-		nameRequired: true,
 	},
 	NodeTypeResize: {
 		inputs:  []InputName{"original"},
@@ -237,10 +237,10 @@ type NodeTypeSchemaField struct {
 
 // NodeTypeSchema represents the complete schema for a node type
 type NodeTypeSchema struct {
-	Inputs       []string                        `json:"inputs"`
-	Outputs      []string                        `json:"outputs"`
-	NameRequired bool                            `json:"name_required"`
-	Fields       map[string]NodeTypeSchemaField  `json:"fields"`
+	Inputs       []string                       `json:"inputs"`
+	Outputs      []string                       `json:"outputs"`
+	NameRequired bool                           `json:"name_required"`
+	Fields       map[string]NodeTypeSchemaField `json:"fields"`
 }
 
 // GetFieldTypeString converts a NodeConfigFieldType to its string representation

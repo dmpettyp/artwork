@@ -162,12 +162,6 @@ func (s *HTTPServer) handleCreateImageGraph(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate name
-	if req.Name == "" {
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "name is required"})
-		return
-	}
-
 	// Generate new ImageGraphID
 	imageGraphID := imagegraph.MustNewImageGraphID()
 
@@ -321,11 +315,6 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate inputs
-	if req.Name == "" {
-		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "name is required"})
-		return
-	}
 	if req.Type == "" {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "type is required"})
 		return
