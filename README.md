@@ -7,12 +7,19 @@ to process images in a non-destructive way.
 ## TODO
 
 - publish node field config to frontend?
+- delete images when they are no longer being used
 
-- pallet matching node
-- pixel blow up node
-  - deliniating lines, width, colour
+- node types
+  - pallet matching node
+  - crop
+  - pixel blow up node
+    - deliniating lines, width, colour
+
 - durable repository/unit of work implementation: sqlite
+- maybe just do event sourcing approach? that actually might be fun
 
+- DONE - clean up and commonize aspects of imagegen
+- DONE - match resize implementations
 - DONE - all the nodeconfig casting sucks, let's add some methods
 - DONE - optional Node name
 - DONE - better output file name, {graph_name}-{output_name}
