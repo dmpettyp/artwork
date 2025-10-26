@@ -6,7 +6,6 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- publish node field config to frontend?
 - delete images when they are no longer being used
 
 - node types
@@ -19,6 +18,7 @@ to process images in a non-destructive way.
 - maybe just do event sourcing approach? that actually might be fun
 - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
 
+- DONE - publish node field config to frontend?
 - DONE - clean up and commonize aspects of imagegen
 - DONE - match resize implementations
 - DONE - all the nodeconfig casting sucks, let's add some methods

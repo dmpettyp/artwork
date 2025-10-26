@@ -27,14 +27,22 @@ export async function loadNodeTypeSchemas() {
         const data = await response.json();
 
         // Convert backend schema format to frontend config format
+        // Backend returns an array of {name, schema} objects in the desired order
         const configs = {};
-        for (const [nodeType, schema] of Object.entries(data.node_types)) {
+        const orderedTypes = []; // Preserve order from backend
+
+        for (const entry of data.node_types) {
+            const nodeType = entry.name;
             configs[nodeType] = {
                 name: DISPLAY_NAMES[nodeType] || nodeType,
-                nameRequired: schema.name_required,
-                fields: schema.fields
+                nameRequired: entry.schema.name_required,
+                fields: entry.schema.fields
             };
+            orderedTypes.push(nodeType);
         }
+
+        // Attach the ordering information to the configs object
+        configs._orderedTypes = orderedTypes;
 
         return configs;
     } catch (error) {

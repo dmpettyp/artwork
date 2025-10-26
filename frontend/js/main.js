@@ -820,13 +820,14 @@ function populateAddNodeContextMenu(schemas) {
     // Clear existing items
     submenu.innerHTML = '';
 
-    // Create menu items for each node type
-    // Sort by display name for consistent ordering
-    const nodeTypes = Object.entries(schemas).sort((a, b) => {
-        return a[1].name.localeCompare(b[1].name);
-    });
+    // Create menu items for each node type using the order from backend
+    // The schemas object has an _orderedTypes array that preserves backend ordering
+    const orderedTypes = schemas._orderedTypes || Object.keys(schemas);
 
-    nodeTypes.forEach(([nodeType, config]) => {
+    orderedTypes.forEach((nodeType) => {
+        const config = schemas[nodeType];
+        if (!config) return; // Skip if config doesn't exist (e.g., _orderedTypes itself)
+
         const item = document.createElement('div');
         item.className = 'context-menu-item';
         item.setAttribute('data-node-type', nodeType);

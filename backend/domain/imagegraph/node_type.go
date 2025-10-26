@@ -31,6 +31,7 @@ type nodeConfigField struct {
 }
 
 type nodeTypeConfig struct {
+	nodeType     NodeType
 	inputs       []InputName
 	outputs      []OutputName
 	nameRequired bool
@@ -38,18 +39,22 @@ type nodeTypeConfig struct {
 	validate     func(NodeConfig) error
 }
 
-var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
-	NodeTypeInput: {
-		outputs: []OutputName{"original"},
+// nodeTypeConfigs defines all node type configurations in order
+var nodeTypeConfigs = []nodeTypeConfig{
+	{
+		nodeType: NodeTypeInput,
+		outputs:  []OutputName{"original"},
 	},
-	NodeTypeOutput: {
+	{
+		nodeType:     NodeTypeOutput,
 		inputs:       []InputName{"input"},
 		outputs:      []OutputName{"final"},
 		nameRequired: true,
 	},
-	NodeTypeBlur: {
-		inputs:  []InputName{"original"},
-		outputs: []OutputName{"blurred"},
+	{
+		nodeType: NodeTypeBlur,
+		inputs:   []InputName{"original"},
+		outputs:  []OutputName{"blurred"},
 		fields: map[string]nodeConfigField{
 			"radius": {NodeConfigTypeInt, true, nil},
 		},
@@ -64,9 +69,10 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 			return nil
 		},
 	},
-	NodeTypeResize: {
-		inputs:  []InputName{"original"},
-		outputs: []OutputName{"resized"},
+	{
+		nodeType: NodeTypeResize,
+		inputs:   []InputName{"original"},
+		outputs:  []OutputName{"resized"},
 		fields: map[string]nodeConfigField{
 			"width":  {NodeConfigTypeInt, false, nil},
 			"height": {NodeConfigTypeInt, false, nil},
@@ -113,9 +119,10 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 			return nil
 		},
 	},
-	NodeTypeResizeMatch: {
-		inputs:  []InputName{"original", "size_match"},
-		outputs: []OutputName{"resized"},
+	{
+		nodeType: NodeTypeResizeMatch,
+		inputs:   []InputName{"original", "size_match"},
+		outputs:  []OutputName{"resized"},
 		fields: map[string]nodeConfigField{
 			"interpolation": {NodeConfigTypeOption, true, []string{
 				"NearestNeighbor",
@@ -129,9 +136,19 @@ var nodeTypeConfigs = map[NodeType]nodeTypeConfig{
 	},
 }
 
+// getNodeTypeConfig returns the config for a given node type
+func getNodeTypeConfig(nt NodeType) *nodeTypeConfig {
+	for i := range nodeTypeConfigs {
+		if nodeTypeConfigs[i].nodeType == nt {
+			return &nodeTypeConfigs[i]
+		}
+	}
+	return nil
+}
+
 func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
-	nodeTypeConfig, ok := nodeTypeConfigs[nt]
-	if !ok {
+	nodeTypeConfig := getNodeTypeConfig(nt)
+	if nodeTypeConfig == nil {
 		return fmt.Errorf("node type %q does not have config", nt)
 	}
 
@@ -204,8 +221,8 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 
 // InputNames returns the ordered list of input names for this node type
 func (nt NodeType) InputNames() []InputName {
-	cfg, ok := nodeTypeConfigs[nt]
-	if !ok {
+	cfg := getNodeTypeConfig(nt)
+	if cfg == nil {
 		return []InputName{}
 	}
 	return cfg.inputs
@@ -213,16 +230,16 @@ func (nt NodeType) InputNames() []InputName {
 
 // OutputNames returns the ordered list of output names for this node type
 func (nt NodeType) OutputNames() []OutputName {
-	cfg, ok := nodeTypeConfigs[nt]
-	if !ok {
+	cfg := getNodeTypeConfig(nt)
+	if cfg == nil {
 		return []OutputName{}
 	}
 	return cfg.outputs
 }
 
 func (nt NodeType) NameRequired() bool {
-	cfg, ok := nodeTypeConfigs[nt]
-	if !ok {
+	cfg := getNodeTypeConfig(nt)
+	if cfg == nil {
 		return false
 	}
 	return cfg.nameRequired
@@ -263,8 +280,8 @@ func (ft NodeConfigFieldType) String() string {
 
 // GetSchema returns the schema for this node type
 func (nt NodeType) GetSchema() NodeTypeSchema {
-	cfg, ok := nodeTypeConfigs[nt]
-	if !ok {
+	cfg := getNodeTypeConfig(nt)
+	if cfg == nil {
 		return NodeTypeSchema{}
 	}
 
@@ -298,24 +315,21 @@ func (nt NodeType) GetSchema() NodeTypeSchema {
 	}
 }
 
-// GetAllNodeTypeSchemas returns schemas for all node types
-func GetAllNodeTypeSchemas() map[string]NodeTypeSchema {
-	schemas := make(map[string]NodeTypeSchema)
+// NodeTypeSchemaEntry represents a node type with its schema
+type NodeTypeSchemaEntry struct {
+	NodeType NodeType       `json:"node_type"`
+	Schema   NodeTypeSchema `json:"schema"`
+}
 
-	// Map of NodeType to string representation (matches nodeTypeMapper in HTTP layer)
-	nodeTypes := []struct {
-		nodeType NodeType
-		name     string
-	}{
-		{NodeTypeInput, "input"},
-		{NodeTypeBlur, "blur"},
-		{NodeTypeOutput, "output"},
-		{NodeTypeResize, "resize"},
-		{NodeTypeResizeMatch, "resize_match"},
-	}
+// GetAllNodeTypeSchemas returns schemas for all node types in order
+func GetAllNodeTypeSchemas() []NodeTypeSchemaEntry {
+	schemas := make([]NodeTypeSchemaEntry, 0, len(nodeTypeConfigs))
 
-	for _, nt := range nodeTypes {
-		schemas[nt.name] = nt.nodeType.GetSchema()
+	for _, cfg := range nodeTypeConfigs {
+		schemas = append(schemas, NodeTypeSchemaEntry{
+			NodeType: cfg.nodeType,
+			Schema:   cfg.nodeType.GetSchema(),
+		})
 	}
 
 	return schemas

@@ -229,7 +229,7 @@ func TestImageGraph_AddNode(t *testing.T) {
 	t.Run("returns error for empty node name", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 
-		err := ig.AddNode(imagegraph.MustNewNodeID(), imagegraph.NodeTypeInput, "", imagegraph.NodeConfig{})
+		err := ig.AddNode(imagegraph.MustNewNodeID(), imagegraph.NodeTypeOutput, "", imagegraph.NodeConfig{})
 
 		if err == nil {
 			t.Fatal("expected error for empty node name, got nil")
@@ -259,21 +259,27 @@ func TestNode_SetConfig(t *testing.T) {
 	t.Run("validates required fields for NodeTypeResize", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0})
+		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("failed to add node: %v", err)
 		}
 
 		node, _ := ig.Nodes.Get(nodeID)
 
-		// Missing required field (at least one of width/height must be set)
-		err = node.SetConfig(imagegraph.NodeConfig{})
+		// Missing required field interpolation
+		err = node.SetConfig(imagegraph.NodeConfig{"width": 500.0})
 		if err == nil {
 			t.Fatal("expected error for missing required field, got nil")
 		}
 
+		// Missing width/height (at least one required)
+		err = node.SetConfig(imagegraph.NodeConfig{"interpolation": "Bilinear"})
+		if err == nil {
+			t.Fatal("expected error for missing width/height, got nil")
+		}
+
 		// Valid config
-		err = node.SetConfig(imagegraph.NodeConfig{"width": 500.0})
+		err = node.SetConfig(imagegraph.NodeConfig{"width": 500.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("expected no error for valid config, got %v", err)
 		}
@@ -282,7 +288,7 @@ func TestNode_SetConfig(t *testing.T) {
 	t.Run("validates field types for NodeTypeResize", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0})
+		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("failed to add node: %v", err)
 		}
@@ -290,19 +296,19 @@ func TestNode_SetConfig(t *testing.T) {
 		node, _ := ig.Nodes.Get(nodeID)
 
 		// Wrong type - string instead of int
-		err = node.SetConfig(imagegraph.NodeConfig{"width": "800"})
+		err = node.SetConfig(imagegraph.NodeConfig{"width": "800", "interpolation": "Bilinear"})
 		if err == nil {
 			t.Fatal("expected error for wrong field type, got nil")
 		}
 
 		// Valid int (as float64 from JSON)
-		err = node.SetConfig(imagegraph.NodeConfig{"height": 600.0})
+		err = node.SetConfig(imagegraph.NodeConfig{"height": 600.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("expected no error for valid int, got %v", err)
 		}
 
 		// Valid integer (also acceptable as float)
-		err = node.SetConfig(imagegraph.NodeConfig{"width": float64(400)})
+		err = node.SetConfig(imagegraph.NodeConfig{"width": float64(400), "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("expected no error for integer as float, got %v", err)
 		}
@@ -311,14 +317,14 @@ func TestNode_SetConfig(t *testing.T) {
 	t.Run("rejects unknown fields", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0})
+		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("failed to add node: %v", err)
 		}
 
 		node, _ := ig.Nodes.Get(nodeID)
 
-		err = node.SetConfig(imagegraph.NodeConfig{"width": 800, "unknown": "value"})
+		err = node.SetConfig(imagegraph.NodeConfig{"width": 800, "interpolation": "Bilinear", "unknown": "value"})
 		if err == nil {
 			t.Fatal("expected error for unknown field, got nil")
 		}
@@ -381,7 +387,7 @@ func TestImageGraph_SetNodeName(t *testing.T) {
 	t.Run("returns error for empty name", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "old-name", imagegraph.NodeConfig{})
+		ig.AddNode(nodeID, imagegraph.NodeTypeOutput, "old-name", imagegraph.NodeConfig{})
 
 		err := ig.SetNodeName(nodeID, "")
 
@@ -759,7 +765,7 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect input → scale
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -797,7 +803,7 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect input → scale
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -890,7 +896,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.ConnectNodes(inputID, "original", resizeID, "original")
 
@@ -919,7 +925,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 	t.Run("returns error for self-connection", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0})
+		err := ig.AddNode(nodeID, imagegraph.NodeTypeResize, "node", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		if err != nil {
 			t.Fatalf("failed to add node: %v", err)
 		}
@@ -935,8 +941,8 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		node1ID := imagegraph.MustNewNodeID()
 		node2ID := imagegraph.MustNewNodeID()
-		ig.AddNode(node1ID, imagegraph.NodeTypeResize, "node1", imagegraph.NodeConfig{"width": 800.0})
-		ig.AddNode(node2ID, imagegraph.NodeTypeResize, "node2", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(node1ID, imagegraph.NodeTypeResize, "node1", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
+		ig.AddNode(node2ID, imagegraph.NodeTypeResize, "node2", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Create A → B
 		ig.ConnectNodes(node1ID, "resized", node2ID, "original")
@@ -952,7 +958,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 	t.Run("returns error for non-existent from node", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		resizeID := imagegraph.MustNewNodeID()
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		fakeID := imagegraph.MustNewNodeID()
 		err := ig.ConnectNodes(fakeID, "original", resizeID, "original")
@@ -980,7 +986,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.ConnectNodes(inputID, "invalid", resizeID, "original")
 
@@ -994,7 +1000,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.ConnectNodes(inputID, "original", resizeID, "invalid")
 
@@ -1008,7 +1014,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.ConnectNodes(inputID, "original", resizeID, "original")
 		if err != nil {
@@ -1034,7 +1040,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(input1ID, imagegraph.NodeTypeInput, "input1", imagegraph.NodeConfig{})
 		ig.AddNode(input2ID, imagegraph.NodeTypeInput, "input2", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect input1 → scale
 		ig.ConnectNodes(input1ID, "original", resizeID, "original")
@@ -1064,7 +1070,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		ig.ResetEvents()
 
 		err := ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1094,7 +1100,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(input1ID, imagegraph.NodeTypeInput, "input1", imagegraph.NodeConfig{})
 		ig.AddNode(input2ID, imagegraph.NodeTypeInput, "input2", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		ig.ConnectNodes(input1ID, "original", resizeID, "original")
 		ig.ResetEvents()
@@ -1111,7 +1117,7 @@ func TestImageGraph_ConnectNodes(t *testing.T) {
 	t.Run("returns error for nil fromNodeID", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		ig.AddNode(nodeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(nodeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.ConnectNodes(imagegraph.NodeID{}, "original", nodeID, "original")
 
@@ -1139,7 +1145,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect nodes first
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1169,7 +1175,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 	t.Run("returns error for non-existent from node", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		resizeID := imagegraph.MustNewNodeID()
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		fakeID := imagegraph.MustNewNodeID()
 		err := ig.DisconnectNodes(fakeID, "original", resizeID, "original")
@@ -1197,7 +1203,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.DisconnectNodes(inputID, "invalid", resizeID, "original")
 
@@ -1211,7 +1217,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.DisconnectNodes(inputID, "original", resizeID, "invalid")
 
@@ -1225,7 +1231,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect nodes
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1254,7 +1260,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect nodes first
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1286,7 +1292,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect nodes
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1336,8 +1342,8 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		resize1ID := imagegraph.MustNewNodeID()
 		resize2ID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0})
-		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0})
+		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
+		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0, "interpolation": "Bilinear"})
 
 		// Connect input to both scale nodes
 		ig.ConnectNodes(inputID, "original", resize1ID, "original")
@@ -1372,7 +1378,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 	t.Run("returns error for nil fromNodeID", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		nodeID := imagegraph.MustNewNodeID()
-		ig.AddNode(nodeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(nodeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		err := ig.DisconnectNodes(imagegraph.NodeID{}, "original", nodeID, "original")
 
@@ -1446,7 +1452,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect input → scale
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1476,8 +1482,8 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		resize1ID := imagegraph.MustNewNodeID()
 		resize2ID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0})
-		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0})
+		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
+		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0, "interpolation": "Bilinear"})
 
 		// Connect input to both scale nodes
 		ig.ConnectNodes(inputID, "original", resize1ID, "original")
@@ -1532,7 +1538,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 		ig.ResetEvents()
@@ -1590,7 +1596,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Do NOT connect the nodes
 
@@ -1670,7 +1676,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		// Connect and set image
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1702,8 +1708,8 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		resize1ID := imagegraph.MustNewNodeID()
 		resize2ID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0})
-		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0})
+		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
+		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0, "interpolation": "Bilinear"})
 
 		// Connect to both nodes and set image
 		ig.ConnectNodes(inputID, "original", resize1ID, "original")
@@ -1759,7 +1765,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
-		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0})
+		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 		imageID := imagegraph.MustNewImageID()

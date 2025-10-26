@@ -116,17 +116,45 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
+type nodeTypeSchemaAPIEntry struct {
+	Name   string                  `json:"name"`
+	Schema imagegraph.NodeTypeSchema `json:"schema"`
+}
+
 type nodeTypeSchemasResponse struct {
-	NodeTypes map[string]imagegraph.NodeTypeSchema `json:"node_types"`
+	NodeTypes []nodeTypeSchemaAPIEntry `json:"node_types"`
+}
+
+// nodeTypeNames maps NodeType constants to their API string names
+var nodeTypeNames = map[imagegraph.NodeType]string{
+	imagegraph.NodeTypeInput:       "input",
+	imagegraph.NodeTypeOutput:      "output",
+	imagegraph.NodeTypeBlur:        "blur",
+	imagegraph.NodeTypeResize:      "resize",
+	imagegraph.NodeTypeResizeMatch: "resize_match",
 }
 
 func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
 	// Get all node type schemas from domain
 	schemas := imagegraph.GetAllNodeTypeSchemas()
 
+	// Convert to API format with string names
+	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(schemas))
+	for _, entry := range schemas {
+		name, ok := nodeTypeNames[entry.NodeType]
+		if !ok {
+			// Skip unknown node types
+			continue
+		}
+		apiSchemas = append(apiSchemas, nodeTypeSchemaAPIEntry{
+			Name:   name,
+			Schema: entry.Schema,
+		})
+	}
+
 	// Return schemas as JSON
 	respondJSON(w, http.StatusOK, nodeTypeSchemasResponse{
-		NodeTypes: schemas,
+		NodeTypes: apiSchemas,
 	})
 }
 
