@@ -43,6 +43,63 @@ func NewImageGen(
 	}
 }
 
+// encodeImage encodes an image to bytes based on the format
+func (ig *ImageGen) encodeImage(img image.Image, format string) ([]byte, error) {
+	var buf bytes.Buffer
+	var err error
+
+	switch format {
+	case "png":
+		err = png.Encode(&buf, img)
+	case "jpeg", "jpg":
+		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90})
+	default:
+		return nil, fmt.Errorf("unsupported image format: %s", format)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("could not encode image: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+// saveAndSetOutput encodes an image, saves it to storage, and sets it as a node output
+func (ig *ImageGen) saveAndSetOutput(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	outputName imagegraph.OutputName,
+	img image.Image,
+	format string,
+) error {
+	// Encode the image
+	imageData, err := ig.encodeImage(img, format)
+	if err != nil {
+		return err
+	}
+
+	// Generate new image ID
+	outputImageID, err := imagegraph.NewImageID()
+	if err != nil {
+		return fmt.Errorf("could not generate image ID: %w", err)
+	}
+
+	// Save to storage
+	err = ig.imageStorage.Save(outputImageID, imageData)
+	if err != nil {
+		return fmt.Errorf("could not save image: %w", err)
+	}
+
+	// Set the output image on the node
+	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
+	if err != nil {
+		return fmt.Errorf("could not set node output image: %w", err)
+	}
+
+	return nil
+}
+
 func (ig *ImageGen) GenerateOutputsForBlurNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
@@ -125,38 +182,8 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 		}
 	}
 
-	// Encode the blurred image
-	var buf bytes.Buffer
-	switch format {
-	case "png":
-		err = png.Encode(&buf, blurredImg)
-	case "jpeg", "jpg":
-		err = jpeg.Encode(&buf, blurredImg, &jpeg.Options{Quality: 90})
-	default:
-		return fmt.Errorf("unsupported image format: %s", format)
-	}
-	if err != nil {
-		return fmt.Errorf("could not encode blurred image: %w", err)
-	}
-
-	// Generate new image ID and save
-	outputImageID, err := imagegraph.NewImageID()
-	if err != nil {
-		return fmt.Errorf("could not generate image ID: %w", err)
-	}
-
-	err = ig.imageStorage.Save(outputImageID, buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("could not save blurred image: %w", err)
-	}
-
-	// Set the output image on the node
-	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
-	if err != nil {
-		return fmt.Errorf("could not set node output image: %w", err)
-	}
-
-	return nil
+	// Save and set output
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, blurredImg, format)
 }
 
 func (ig *ImageGen) GenerateOutputsForResizeNode(
@@ -220,38 +247,8 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 		}
 	}
 
-	// Encode the resized image
-	var buf bytes.Buffer
-	switch format {
-	case "png":
-		err = png.Encode(&buf, resizedImg)
-	case "jpeg", "jpg":
-		err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 90})
-	default:
-		return fmt.Errorf("unsupported image format: %s", format)
-	}
-	if err != nil {
-		return fmt.Errorf("could not encode resized image: %w", err)
-	}
-
-	// Generate new image ID and save
-	outputImageID, err := imagegraph.NewImageID()
-	if err != nil {
-		return fmt.Errorf("could not generate image ID: %w", err)
-	}
-
-	err = ig.imageStorage.Save(outputImageID, buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("could not save resized image: %w", err)
-	}
-
-	// Set the output image on the node
-	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
-	if err != nil {
-		return fmt.Errorf("could not set node output image: %w", err)
-	}
-
-	return nil
+	// Save and set output
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
 }
 
 func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
@@ -314,36 +311,6 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 		interpolationFunction,
 	)
 
-	// Encode the resized image
-	var buf bytes.Buffer
-	switch format {
-	case "png":
-		err = png.Encode(&buf, resizedImg)
-	case "jpeg", "jpg":
-		err = jpeg.Encode(&buf, resizedImg, &jpeg.Options{Quality: 90})
-	default:
-		return fmt.Errorf("unsupported image format: %s", format)
-	}
-	if err != nil {
-		return fmt.Errorf("could not encode resized image: %w", err)
-	}
-
-	// Generate new image ID and save
-	outputImageID, err := imagegraph.NewImageID()
-	if err != nil {
-		return fmt.Errorf("could not generate image ID: %w", err)
-	}
-
-	err = ig.imageStorage.Save(outputImageID, buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("could not save resized image: %w", err)
-	}
-
-	// Set the output image on the node
-	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
-	if err != nil {
-		return fmt.Errorf("could not set node output image: %w", err)
-	}
-
-	return nil
+	// Save and set output
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
 }
