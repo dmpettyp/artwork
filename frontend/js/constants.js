@@ -70,64 +70,8 @@ export const CONNECTION_DELETE_BUTTON = {
     hoverColor: '#e74c3c'
 };
 
-// Node type field configurations
-export const NODE_TYPE_CONFIGS = {
-    input: {
-        name: 'Input',
-        nameRequired: false,
-        fields: {}
-    },
-    blur: {
-        name: 'Blur',
-        nameRequired: false,
-        fields: {
-            radius: { type: 'int', required: true }
-        }
-    },
-    resize: {
-        name: 'Resize',
-        nameRequired: false,
-        fields: {
-            width: { type: 'int', required: false },
-            height: { type: 'int', required: false },
-            interpolation: {
-                type: 'option',
-                required: true,
-                options: [
-                    'NearestNeighbor',
-                    'Bilinear',
-                    'Bicubic',
-                    'MitchellNetravali',
-                    'Lanczos2',
-                    'Lanczos3'
-                ]
-            }
-        }
-    },
-    resize_match: {
-        name: 'Resize Match',
-        nameRequired: false,
-        fields: {
-            interpolation: {
-                type: 'option',
-                required: true,
-                options: [
-                    'NearestNeighbor',
-                    'Bilinear',
-                    'Bicubic',
-                    'MitchellNetravali',
-                    'Lanczos2',
-                    'Lanczos3'
-                ]
-            }
-        }
-    },
-    output: {
-        name: 'Output',
-        nameRequired: true,
-        fields: {}
-    }
-};
+// Node type configurations are now loaded dynamically from the backend API
+// See node-type-schemas.js and node-type-config-store.js
 
 // DOM data attributes
 export const DATA_ATTRIBUTES = {

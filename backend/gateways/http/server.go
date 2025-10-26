@@ -65,6 +65,7 @@ func NewHTTPServer(
 	mux := http.NewServeMux()
 
 	// API routes
+	mux.HandleFunc("GET /api/node-types", s.handleGetNodeTypeSchemas)
 	mux.HandleFunc("GET /api/imagegraphs", s.handleListImageGraphs)
 	mux.HandleFunc("POST /api/imagegraphs", s.handleCreateImageGraph)
 	mux.HandleFunc("GET /api/imagegraphs/{id}", s.handleGetImageGraph)

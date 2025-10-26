@@ -116,6 +116,20 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
+type nodeTypeSchemasResponse struct {
+	NodeTypes map[string]imagegraph.NodeTypeSchema `json:"node_types"`
+}
+
+func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
+	// Get all node type schemas from domain
+	schemas := imagegraph.GetAllNodeTypeSchemas()
+
+	// Return schemas as JSON
+	respondJSON(w, http.StatusOK, nodeTypeSchemasResponse{
+		NodeTypes: schemas,
+	})
+}
+
 func (s *HTTPServer) handleListImageGraphs(w http.ResponseWriter, r *http.Request) {
 	// Fetch all ImageGraphs from views
 	imageGraphs, err := s.imageGraphViews.List(r.Context())

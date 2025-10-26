@@ -8,7 +8,9 @@ import { Modal, ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
 import { NodeConfigFormBuilder } from './form-builder.js';
 import { GraphManager } from './graph-manager.js';
-import { API_PATHS, SIDEBAR_CONFIG, NODE_TYPE_CONFIGS } from './constants.js';
+import { API_PATHS, SIDEBAR_CONFIG } from './constants.js';
+import { loadNodeTypeSchemas } from './node-type-schemas.js';
+import { setNodeTypeConfigs, getNodeTypeConfigs } from './node-type-config-store.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -146,8 +148,8 @@ graphSelect.addEventListener('change', (e) => {
     }
 });
 
-// Initialize form builder with node type configurations from constants
-const formBuilder = new NodeConfigFormBuilder(NODE_TYPE_CONFIGS);
+// Form builder will be initialized after loading schemas
+let formBuilder = null;
 
 // Add node modal functions
 function openAddNodeModal(nodeType) {
@@ -160,7 +162,8 @@ function openAddNodeModal(nodeType) {
     addNodeType = nodeType;
 
     // Update modal title with display name from config
-    const displayName = NODE_TYPE_CONFIGS[nodeType]?.name || nodeType;
+    const configs = getNodeTypeConfigs();
+    const displayName = configs[nodeType]?.name || nodeType;
     addNodeModalTitle.textContent = `Add ${displayName} Node`;
 
     // Clear inputs
@@ -169,7 +172,7 @@ function openAddNodeModal(nodeType) {
     nodeConfigFields.innerHTML = '';
 
     // Update name field based on whether it's required
-    const nameRequired = NODE_TYPE_CONFIGS[nodeType]?.nameRequired !== false;
+    const nameRequired = configs[nodeType]?.nameRequired !== false;
     nodeNameInput.required = nameRequired;
     nodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
 
@@ -245,7 +248,8 @@ addNodeCreateBtn.addEventListener('click', async () => {
     }
 
     // Check if name is required for this node type
-    const nameRequired = NODE_TYPE_CONFIGS[nodeType]?.nameRequired !== false;
+    const configs = getNodeTypeConfigs();
+    const nameRequired = configs[nodeType]?.nameRequired !== false;
     if (nameRequired && !nodeName) {
         toastManager.warning('Please enter a node name');
         return;
@@ -311,11 +315,12 @@ openEditConfigModal = function(nodeId) {
     editNodeNameInput.value = node.name || '';
 
     // Update modal title with display name from config
-    const displayName = NODE_TYPE_CONFIGS[node.type]?.name || node.type;
+    const configs = getNodeTypeConfigs();
+    const displayName = configs[node.type]?.name || node.type;
     editConfigModalTitle.textContent = `Edit ${displayName} Node`;
 
     // Update name field based on whether it's required
-    const nameRequired = NODE_TYPE_CONFIGS[node.type]?.nameRequired !== false;
+    const nameRequired = configs[node.type]?.nameRequired !== false;
     editNodeNameInput.required = nameRequired;
     editNodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
 
@@ -354,7 +359,8 @@ editConfigSaveBtn.addEventListener('click', async () => {
     const newName = editNodeNameInput.value.trim();
 
     // Check if name is required for this node type
-    const nameRequired = NODE_TYPE_CONFIGS[node.type]?.nameRequired !== false;
+    const configs = getNodeTypeConfigs();
+    const nameRequired = configs[node.type]?.nameRequired !== false;
     if (nameRequired && !newName) {
         toastManager.warning('Please enter a node name');
         return;
@@ -804,4 +810,21 @@ document.addEventListener('mouseup', () => {
 });
 
 // Load initial data
-graphManager.loadGraphList();
+async function initialize() {
+    try {
+        // Load node type schemas from backend
+        const schemas = await loadNodeTypeSchemas();
+        setNodeTypeConfigs(schemas);
+
+        // Initialize form builder with loaded schemas
+        formBuilder = new NodeConfigFormBuilder(schemas);
+
+        // Load graph list
+        await graphManager.loadGraphList();
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        toastManager.show('Failed to load application configuration. Please refresh the page.', 'error');
+    }
+}
+
+initialize();

@@ -227,3 +227,96 @@ func (nt NodeType) NameRequired() bool {
 	}
 	return cfg.nameRequired
 }
+
+// NodeTypeSchemaField represents a single field's schema information
+type NodeTypeSchemaField struct {
+	Type     string   `json:"type"`
+	Required bool     `json:"required"`
+	Options  []string `json:"options,omitempty"`
+}
+
+// NodeTypeSchema represents the complete schema for a node type
+type NodeTypeSchema struct {
+	Inputs       []string                        `json:"inputs"`
+	Outputs      []string                        `json:"outputs"`
+	NameRequired bool                            `json:"name_required"`
+	Fields       map[string]NodeTypeSchemaField  `json:"fields"`
+}
+
+// GetFieldTypeString converts a NodeConfigFieldType to its string representation
+func (ft NodeConfigFieldType) String() string {
+	switch ft {
+	case NodeConfigTypeString:
+		return "string"
+	case NodeConfigTypeInt:
+		return "int"
+	case NodeConfigTypeFloat:
+		return "float"
+	case NodeConfigTypeBool:
+		return "bool"
+	case NodeConfigTypeOption:
+		return "option"
+	default:
+		return "unknown"
+	}
+}
+
+// GetSchema returns the schema for this node type
+func (nt NodeType) GetSchema() NodeTypeSchema {
+	cfg, ok := nodeTypeConfigs[nt]
+	if !ok {
+		return NodeTypeSchema{}
+	}
+
+	// Convert inputs
+	inputs := make([]string, len(cfg.inputs))
+	for i, input := range cfg.inputs {
+		inputs[i] = string(input)
+	}
+
+	// Convert outputs
+	outputs := make([]string, len(cfg.outputs))
+	for i, output := range cfg.outputs {
+		outputs[i] = string(output)
+	}
+
+	// Convert fields
+	fields := make(map[string]NodeTypeSchemaField)
+	for fieldName, fieldDef := range cfg.fields {
+		fields[fieldName] = NodeTypeSchemaField{
+			Type:     fieldDef.fieldType.String(),
+			Required: fieldDef.required,
+			Options:  fieldDef.options,
+		}
+	}
+
+	return NodeTypeSchema{
+		Inputs:       inputs,
+		Outputs:      outputs,
+		NameRequired: cfg.nameRequired,
+		Fields:       fields,
+	}
+}
+
+// GetAllNodeTypeSchemas returns schemas for all node types
+func GetAllNodeTypeSchemas() map[string]NodeTypeSchema {
+	schemas := make(map[string]NodeTypeSchema)
+
+	// Map of NodeType to string representation (matches nodeTypeMapper in HTTP layer)
+	nodeTypes := []struct {
+		nodeType NodeType
+		name     string
+	}{
+		{NodeTypeInput, "input"},
+		{NodeTypeBlur, "blur"},
+		{NodeTypeOutput, "output"},
+		{NodeTypeResize, "resize"},
+		{NodeTypeResizeMatch, "resize_match"},
+	}
+
+	for _, nt := range nodeTypes {
+		schemas[nt.name] = nt.nodeType.GetSchema()
+	}
+
+	return schemas
+}
