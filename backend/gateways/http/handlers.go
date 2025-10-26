@@ -117,38 +117,46 @@ type errorResponse struct {
 }
 
 type nodeTypeSchemaAPIEntry struct {
-	Name   string                  `json:"name"`
-	Schema imagegraph.NodeTypeSchema `json:"schema"`
+	Name        string                    `json:"name"`
+	DisplayName string                    `json:"display_name"`
+	Schema      imagegraph.NodeTypeSchema `json:"schema"`
 }
 
 type nodeTypeSchemasResponse struct {
 	NodeTypes []nodeTypeSchemaAPIEntry `json:"node_types"`
 }
 
-// nodeTypeNames maps NodeType constants to their API string names
-var nodeTypeNames = map[imagegraph.NodeType]string{
-	imagegraph.NodeTypeInput:       "input",
-	imagegraph.NodeTypeOutput:      "output",
-	imagegraph.NodeTypeBlur:        "blur",
-	imagegraph.NodeTypeResize:      "resize",
-	imagegraph.NodeTypeResizeMatch: "resize_match",
+// nodeTypeInfo holds both the API name and display name for a node type
+type nodeTypeInfo struct {
+	name        string
+	displayName string
+}
+
+// nodeTypeMetadata maps NodeType constants to their API metadata
+var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
+	imagegraph.NodeTypeInput:       {"input", "Input"},
+	imagegraph.NodeTypeOutput:      {"output", "Output"},
+	imagegraph.NodeTypeBlur:        {"blur", "Blur"},
+	imagegraph.NodeTypeResize:      {"resize", "Resize"},
+	imagegraph.NodeTypeResizeMatch: {"resize_match", "Resize Match"},
 }
 
 func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
 	// Get all node type schemas from domain
 	schemas := imagegraph.GetAllNodeTypeSchemas()
 
-	// Convert to API format with string names
+	// Convert to API format with string names and display names
 	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(schemas))
 	for _, entry := range schemas {
-		name, ok := nodeTypeNames[entry.NodeType]
+		info, ok := nodeTypeMetadata[entry.NodeType]
 		if !ok {
 			// Skip unknown node types
 			continue
 		}
 		apiSchemas = append(apiSchemas, nodeTypeSchemaAPIEntry{
-			Name:   name,
-			Schema: entry.Schema,
+			Name:        info.name,
+			DisplayName: info.displayName,
+			Schema:      entry.Schema,
 		})
 	}
 

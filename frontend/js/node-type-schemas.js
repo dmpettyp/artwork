@@ -4,15 +4,6 @@
 
 import { API_PATHS } from './constants.js';
 
-// Display names for node types (could also come from backend in future)
-const DISPLAY_NAMES = {
-    'input': 'Input',
-    'blur': 'Blur',
-    'resize': 'Resize',
-    'resize_match': 'Resize Match',
-    'output': 'Output'
-};
-
 /**
  * Fetches node type schemas from the backend and converts to the format
  * expected by existing frontend code
@@ -27,14 +18,14 @@ export async function loadNodeTypeSchemas() {
         const data = await response.json();
 
         // Convert backend schema format to frontend config format
-        // Backend returns an array of {name, schema} objects in the desired order
+        // Backend returns an array of {name, display_name, schema} objects in the desired order
         const configs = {};
         const orderedTypes = []; // Preserve order from backend
 
         for (const entry of data.node_types) {
             const nodeType = entry.name;
             configs[nodeType] = {
-                name: DISPLAY_NAMES[nodeType] || nodeType,
+                name: entry.display_name,
                 nameRequired: entry.schema.name_required,
                 fields: entry.schema.fields
             };
