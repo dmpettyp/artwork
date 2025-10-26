@@ -6,11 +6,14 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- all the nodeconfig casting sucks, let's add some methods
 - publish node field config to frontend?
 
+- pallet matching node
+- pixel blow up node
+  - deliniating lines, width, colour
 - durable repository/unit of work implementation: sqlite
 
+- DONE - all the nodeconfig casting sucks, let's add some methods
 - DONE - optional Node name
 - DONE - better output file name, {graph_name}-{output_name}
 - DONE - why is resize width/height float? make int 

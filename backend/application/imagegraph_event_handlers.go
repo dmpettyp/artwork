@@ -131,14 +131,14 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 
 	if event.NodeType == imagegraph.NodeTypeResize {
 		// Extract width and height (either or both may be present)
-		var width, height *int
-		if w, ok := event.NodeConfig["width"]; ok {
-			wInt := w.(int)
-			width = &wInt
+		width, err := event.NodeConfig.GetIntOptional("width")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
-		if h, ok := event.NodeConfig["height"]; ok {
-			hInt := h.(int)
-			height = &hInt
+
+		height, err := event.NodeConfig.GetIntOptional("height")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
 
 		// Find the "original" input
@@ -186,7 +186,10 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 			}
 		}
 
-		interpolation := event.NodeConfig["interpolation"].(string)
+		interpolation, err := event.NodeConfig.GetString("interpolation")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
 
 		if originalImageID.IsNil() {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")

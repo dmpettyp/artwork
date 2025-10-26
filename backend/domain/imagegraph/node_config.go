@@ -33,7 +33,7 @@ func (nc NodeConfig) GetFloat(key string) (float64, error) {
 	vFloat, ok := v.(float64)
 
 	if !ok {
-		return 0.0, fmt.Errorf("flaot config key %q is not a flaot", key)
+		return 0.0, fmt.Errorf("float config key %q is not a float", key)
 	}
 
 	return vFloat, nil
@@ -52,6 +52,51 @@ func (nc NodeConfig) GetString(key string) (string, error) {
 	}
 
 	return vString, nil
+}
+
+func (nc NodeConfig) GetIntOptional(key string) (*int, error) {
+	v, ok := nc[key]
+	if !ok {
+		return nil, nil // Key doesn't exist - this is OK for optional
+	}
+
+	vInt, ok := v.(int)
+
+	if !ok {
+		return nil, fmt.Errorf("config key %q is not an int", key)
+	}
+
+	return &vInt, nil
+}
+
+func (nc NodeConfig) GetFloatOptional(key string) (*float64, error) {
+	v, ok := nc[key]
+	if !ok {
+		return nil, nil // Key doesn't exist - this is OK for optional
+	}
+
+	vFloat, ok := v.(float64)
+
+	if !ok {
+		return nil, fmt.Errorf("config key %q is not a float", key)
+	}
+
+	return &vFloat, nil
+}
+
+func (nc NodeConfig) GetStringOptional(key string) (*string, error) {
+	v, ok := nc[key]
+	if !ok {
+		return nil, nil // Key doesn't exist - this is OK for optional
+	}
+
+	vString, ok := v.(string)
+
+	if !ok {
+		return nil, fmt.Errorf("config key %q is not a string", key)
+	}
+
+	return &vString, nil
 }
 
 func (nc NodeConfig) Each(f func(string, interface{}) error) error {
