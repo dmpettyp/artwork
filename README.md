@@ -17,6 +17,7 @@ to process images in a non-destructive way.
 
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
+- order of node types? only care about for add menu. maybe convert to a list, add node category as well?
 
 - DONE - clean up and commonize aspects of imagegen
 - DONE - match resize implementations
