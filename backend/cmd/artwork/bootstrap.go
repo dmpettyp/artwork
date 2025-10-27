@@ -48,10 +48,10 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Crop node
 	cropConfig := imagegraph.NodeConfig{
-		"left":   400,
+		"left":   500,
 		"right":  1599,
-		"top":    20,
-		"bottom": 2000,
+		"top":    400,
+		"bottom": 1900,
 	}
 	addCropCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
@@ -67,7 +67,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Resize node (shrink)
 	resizeShrinkConfig := imagegraph.NodeConfig{
-		"width":         20,
+		"width":         15,
 		"interpolation": "Bicubic",
 	}
 	addResizeShrinkCmd := application.NewAddImageGraphNodeCommand(
@@ -84,7 +84,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Blur node
 	blurConfig := imagegraph.NodeConfig{
-		"radius": 2,
+		"radius": 1,
 	}
 	addBlurCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
@@ -271,8 +271,8 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 			{NodeID: blurNodeID, X: 441.1165295054946, Y: 68.33292188308917},
 			{NodeID: resizeGrowNodeID, X: 759.1643755098712, Y: 173.30806002694175},
 			{NodeID: output1NodeID, X: 1097.7823165595007, Y: 195.33684713308418},
-			{NodeID: resizeMatchNodeID, X: 711.2331594723673, Y: 503.6339365213155},
-			{NodeID: output2NodeID, X: 1095.3952866307052, Y: 421.3251245580758},
+			{NodeID: resizeMatchNodeID, X: 626.7919132756106, Y: 502.2265824180362},
+			{NodeID: output2NodeID, X: 1106.6541194569395, Y: 481.84135099908485},
 		},
 	)
 	if err := messageBus.HandleCommand(ctx, layoutCmd); err != nil {
