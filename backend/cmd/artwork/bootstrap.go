@@ -17,6 +17,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	// Generate IDs for the graph and nodes
 	graphID := imagegraph.MustNewImageGraphID()
 	inputNodeID := imagegraph.MustNewNodeID()
+	cropNodeID := imagegraph.MustNewNodeID()
 	resizeShrinkNodeID := imagegraph.MustNewNodeID()
 	blurNodeID := imagegraph.MustNewNodeID()
 	resizeGrowNodeID := imagegraph.MustNewNodeID()
@@ -45,9 +46,28 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	}
 	logger.Info("added Input node", "id", inputNodeID.String())
 
+	// Add Crop node
+	cropConfig := imagegraph.NodeConfig{
+		"left":   400,
+		"right":  1599,
+		"top":    20,
+		"bottom": 2000,
+	}
+	addCropCmd := application.NewAddImageGraphNodeCommand(
+		graphID,
+		cropNodeID,
+		imagegraph.NodeTypeCrop,
+		"",
+		cropConfig,
+	)
+	if err := messageBus.HandleCommand(ctx, addCropCmd); err != nil {
+		return err
+	}
+	logger.Info("added Crop node", "id", cropNodeID.String())
+
 	// Add Resize node (shrink)
 	resizeShrinkConfig := imagegraph.NodeConfig{
-		"width":         30,
+		"width":         20,
 		"interpolation": "Bicubic",
 	}
 	addResizeShrinkCmd := application.NewAddImageGraphNodeCommand(
@@ -137,93 +157,106 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	}
 	logger.Info("added Output node (Output with original size)", "id", output2NodeID.String())
 
-	// Connect Input → Resize (shrink)
+	// Connect Input → Crop
 	connect1Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		inputNodeID,
 		"original",
-		resizeShrinkNodeID,
+		cropNodeID,
 		"original",
 	)
 	if err := messageBus.HandleCommand(ctx, connect1Cmd); err != nil {
 		return err
 	}
-	logger.Info("connected Input to Resize (shrink)")
+	logger.Info("connected Input to Crop")
 
-	// Connect Input → Resize Match (size_match)
+	// Connect Crop → Resize (shrink)
 	connect2Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
-		inputNodeID,
+		cropNodeID,
+		"cropped",
+		resizeShrinkNodeID,
 		"original",
-		resizeMatchNodeID,
-		"size_match",
 	)
 	if err := messageBus.HandleCommand(ctx, connect2Cmd); err != nil {
 		return err
 	}
-	logger.Info("connected Input to Resize Match (size_match)")
+	logger.Info("connected Crop to Resize (shrink)")
+
+	// Connect Crop → Resize Match (size_match)
+	connect3Cmd := application.NewConnectImageGraphNodesCommand(
+		graphID,
+		cropNodeID,
+		"cropped",
+		resizeMatchNodeID,
+		"size_match",
+	)
+	if err := messageBus.HandleCommand(ctx, connect3Cmd); err != nil {
+		return err
+	}
+	logger.Info("connected Crop to Resize Match (size_match)")
 
 	// Connect Resize (shrink) → Blur
-	connect3Cmd := application.NewConnectImageGraphNodesCommand(
+	connect4Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		resizeShrinkNodeID,
 		"resized",
 		blurNodeID,
 		"original",
 	)
-	if err := messageBus.HandleCommand(ctx, connect3Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect4Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Resize (shrink) to Blur")
 
 	// Connect Resize (shrink) → Resize Match (original)
-	connect4Cmd := application.NewConnectImageGraphNodesCommand(
+	connect5Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		resizeShrinkNodeID,
 		"resized",
 		resizeMatchNodeID,
 		"original",
 	)
-	if err := messageBus.HandleCommand(ctx, connect4Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect5Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Resize (shrink) to Resize Match (original)")
 
 	// Connect Blur → Resize (grow to 500w)
-	connect5Cmd := application.NewConnectImageGraphNodesCommand(
+	connect6Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		blurNodeID,
 		"blurred",
 		resizeGrowNodeID,
 		"original",
 	)
-	if err := messageBus.HandleCommand(ctx, connect5Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect6Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Blur to Resize (grow to 500w)")
 
 	// Connect Resize (grow to 500w) → Output (Width 500)
-	connect6Cmd := application.NewConnectImageGraphNodesCommand(
+	connect7Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		resizeGrowNodeID,
 		"resized",
 		output1NodeID,
 		"input",
 	)
-	if err := messageBus.HandleCommand(ctx, connect6Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect7Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Resize (grow to 500w) to Output (Width 500)")
 
 	// Connect Resize Match → Output (Output with original size)
-	connect7Cmd := application.NewConnectImageGraphNodesCommand(
+	connect8Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		resizeMatchNodeID,
 		"resized",
 		output2NodeID,
 		"input",
 	)
-	if err := messageBus.HandleCommand(ctx, connect7Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect8Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Resize Match to Output (Output with original size)")
@@ -232,12 +265,13 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	layoutCmd := application.NewUpdateLayoutCommand(
 		graphID,
 		[]ui.NodePosition{
-			{NodeID: inputNodeID, X: -220.45380027663467, Y: 401.5381239777131},
-			{NodeID: resizeShrinkNodeID, X: 88.46872385139525, Y: 138.87218655136738},
+			{NodeID: inputNodeID, X: -530.6755718206077, Y: 697.8155894863006},
+			{NodeID: cropNodeID, X: -203.67722892973154, Y: 469.38986386272},
+			{NodeID: resizeShrinkNodeID, X: 88.46872385139525, Y: 140.27954065464667},
 			{NodeID: blurNodeID, X: 441.1165295054946, Y: 68.33292188308917},
 			{NodeID: resizeGrowNodeID, X: 759.1643755098712, Y: 173.30806002694175},
 			{NodeID: output1NodeID, X: 1097.7823165595007, Y: 195.33684713308418},
-			{NodeID: resizeMatchNodeID, X: 725.3067005051602, Y: 468.45008393933347},
+			{NodeID: resizeMatchNodeID, X: 711.2331594723673, Y: 503.6339365213155},
 			{NodeID: output2NodeID, X: 1095.3952866307052, Y: 421.3251245580758},
 		},
 	)
@@ -249,9 +283,9 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	// Set viewport state
 	viewportCmd := application.NewUpdateViewportCommand(
 		graphID,
-		0.969973013342248,
-		247.86230897708316,
-		156.04155990856518,
+		0.7105532272722948,
+		423.4652138758026,
+		166.63734119709807,
 	)
 	if err := messageBus.HandleCommand(ctx, viewportCmd); err != nil {
 		return err

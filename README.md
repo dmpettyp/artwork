@@ -6,9 +6,9 @@ to process images in a non-destructive way.
 
 ## TODO
 
+- much better cropping, interactive probably best
 - node types
   - pallet matching node
-  - crop
   - pixel blow up node
     - deliniating lines, width, colour
 
@@ -16,6 +16,7 @@ to process images in a non-destructive way.
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
 
+- DONE - initial crop node
 - DONE - delete images when they are no longer being used
 - DONE - don't share output nodes
 
