@@ -10,7 +10,7 @@ const (
 
 func (s NodeState) Transitions() map[NodeState][]NodeState {
 	return map[NodeState][]NodeState{
-		Waiting:    {Generating},
+		Waiting:    {Generating, Waiting},
 		Generating: {Generated, Waiting, Generating},
 		Generated:  {Waiting, Generating, Generated},
 	}

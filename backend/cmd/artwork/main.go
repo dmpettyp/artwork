@@ -65,7 +65,13 @@ func main() {
 	// Create notifier for real-time graph updates
 	notifier := httpgateway.NewImageGraphNotifier(logger)
 
-	_, err = application.NewImageGraphEventHandlers(messageBus, uow, imageGen, notifier)
+	_, err = application.NewImageGraphEventHandlers(
+		messageBus,
+		uow,
+		imageGen,
+		imageStorage,
+		notifier,
+	)
 
 	if err != nil {
 		logger.Error("could not create image graph event handlers", "error", err)

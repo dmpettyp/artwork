@@ -6,7 +6,6 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- delete images when they are no longer being used
 
 - node types
   - pallet matching node
@@ -16,18 +15,8 @@ to process images in a non-destructive way.
 
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
-- order of node types? only care about for add menu. maybe convert to a list, add node category as well?
 
-- DONE - publish node field config to frontend?
-- DONE - clean up and commonize aspects of imagegen
-- DONE - match resize implementations
-- DONE - all the nodeconfig casting sucks, let's add some methods
-- DONE - optional Node name
-- DONE - better output file name, {graph_name}-{output_name}
-- DONE - why is resize width/height float? make int 
-- implement different scaling types
-  - DONE - frontend
-  - DONE - backend
+- DONE - delete images when they are no longer being used
 
 ## Overview
 
@@ -68,6 +57,18 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 
 ## Done
+
+- DONE - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
+- DONE - publish node field config to frontend?
+- DONE - clean up and commonize aspects of imagegen
+- DONE - match resize implementations
+- DONE - all the nodeconfig casting sucks, let's add some methods
+- DONE - optional Node name
+- DONE - better output file name, {graph_name}-{output_name}
+- DONE - why is resize width/height float? make int 
+- implement different scaling types
+  - DONE - frontend
+  - DONE - backend
 
 - NewImageGraph ✅
 - AddNode ✅

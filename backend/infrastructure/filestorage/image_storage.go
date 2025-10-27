@@ -12,6 +12,7 @@ import (
 type ImageStorage interface {
 	Save(imageID imagegraph.ImageID, imageData []byte) error
 	Get(imageID imagegraph.ImageID) ([]byte, error)
+	Remove(imageID imagegraph.ImageID) error
 	Exists(imageID imagegraph.ImageID) (bool, error)
 }
 
@@ -73,6 +74,19 @@ func (s *FilesystemImageStorage) Exists(imageID imagegraph.ImageID) (bool, error
 	}
 
 	return true, nil
+}
+
+func (s *FilesystemImageStorage) Remove(imageID imagegraph.ImageID) error {
+	filePath := s.getFilePath(imageID)
+
+	if err := os.Remove(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to remove image %q: %w", imageID, err)
+	}
+
+	return nil
 }
 
 // getFilePath returns the filesystem path for a given image ID

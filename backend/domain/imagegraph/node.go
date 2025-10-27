@@ -234,9 +234,13 @@ func (n *Node) UnsetOutputImage(outputName OutputName) error {
 		return fmt.Errorf("no output named %q exists", outputName)
 	}
 
-	output.ResetImage()
+	if output.ImageID.IsNil() {
+		return nil
+	}
 
-	n.addEvent(NewOutputImageUnsetEvent(n, outputName))
+	n.addEvent(NewOutputImageUnsetEvent(n, outputName, output.ImageID))
+
+	output.ResetImage()
 
 	return nil
 }
@@ -480,9 +484,9 @@ func (n *Node) resetOutputImages() {
 			continue
 		}
 
-		output.ResetImage()
+		n.addEvent(NewOutputImageUnsetEvent(n, outputName, output.ImageID))
 
-		n.addEvent(NewOutputImageUnsetEvent(n, outputName))
+		output.ResetImage()
 	}
 }
 

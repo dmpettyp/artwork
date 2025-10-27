@@ -170,14 +170,17 @@ func NewOutputImageSetEvent(
 type NodeOutputImageUnsetEvent struct {
 	NodeEvent
 	OutputName OutputName
+	ImageID    ImageID
 }
 
 func NewOutputImageUnsetEvent(
 	n *Node,
 	outputName OutputName,
+	imageID ImageID,
 ) *NodeOutputImageUnsetEvent {
 	e := &NodeOutputImageUnsetEvent{
 		OutputName: outputName,
+		ImageID:    imageID,
 	}
 	e.Init("NodeOutputImageUnset")
 	e.applyNode(n)

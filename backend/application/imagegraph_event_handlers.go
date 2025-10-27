@@ -16,10 +16,15 @@ type ImageGraphNotifier interface {
 	BroadcastLayoutUpdate(graphID imagegraph.ImageGraphID)
 }
 
+type imageRemover interface {
+	Remove(imageID imagegraph.ImageID) error
+}
+
 type ImageGraphEventHandlers struct {
-	uow      UnitOfWork
-	imageGen *imagegen.ImageGen
-	notifier ImageGraphNotifier
+	uow          UnitOfWork
+	imageGen     *imagegen.ImageGen
+	imageRemover imageRemover
+	notifier     ImageGraphNotifier
 }
 
 // NewImageGraphEventHandlers initializes the handlers struct that processes
@@ -29,15 +34,17 @@ func NewImageGraphEventHandlers(
 	mb *dorky.MessageBus,
 	uow UnitOfWork,
 	imageGen *imagegen.ImageGen,
+	imageRemover imageRemover,
 	notifier ImageGraphNotifier,
 ) (
 	*ImageGraphEventHandlers,
 	error,
 ) {
 	handlers := &ImageGraphEventHandlers{
-		uow:      uow,
-		imageGen: imageGen,
-		notifier: notifier,
+		uow:          uow,
+		imageGen:     imageGen,
+		imageRemover: imageRemover,
+		notifier:     notifier,
 	}
 
 	err := errors.Join(
@@ -64,6 +71,13 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageUnsetEvent(
 	[]dorky.Event,
 	error,
 ) {
+	if err := h.imageRemover.Remove(event.ImageID); err != nil {
+		return nil, fmt.Errorf(
+			"could not process NodeOutputImageUnsetEvent for ImageGraph %q: %w",
+			event.ImageGraphID, err,
+		)
+	}
+
 	return h.uow.Run(ctx, func(repos *Repos) error {
 		ig, err := repos.ImageGraphRepository.Get(event.ImageGraphID)
 
@@ -232,24 +246,15 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'input' input")
 		}
 
-		// Passive passthrough - just set the output to the same image as the input
-		_, err := h.uow.Run(ctx, func(repos *Repos) error {
-			ig, err := repos.ImageGraphRepository.Get(event.ImageGraphID)
-			if err != nil {
-				return fmt.Errorf("could not get image graph: %w", err)
-			}
-
-			err = ig.SetNodeOutputImage(event.NodeID, "final", inputImageID)
-			if err != nil {
-				return fmt.Errorf("could not set output image: %w", err)
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent for output node: %w", err)
-		}
+		go func() {
+			_ = h.imageGen.GenerateOutputsForOutputNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				"final",
+			)
+		}()
 	}
 
 	return nil, nil

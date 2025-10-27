@@ -296,3 +296,19 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	// Save and set output
 	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
 }
+
+func (ig *ImageGen) GenerateOutputsForOutputNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	imageID imagegraph.ImageID,
+	outputName imagegraph.OutputName,
+) error {
+	originalImage, format, err := ig.loadImage(imageID)
+
+	if err != nil {
+		return err
+	}
+
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, originalImage, format)
+}
