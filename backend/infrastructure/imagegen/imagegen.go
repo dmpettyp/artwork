@@ -297,6 +297,59 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
 }
 
+func (ig *ImageGen) GenerateOutputsForCropNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	imageID imagegraph.ImageID,
+	left, right, top, bottom int,
+	outputName imagegraph.OutputName,
+) error {
+	// Load the original image
+	originalImage, format, err := ig.loadImage(imageID)
+	if err != nil {
+		return err
+	}
+
+	// Get the original image bounds
+	bounds := originalImage.Bounds()
+
+	// Clamp crop coordinates to actual image bounds
+	if left < bounds.Min.X {
+		left = bounds.Min.X
+	}
+	if right > bounds.Max.X {
+		right = bounds.Max.X
+	}
+	if top < bounds.Min.Y {
+		top = bounds.Min.Y
+	}
+	if bottom > bounds.Max.Y {
+		bottom = bounds.Max.Y
+	}
+
+	// Ensure we still have a valid rectangle after clamping
+	if left >= right || top >= bottom {
+		return fmt.Errorf("crop rectangle is invalid or outside image bounds")
+	}
+
+	// Create the crop rectangle
+	cropRect := image.Rect(left, top, right, bottom)
+
+	// Create a sub-image (this is a view, not a copy)
+	var croppedImg image.Image
+	if subImager, ok := originalImage.(interface {
+		SubImage(r image.Rectangle) image.Image
+	}); ok {
+		croppedImg = subImager.SubImage(cropRect)
+	} else {
+		return fmt.Errorf("image type does not support cropping")
+	}
+
+	// Save and set output
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, croppedImg, format)
+}
+
 func (ig *ImageGen) GenerateOutputsForOutputNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,

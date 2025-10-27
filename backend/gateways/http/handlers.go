@@ -100,8 +100,9 @@ type outputConnectionResponse struct {
 
 var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"input", imagegraph.NodeTypeInput,
-	"blur", imagegraph.NodeTypeBlur,
 	"output", imagegraph.NodeTypeOutput,
+	"crop", imagegraph.NodeTypeCrop,
+	"blur", imagegraph.NodeTypeBlur,
 	"resize", imagegraph.NodeTypeResize,
 	"resize_match", imagegraph.NodeTypeResizeMatch,
 )
@@ -136,6 +137,7 @@ type nodeTypeInfo struct {
 var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
 	imagegraph.NodeTypeInput:       {"input", "Input"},
 	imagegraph.NodeTypeOutput:      {"output", "Output"},
+	imagegraph.NodeTypeCrop:        {"crop", "Crop"},
 	imagegraph.NodeTypeBlur:        {"blur", "Blur"},
 	imagegraph.NodeTypeResize:      {"resize", "Resize"},
 	imagegraph.NodeTypeResizeMatch: {"resize_match", "Resize Match"},

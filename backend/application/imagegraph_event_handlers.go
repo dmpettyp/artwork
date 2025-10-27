@@ -143,6 +143,56 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypeCrop {
+		// Extract crop coordinates
+		left, err := event.NodeConfig.GetInt("left")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		right, err := event.NodeConfig.GetInt("right")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		top, err := event.NodeConfig.GetInt("top")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		bottom, err := event.NodeConfig.GetInt("bottom")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		// Find the "original" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				inputImageID = input.ImageID
+				break
+			}
+		}
+
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForCropNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				left,
+				right,
+				top,
+				bottom,
+				"cropped",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeResize {
 		// Extract width and height (either or both may be present)
 		width, err := event.NodeConfig.GetIntOptional("width")

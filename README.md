@@ -6,17 +6,18 @@ to process images in a non-destructive way.
 
 ## TODO
 
-
 - node types
   - pallet matching node
   - crop
   - pixel blow up node
     - deliniating lines, width, colour
 
+- need better error handling when image generation fails
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
 
 - DONE - delete images when they are no longer being used
+- DONE - don't share output nodes
 
 ## Overview
 

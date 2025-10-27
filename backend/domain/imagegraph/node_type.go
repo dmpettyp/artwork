@@ -8,6 +8,7 @@ const (
 	NodeTypeNone NodeType = iota
 	NodeTypeInput
 	NodeTypeBlur
+	NodeTypeCrop
 	NodeTypeOutput
 	NodeTypeResize
 	NodeTypeResizeMatch
@@ -50,6 +51,38 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		inputs:       []InputName{"input"},
 		outputs:      []OutputName{"final"},
 		nameRequired: true,
+	},
+	{
+		nodeType: NodeTypeCrop,
+		inputs:   []InputName{"original"},
+		outputs:  []OutputName{"cropped"},
+		fields: map[string]nodeConfigField{
+			"left":   {NodeConfigTypeInt, true, nil},
+			"right":  {NodeConfigTypeInt, true, nil},
+			"top":    {NodeConfigTypeInt, true, nil},
+			"bottom": {NodeConfigTypeInt, true, nil},
+		},
+		validate: func(config NodeConfig) error {
+			left := config["left"].(int)
+			right := config["right"].(int)
+			top := config["top"].(int)
+			bottom := config["bottom"].(int)
+
+			// All coordinates must be non-negative
+			if left < 0 || right < 0 || top < 0 || bottom < 0 {
+				return fmt.Errorf("crop coordinates must be non-negative")
+			}
+
+			// Rectangle must have positive width and height
+			if left >= right {
+				return fmt.Errorf("left must be less than right")
+			}
+			if top >= bottom {
+				return fmt.Errorf("top must be less than bottom")
+			}
+
+			return nil
+		},
 	},
 	{
 		nodeType: NodeTypeBlur,
