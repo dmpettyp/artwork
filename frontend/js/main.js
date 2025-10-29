@@ -11,6 +11,7 @@ import { GraphManager } from './graph-manager.js';
 import { API_PATHS, SIDEBAR_CONFIG } from './constants.js';
 import { loadNodeTypeSchemas } from './node-type-schemas.js';
 import { setNodeTypeConfigs, getNodeTypeConfigs } from './node-type-config-store.js';
+import { CropModal } from './crop-modal.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -151,11 +152,30 @@ graphSelect.addEventListener('change', (e) => {
 // Form builder will be initialized after loading schemas
 let formBuilder = null;
 
+// Crop modal for visual crop configuration
+const cropModal = new CropModal();
+
+// Helper function to get the input image ID for a node
+function getNodeInputImageId(nodeId) {
+    const node = graphState.getNode(nodeId);
+    if (!node) return null;
+
+    // Find the first connected input with an image
+    const connectedInput = node.inputs?.find(input => input.connected && input.image_id);
+    return connectedInput?.image_id || null;
+}
+
 // Add node modal functions
 function openAddNodeModal(nodeType) {
     if (!graphState.getCurrentGraphId()) {
         toastManager.warning('Please select a graph first');
         return;
+    }
+
+    // For crop nodes, show the custom crop modal instead
+    if (nodeType === 'crop') {
+        toastManager.info('Please add the crop node first, then connect an input and edit it to configure the crop area');
+        // Fall through to show the standard modal - crop visual editor only works in edit mode
     }
 
     // Store the node type
@@ -311,6 +331,12 @@ openEditConfigModal = function(nodeId) {
     const node = graphState.getNode(nodeId);
     if (!node) return;
 
+    // For crop nodes, show the custom crop modal instead
+    if (node.type === 'crop') {
+        openCropEditModal(nodeId);
+        return;
+    }
+
     currentNodeId = nodeId;
     editNodeNameInput.value = node.name || '';
 
@@ -345,6 +371,44 @@ function renderEditConfigFields(nodeType, currentConfig) {
 
 function getEditConfigValues() {
     return formBuilder.getValues(editConfigFields);
+}
+
+// Crop modal edit handler
+async function openCropEditModal(nodeId) {
+    console.log('[openCropEditModal] Starting with nodeId:', nodeId);
+    const graphId = graphState.getCurrentGraphId();
+    console.log('[openCropEditModal] graphId:', graphId);
+    if (!graphId) return;
+
+    const node = graphState.getNode(nodeId);
+    console.log('[openCropEditModal] node:', node);
+    if (!node) return;
+
+    // Get the input image from connected nodes
+    const inputImageId = getNodeInputImageId(nodeId);
+    console.log('[openCropEditModal] inputImageId:', inputImageId);
+
+    // Show the crop modal
+    console.log('[openCropEditModal] About to call cropModal.show');
+    try {
+        await cropModal.show(inputImageId, node.config);
+        console.log('[openCropEditModal] cropModal.show completed');
+    } catch (error) {
+        console.error('[openCropEditModal] Error showing crop modal:', error);
+    }
+
+    // Set up the save callback
+    cropModal.onSave = async (cropConfig) => {
+        try {
+            // Update the node config with new crop values
+            await api.updateNode(graphId, nodeId, null, cropConfig);
+            await graphManager.reloadCurrentGraph();
+            toastManager.success('Crop configuration updated');
+        } catch (error) {
+            console.error('Failed to update crop config:', error);
+            toastManager.error(`Failed to update crop: ${error.message}`);
+        }
+    };
 }
 
 editConfigCancelBtn.addEventListener('click', () => {

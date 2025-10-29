@@ -43,6 +43,11 @@ func (m *mockImageStorage) Exists(imageID imagegraph.ImageID) (bool, error) {
 	return ok, nil
 }
 
+func (m *mockImageStorage) Remove(imageID imagegraph.ImageID) error {
+	delete(m.data, imageID.String())
+	return nil
+}
+
 // testServer wraps HTTPServer with test utilities
 type testServer struct {
 	server     *httpgateway.HTTPServer
@@ -85,13 +90,13 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Register event handlers
-	_, err = application.NewImageGraphEventHandlers(mb, uow, imageGen, notifier)
+	_, err = application.NewImageGraphEventHandlers(mb, uow, imageGen, imageStorage, notifier)
 	if err != nil {
 		t.Fatalf("failed to create event handlers: %v", err)
 	}
 
 	// Create HTTP server
-	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.UIMetadataViews, imageStorage, notifier)
+	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.LayoutViews, uow.ViewportViews, imageStorage, notifier)
 
 	// Start the message bus
 	ctx, cancel := context.WithCancel(context.Background())
