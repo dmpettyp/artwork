@@ -8,6 +8,7 @@ to process images in a non-destructive way.
 
 - node types
   - pallet matching node
+  - crop ratio: can set w/h ratio, drag and zoom the crop
   - pixel blow up node
     - deliniating lines, width, colour
 - need better error handling when image generation fails
