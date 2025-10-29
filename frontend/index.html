@@ -143,28 +143,11 @@
             <div class="crop-canvas-container">
                 <canvas id="crop-canvas" width="800" height="600"></canvas>
             </div>
-            <div class="crop-controls">
-                <div class="crop-field-row">
-                    <label>
-                        <span>Left:</span>
-                        <input type="number" id="crop-left" class="form-input" min="0" />
-                    </label>
-                    <label>
-                        <span>Right:</span>
-                        <input type="number" id="crop-right" class="form-input" min="0" />
-                    </label>
-                </div>
-                <div class="crop-field-row">
-                    <label>
-                        <span>Top:</span>
-                        <input type="number" id="crop-top" class="form-input" min="0" />
-                    </label>
-                    <label>
-                        <span>Bottom:</span>
-                        <input type="number" id="crop-bottom" class="form-input" min="0" />
-                    </label>
-                </div>
-            </div>
+            <!-- Hidden input fields for storing crop values -->
+            <input type="hidden" id="crop-left" />
+            <input type="hidden" id="crop-right" />
+            <input type="hidden" id="crop-top" />
+            <input type="hidden" id="crop-bottom" />
             <div class="modal-actions">
                 <button id="crop-cancel-btn" class="btn">Cancel</button>
                 <button id="crop-save-btn" class="btn btn-primary">Save</button>

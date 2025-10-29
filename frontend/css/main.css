@@ -794,7 +794,7 @@ body {
 }
 
 .crop-canvas-container {
-    background: var(--color-darker);
+    background: #fff;
     border-radius: var(--border-radius);
     padding: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
@@ -805,7 +805,7 @@ body {
 
 #crop-canvas {
     border: 1px solid var(--color-border);
-    background: #222;
+    background: #fff;
     cursor: default;
     display: block;
 }

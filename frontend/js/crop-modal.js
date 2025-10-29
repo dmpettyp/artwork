@@ -27,10 +27,9 @@ export class CropModal {
         this.imageOffsetX = 0;
         this.imageOffsetY = 0;
         this.cropRect = { left: 0, top: 0, right: 100, bottom: 100 };
-        this.dragState = null; // null, 'move', or handle identifier
-        this.dragStartX = 0;
-        this.dragStartY = 0;
-        this.dragStartRect = null;
+        this.isDrawing = false;
+        this.drawStartX = 0;
+        this.drawStartY = 0;
 
         this.onSave = null;
 
@@ -46,13 +45,18 @@ export class CropModal {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-        this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
 
-        // Input field changes
-        this.leftInput.addEventListener('input', () => this.handleFieldChange());
-        this.rightInput.addEventListener('input', () => this.handleFieldChange());
-        this.topInput.addEventListener('input', () => this.handleFieldChange());
-        this.bottomInput.addEventListener('input', () => this.handleFieldChange());
+        // Continue drawing even when mouse leaves canvas
+        document.addEventListener('mousemove', (e) => {
+            if (this.isDrawing) {
+                this.handleMouseMove(e);
+            }
+        });
+        document.addEventListener('mouseup', (e) => {
+            if (this.isDrawing) {
+                this.handleMouseUp(e);
+            }
+        });
     }
 
     async show(inputImageId, existingConfig = {}) {
@@ -124,24 +128,47 @@ export class CropModal {
     fitImageToCanvas() {
         if (!this.image) return;
 
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        const imageAspect = this.image.width / this.image.height;
-        const canvasAspect = canvasWidth / canvasHeight;
+        // Define max canvas dimensions
+        const maxCanvasWidth = 900;
+        const maxCanvasHeight = 700;
 
-        if (imageAspect > canvasAspect) {
-            // Image is wider - fit to width
-            this.imageScale = canvasWidth / this.image.width;
+        const imageAspect = this.image.width / this.image.height;
+
+        // Calculate canvas size to fit image aspect ratio
+        let canvasWidth, canvasHeight;
+
+        if (this.image.width > this.image.height) {
+            // Landscape: constrain by width
+            canvasWidth = Math.min(maxCanvasWidth, this.image.width);
+            canvasHeight = canvasWidth / imageAspect;
+
+            // If height exceeds max, recalculate
+            if (canvasHeight > maxCanvasHeight) {
+                canvasHeight = maxCanvasHeight;
+                canvasWidth = canvasHeight * imageAspect;
+            }
         } else {
-            // Image is taller - fit to height
-            this.imageScale = canvasHeight / this.image.height;
+            // Portrait: constrain by height
+            canvasHeight = Math.min(maxCanvasHeight, this.image.height);
+            canvasWidth = canvasHeight * imageAspect;
+
+            // If width exceeds max, recalculate
+            if (canvasWidth > maxCanvasWidth) {
+                canvasWidth = maxCanvasWidth;
+                canvasHeight = canvasWidth / imageAspect;
+            }
         }
 
-        const scaledWidth = this.image.width * this.imageScale;
-        const scaledHeight = this.image.height * this.imageScale;
+        // Set canvas dimensions
+        this.canvas.width = canvasWidth;
+        this.canvas.height = canvasHeight;
 
-        this.imageOffsetX = (canvasWidth - scaledWidth) / 2;
-        this.imageOffsetY = (canvasHeight - scaledHeight) / 2;
+        // Calculate scale to fit image in canvas
+        this.imageScale = canvasWidth / this.image.width;
+
+        // Image fills entire canvas, no offset needed
+        this.imageOffsetX = 0;
+        this.imageOffsetY = 0;
 
         // Set default crop to full image if not set
         if (this.cropRect.right === 100 && this.cropRect.bottom === 100) {
@@ -196,24 +223,9 @@ export class CropModal {
             rect.bottom - rect.top);
 
         // Crop rectangle border
-        this.ctx.strokeStyle = '#3498db';
-        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        this.ctx.lineWidth = 5;
         this.ctx.strokeRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
-
-        // Resize handles
-        this.drawHandle(rect.left, rect.top); // Top-left
-        this.drawHandle(rect.right, rect.top); // Top-right
-        this.drawHandle(rect.left, rect.bottom); // Bottom-left
-        this.drawHandle(rect.right, rect.bottom); // Bottom-right
-        this.drawHandle((rect.left + rect.right) / 2, rect.top); // Top-mid
-        this.drawHandle((rect.left + rect.right) / 2, rect.bottom); // Bottom-mid
-        this.drawHandle(rect.left, (rect.top + rect.bottom) / 2); // Left-mid
-        this.drawHandle(rect.right, (rect.top + rect.bottom) / 2); // Right-mid
-    }
-
-    drawHandle(x, y) {
-        this.ctx.fillStyle = '#3498db';
-        this.ctx.fillRect(x - 4, y - 4, 8, 8);
     }
 
     imageCoordsToCanvas(imageCoords) {
@@ -232,133 +244,85 @@ export class CropModal {
         };
     }
 
-    getHandleAtPoint(x, y) {
-        const rect = this.imageCoordsToCanvas(this.cropRect);
-        const threshold = 8;
-
-        const handles = {
-            'tl': { x: rect.left, y: rect.top },
-            'tr': { x: rect.right, y: rect.top },
-            'bl': { x: rect.left, y: rect.bottom },
-            'br': { x: rect.right, y: rect.bottom },
-            't': { x: (rect.left + rect.right) / 2, y: rect.top },
-            'b': { x: (rect.left + rect.right) / 2, y: rect.bottom },
-            'l': { x: rect.left, y: (rect.top + rect.bottom) / 2 },
-            'r': { x: rect.right, y: (rect.top + rect.bottom) / 2 }
-        };
-
-        for (const [handle, pos] of Object.entries(handles)) {
-            if (Math.abs(x - pos.x) <= threshold && Math.abs(y - pos.y) <= threshold) {
-                return handle;
-            }
-        }
-
-        return null;
-    }
-
-    isPointInRect(x, y) {
-        const rect = this.imageCoordsToCanvas(this.cropRect);
-        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    }
-
     handleMouseDown(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        const handle = this.getHandleAtPoint(x, y);
-        if (handle) {
-            this.dragState = handle;
-        } else if (this.isPointInRect(x, y)) {
-            this.dragState = 'move';
-        } else {
-            return;
-        }
+        // Convert to image coordinates
+        const imageCoords = this.canvasToImageCoords(x, y);
 
-        this.dragStartX = x;
-        this.dragStartY = y;
-        this.dragStartRect = { ...this.cropRect };
+        // Start drawing a new crop box
+        this.isDrawing = true;
+        this.drawStartX = imageCoords.x;
+        this.drawStartY = imageCoords.y;
 
-        this.canvas.style.cursor = 'grabbing';
+        // Initialize crop rect at the starting point
+        this.cropRect = {
+            left: Math.round(imageCoords.x),
+            top: Math.round(imageCoords.y),
+            right: Math.round(imageCoords.x),
+            bottom: Math.round(imageCoords.y)
+        };
+
+        this.canvas.style.cursor = 'crosshair';
     }
 
     handleMouseMove(e) {
+        if (!this.isDrawing) {
+            this.canvas.style.cursor = 'crosshair';
+            return;
+        }
+
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        if (!this.dragState) {
-            // Update cursor based on hover
-            const handle = this.getHandleAtPoint(x, y);
-            if (handle) {
-                const cursors = {
-                    'tl': 'nw-resize', 'tr': 'ne-resize',
-                    'bl': 'sw-resize', 'br': 'se-resize',
-                    't': 'n-resize', 'b': 's-resize',
-                    'l': 'w-resize', 'r': 'e-resize'
-                };
-                this.canvas.style.cursor = cursors[handle] || 'default';
-            } else if (this.isPointInRect(x, y)) {
-                this.canvas.style.cursor = 'move';
-            } else {
-                this.canvas.style.cursor = 'default';
-            }
-            return;
-        }
+        // Convert to image coordinates
+        const imageCoords = this.canvasToImageCoords(x, y);
 
-        const dx = x - this.dragStartX;
-        const dy = y - this.dragStartY;
-        const dxImage = dx / this.imageScale;
-        const dyImage = dy / this.imageScale;
+        // Clamp to image bounds
+        const clampedX = Math.max(0, Math.min(this.image.width, imageCoords.x));
+        const clampedY = Math.max(0, Math.min(this.image.height, imageCoords.y));
 
-        if (this.dragState === 'move') {
-            // Move entire rectangle
-            const width = this.dragStartRect.right - this.dragStartRect.left;
-            const height = this.dragStartRect.bottom - this.dragStartRect.top;
+        // Update crop rectangle (handle dragging in any direction)
+        const left = Math.min(this.drawStartX, clampedX);
+        const right = Math.max(this.drawStartX, clampedX);
+        const top = Math.min(this.drawStartY, clampedY);
+        const bottom = Math.max(this.drawStartY, clampedY);
 
-            let newLeft = this.dragStartRect.left + dxImage;
-            let newTop = this.dragStartRect.top + dyImage;
-
-            // Constrain to image bounds
-            newLeft = Math.max(0, Math.min(newLeft, this.image.width - width));
-            newTop = Math.max(0, Math.min(newTop, this.image.height - height));
-
-            this.cropRect = {
-                left: Math.round(newLeft),
-                top: Math.round(newTop),
-                right: Math.round(newLeft + width),
-                bottom: Math.round(newTop + height)
-            };
-        } else {
-            // Resize from handle
-            let newRect = { ...this.dragStartRect };
-
-            if (this.dragState.includes('l')) newRect.left += dxImage;
-            if (this.dragState.includes('r')) newRect.right += dxImage;
-            if (this.dragState.includes('t')) newRect.top += dyImage;
-            if (this.dragState.includes('b')) newRect.bottom += dyImage;
-
-            // Ensure minimum size and valid bounds
-            newRect.left = Math.max(0, Math.min(newRect.left, newRect.right - 10));
-            newRect.right = Math.min(this.image.width, Math.max(newRect.right, newRect.left + 10));
-            newRect.top = Math.max(0, Math.min(newRect.top, newRect.bottom - 10));
-            newRect.bottom = Math.min(this.image.height, Math.max(newRect.bottom, newRect.top + 10));
-
-            this.cropRect = {
-                left: Math.round(newRect.left),
-                top: Math.round(newRect.top),
-                right: Math.round(newRect.right),
-                bottom: Math.round(newRect.bottom)
-            };
-        }
+        this.cropRect = {
+            left: Math.round(left),
+            top: Math.round(top),
+            right: Math.round(right),
+            bottom: Math.round(bottom)
+        };
 
         this.updateFieldsFromRect();
         this.render();
     }
 
     handleMouseUp(e) {
-        this.dragState = null;
-        this.canvas.style.cursor = 'default';
+        if (this.isDrawing) {
+            this.isDrawing = false;
+            this.canvas.style.cursor = 'crosshair';
+
+            // Ensure minimum size (at least 10x10 pixels)
+            const width = this.cropRect.right - this.cropRect.left;
+            const height = this.cropRect.bottom - this.cropRect.top;
+
+            if (width < 10 || height < 10) {
+                // Reset to full image if crop is too small
+                this.cropRect = {
+                    left: 0,
+                    top: 0,
+                    right: this.image.width,
+                    bottom: this.image.height
+                };
+                this.updateFieldsFromRect();
+                this.render();
+            }
+        }
     }
 
     updateFieldsFromRect() {
