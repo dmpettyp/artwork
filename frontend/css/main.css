@@ -793,6 +793,19 @@ body {
     width: 90vw;
 }
 
+.modal-crop label {
+    display: block;
+    font-weight: 500;
+    color: var(--color-text-dark);
+    margin-bottom: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+.modal-crop #crop-node-name {
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+}
+
 .crop-canvas-container {
     background: #fff;
     border-radius: var(--border-radius);

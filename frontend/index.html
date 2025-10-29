@@ -139,7 +139,11 @@
     <!-- Modal for crop node configuration -->
     <div id="crop-modal" class="modal">
         <div class="modal-content modal-crop">
-            <h3>Configure Crop</h3>
+            <h3>Crop Original Image</h3>
+
+            <label for="crop-node-name">Node Name (optional)</label>
+            <input type="text" id="crop-node-name" class="form-input" placeholder="Enter node name" />
+
             <div class="crop-canvas-container">
                 <canvas id="crop-canvas" width="800" height="600"></canvas>
             </div>

@@ -3,14 +3,12 @@ import { API_PATHS } from './constants.js';
 
 export class CropModal {
     constructor() {
-        console.log('[CropModal.constructor] Initializing...');
         this.modal = document.getElementById('crop-modal');
-        console.log('[CropModal.constructor] modal element:', this.modal);
         this.canvas = document.getElementById('crop-canvas');
-        console.log('[CropModal.constructor] canvas element:', this.canvas);
         this.ctx = this.canvas.getContext('2d');
 
         // Input fields
+        this.nameInput = document.getElementById('crop-node-name');
         this.leftInput = document.getElementById('crop-left');
         this.rightInput = document.getElementById('crop-right');
         this.topInput = document.getElementById('crop-top');
@@ -19,7 +17,6 @@ export class CropModal {
         // Buttons
         this.cancelBtn = document.getElementById('crop-cancel-btn');
         this.saveBtn = document.getElementById('crop-save-btn');
-        console.log('[CropModal.constructor] All elements found');
 
         // State
         this.image = null;
@@ -59,8 +56,9 @@ export class CropModal {
         });
     }
 
-    async show(inputImageId, existingConfig = {}) {
-        console.log('[CropModal.show] Starting with inputImageId:', inputImageId, 'existingConfig:', existingConfig);
+    async show(inputImageId, existingConfig = {}, nodeName = '') {
+        // Set node name
+        this.nameInput.value = nodeName;
 
         // Set initial crop values
         if (existingConfig.left !== undefined) {
@@ -70,26 +68,21 @@ export class CropModal {
                 top: existingConfig.top,
                 bottom: existingConfig.bottom
             };
-            console.log('[CropModal.show] Set cropRect from config:', this.cropRect);
         }
 
         // Load the input image
         if (inputImageId) {
             try {
-                console.log('[CropModal.show] Fetching image:', inputImageId);
                 const response = await fetch(API_PATHS.images(inputImageId));
-                console.log('[CropModal.show] Fetch response:', response.ok, response.status);
                 if (!response.ok) throw new Error('Failed to load image');
 
                 const blob = await response.blob();
                 const imageUrl = URL.createObjectURL(blob);
-                console.log('[CropModal.show] Created blob URL:', imageUrl);
 
                 // Wait for image to load before showing modal
                 await new Promise((resolve, reject) => {
                     this.image = new Image();
                     this.image.onload = () => {
-                        console.log('[CropModal.show] Image loaded successfully');
                         URL.revokeObjectURL(imageUrl);
                         this.fitImageToCanvas();
                         this.updateFieldsFromRect();
@@ -97,12 +90,10 @@ export class CropModal {
                         resolve();
                     };
                     this.image.onerror = () => {
-                        console.error('[CropModal.show] Image load error');
                         URL.revokeObjectURL(imageUrl);
                         reject(new Error('Failed to load image'));
                     };
                     this.image.src = imageUrl;
-                    console.log('[CropModal.show] Set image.src, waiting for load...');
                 });
             } catch (error) {
                 console.error('Failed to load image for crop:', error);
@@ -110,14 +101,11 @@ export class CropModal {
                 return;
             }
         } else {
-            console.error('[CropModal.show] No inputImageId provided');
             alert('Cannot open crop editor: No input image available. Connect an input to this crop node first.');
             return;
         }
 
-        console.log('[CropModal.show] Adding active class to modal');
         this.modal.classList.add('active');
-        console.log('[CropModal.show] Modal should now be visible');
     }
 
     hide() {
@@ -349,10 +337,13 @@ export class CropModal {
     handleSave() {
         if (this.onSave) {
             this.onSave({
-                left: this.cropRect.left,
-                right: this.cropRect.right,
-                top: this.cropRect.top,
-                bottom: this.cropRect.bottom
+                name: this.nameInput.value.trim(),
+                config: {
+                    left: this.cropRect.left,
+                    right: this.cropRect.right,
+                    top: this.cropRect.top,
+                    bottom: this.cropRect.bottom
+                }
             });
         }
         this.hide();

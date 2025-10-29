@@ -375,35 +375,37 @@ function getEditConfigValues() {
 
 // Crop modal edit handler
 async function openCropEditModal(nodeId) {
-    console.log('[openCropEditModal] Starting with nodeId:', nodeId);
     const graphId = graphState.getCurrentGraphId();
-    console.log('[openCropEditModal] graphId:', graphId);
     if (!graphId) return;
 
     const node = graphState.getNode(nodeId);
-    console.log('[openCropEditModal] node:', node);
     if (!node) return;
 
     // Get the input image from connected nodes
     const inputImageId = getNodeInputImageId(nodeId);
-    console.log('[openCropEditModal] inputImageId:', inputImageId);
 
-    // Show the crop modal
-    console.log('[openCropEditModal] About to call cropModal.show');
-    try {
-        await cropModal.show(inputImageId, node.config);
-        console.log('[openCropEditModal] cropModal.show completed');
-    } catch (error) {
-        console.error('[openCropEditModal] Error showing crop modal:', error);
-    }
+    // Show the crop modal with current node name and config
+    await cropModal.show(inputImageId, node.config, node.name || '');
 
     // Set up the save callback
-    cropModal.onSave = async (cropConfig) => {
+    cropModal.onSave = async (data) => {
         try {
-            // Update the node config with new crop values
-            await api.updateNode(graphId, nodeId, null, cropConfig);
-            await graphManager.reloadCurrentGraph();
-            toastManager.success('Crop configuration updated');
+            const { name, config } = data;
+
+            // Determine what changed
+            const nameChanged = name !== (node.name || '');
+            const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
+
+            if (nameChanged || configChanged) {
+                await api.updateNode(
+                    graphId,
+                    nodeId,
+                    nameChanged ? name : null,
+                    configChanged ? config : null
+                );
+                await graphManager.reloadCurrentGraph();
+                toastManager.success('Crop node updated');
+            }
         } catch (error) {
             console.error('Failed to update crop config:', error);
             toastManager.error(`Failed to update crop: ${error.message}`);
