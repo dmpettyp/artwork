@@ -4,15 +4,22 @@ import * as api from './api.js';
 import { GraphState } from './graph.js';
 import { Renderer } from './renderer.js';
 import { InteractionHandler } from './interactions.js';
-import { Modal, ModalManager } from './modal.js';
+import { ModalManager } from './modal.js';
 import { ToastManager } from './toast.js';
 import { NodeConfigFormBuilder } from './form-builder.js';
 import { GraphManager } from './graph-manager.js';
-import { API_PATHS, SIDEBAR_CONFIG } from './constants.js';
+import { SIDEBAR_CONFIG } from './constants.js';
 import { loadNodeTypeSchemas } from './node-type-schemas.js';
 import { setNodeTypeConfigs, getNodeTypeConfigs } from './node-type-config-store.js';
 import { CropModal } from './crop-modal.js';
 import { OutputSidebar } from './output-sidebar.js';
+import {
+    CreateGraphModalController,
+    AddNodeModalController,
+    EditNodeModalController,
+    DeleteNodeModalController,
+    ViewImageModalController
+} from './modals/index.js';
 
 // Initialize state and rendering
 const graphState = new GraphState();
@@ -21,26 +28,29 @@ const nodesLayer = document.getElementById('nodes-layer');
 const connectionsLayer = document.getElementById('connections-layer');
 const renderer = new Renderer(svg, nodesLayer, connectionsLayer, graphState);
 
-// Initialize modal manager and toast manager early so they can be passed to InteractionHandler
+// Initialize managers
 const modalManager = new ModalManager();
 const toastManager = new ToastManager();
-
-// Initialize graph manager
 const graphManager = new GraphManager(api, graphState, renderer, toastManager);
-
-// Initialize output sidebar
 const outputSidebar = new OutputSidebar(graphState, renderer, toastManager);
 
-// Declare functions early so they can be passed to InteractionHandler
-let openEditConfigModal;
+// Crop modal for visual crop configuration
+const cropModal = new CropModal();
 
+// Form builder will be initialized after loading schemas
+let formBuilder = null;
+
+// Modal controllers - will be initialized after schemas are loaded
+let modals = null;
+
+// Initialize interaction handler with modal callback
 const interactions = new InteractionHandler(
     svg,
     renderer,
     graphState,
     api,
     null, // No longer need renderOutputs callback - OutputSidebar subscribes to graphState directly
-    (nodeId) => openEditConfigModal(nodeId),
+    (nodeId) => modals?.editNode.open(nodeId), // Use modal controller
     toastManager
 );
 
@@ -54,76 +64,6 @@ const contextMenu = document.getElementById('context-menu');
 const nodeContextMenu = document.getElementById('node-context-menu');
 let contextMenuPosition = { x: 0, y: 0 };
 let contextMenuNodeId = null;
-
-// Modal factory function to reduce duplication
-function createAndRegisterModal(modalId, options = {}) {
-    const modal = new Modal(modalId, {
-        onOpen: () => {
-            interactions.cancelAllDrags();
-            if (options.onOpen) options.onOpen();
-        },
-        onClose: options.onClose,
-        beforeClose: options.beforeClose
-    });
-    modalManager.register(modal);
-    return modal;
-}
-
-// Create graph modal
-const graphNameInput = document.getElementById('graph-name-input');
-const modalCreateBtn = document.getElementById('modal-create-btn');
-const modalCancelBtn = document.getElementById('modal-cancel-btn');
-
-const createGraphModal = createAndRegisterModal('create-graph-modal', {
-    onOpen: () => {
-        graphNameInput.value = '';
-        graphNameInput.focus();
-    }
-});
-
-// Add node modal
-const addNodeModalElement = document.getElementById('add-node-modal');
-const addNodeModalTitle = document.getElementById('add-node-modal-title');
-const nodeNameInput = document.getElementById('node-name-input');
-const nodeImageUpload = document.getElementById('node-image-upload');
-const nodeImageInput = document.getElementById('node-image-input');
-const nodeConfigFields = document.getElementById('node-config-fields');
-const addNodeCreateBtn = document.getElementById('add-node-create-btn');
-const addNodeCancelBtn = document.getElementById('add-node-cancel-btn');
-
-// Track the node type for the add modal (set when opening)
-let addNodeType = null;
-
-const addNodeModal = createAndRegisterModal('add-node-modal');
-
-// Edit config modal
-const editConfigModalTitle = document.getElementById('edit-config-modal-title');
-const editNodeNameInput = document.getElementById('edit-node-name-input');
-const editImageUpload = document.getElementById('edit-image-upload');
-const editImageInput = document.getElementById('edit-image-input');
-const editConfigFields = document.getElementById('edit-config-fields');
-const editConfigSaveBtn = document.getElementById('edit-config-save-btn');
-const editConfigCancelBtn = document.getElementById('edit-config-cancel-btn');
-
-const editConfigModal = createAndRegisterModal('edit-config-modal', {
-    onClose: () => {
-        currentNodeId = null;
-    }
-});
-
-// Delete node modal
-const deleteNodeName = document.getElementById('delete-node-name');
-const deleteNodeConfirmBtn = document.getElementById('delete-node-confirm-btn');
-const deleteNodeCancelBtn = document.getElementById('delete-node-cancel-btn');
-
-const deleteNodeModal = createAndRegisterModal('delete-node-modal', {
-    onClose: () => {
-        currentNodeId = null;
-    }
-});
-
-// Track current node being edited/deleted
-let currentNodeId = null;
 
 // Subscribe to graph state changes
 graphState.subscribe((graph) => {
@@ -150,420 +90,11 @@ graphSelect.addEventListener('change', (e) => {
     }
 });
 
-// Form builder will be initialized after loading schemas
-let formBuilder = null;
-
-// Crop modal for visual crop configuration
-const cropModal = new CropModal();
-
-// Helper function to get the input image ID for a node
-function getNodeInputImageId(nodeId) {
-    const node = graphState.getNode(nodeId);
-    if (!node) return null;
-
-    // Find the first connected input with an image
-    const connectedInput = node.inputs?.find(input => input.connected && input.image_id);
-    return connectedInput?.image_id || null;
-}
-
-// Add node modal functions
-function openAddNodeModal(nodeType) {
-    if (!graphState.getCurrentGraphId()) {
-        toastManager.warning('Please select a graph first');
-        return;
-    }
-
-    // For crop nodes, show the custom crop modal instead
-    if (nodeType === 'crop') {
-        toastManager.info('Please add the crop node first, then connect an input and edit it to configure the crop area');
-        // Fall through to show the standard modal - crop visual editor only works in edit mode
-    }
-
-    // Store the node type
-    addNodeType = nodeType;
-
-    // Update modal title with display name from config
-    const configs = getNodeTypeConfigs();
-    const displayName = configs[nodeType]?.name || nodeType;
-    addNodeModalTitle.textContent = `Add ${displayName} Node`;
-
-    // Clear inputs
-    nodeNameInput.value = '';
-    nodeImageInput.value = '';
-    nodeConfigFields.innerHTML = '';
-
-    // Update name field based on whether it's required
-    const nameRequired = configs[nodeType]?.nameRequired !== false;
-    nodeNameInput.required = nameRequired;
-    nodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
-
-    // Show/hide image upload based on node type
-    if (nodeType === 'input') {
-        nodeImageUpload.style.display = 'block';
-    } else {
-        nodeImageUpload.style.display = 'none';
-    }
-
-    // Render config fields for the node type
-    renderNodeConfigFields(nodeType);
-
-    addNodeModal.open();
-    nodeNameInput.focus();
-}
-
-function renderNodeConfigFields(nodeType) {
-    formBuilder.renderFields(nodeConfigFields, nodeType, 'config');
-}
-
-function getNodeConfig() {
-    return formBuilder.getValues(nodeConfigFields);
-}
-
-// Create new graph handlers
+// Create graph button handler
 createGraphBtn.addEventListener('click', () => {
-    createGraphModal.open();
+    modals?.createGraph.open();
 });
 
-modalCancelBtn.addEventListener('click', () => {
-    createGraphModal.close();
-});
-
-modalCreateBtn.addEventListener('click', async () => {
-    const name = graphNameInput.value.trim();
-    if (!name) return;
-
-    try {
-        const graph_id = await api.createImageGraph(name);
-        createGraphModal.close();
-        await graphManager.loadGraphList();
-        await graphManager.selectGraph(graph_id);
-        toastManager.success(`Graph "${name}" created successfully`);
-    } catch (error) {
-        console.error('Failed to create graph:', error);
-        toastManager.error(`Failed to create graph: ${error.message}`);
-    }
-});
-
-graphNameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        modalCreateBtn.click();
-    }
-});
-
-// Add node handlers
-addNodeCancelBtn.addEventListener('click', () => {
-    addNodeModal.close();
-    addNodeType = null;
-});
-
-addNodeCreateBtn.addEventListener('click', async () => {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId) return;
-
-    const nodeType = addNodeType;
-    const nodeName = nodeNameInput.value.trim();
-
-    if (!nodeType) {
-        toastManager.warning('Node type not set');
-        return;
-    }
-
-    // Check if name is required for this node type
-    const configs = getNodeTypeConfigs();
-    const nameRequired = configs[nodeType]?.nameRequired !== false;
-    if (nameRequired && !nodeName) {
-        toastManager.warning('Please enter a node name');
-        return;
-    }
-
-    // For input nodes, check if an image file is selected
-    if (nodeType === 'input' && nodeImageInput.files.length === 0) {
-        toastManager.warning('Please select an image file for the input node');
-        return;
-    }
-
-    // Validate config fields
-    const validation = formBuilder.validate(nodeConfigFields, nodeType);
-    if (!validation.valid) {
-        toastManager.warning(validation.errors[0]);
-        return;
-    }
-
-    const config = getNodeConfig();
-
-    try {
-        // Add the node first to get the node ID
-        const nodeId = await api.addNode(graphId, nodeType, nodeName, config);
-
-        // If this is an input node with an image, upload it to the "original" output
-        if (nodeType === 'input' && nodeImageInput.files.length > 0) {
-            const imageFile = nodeImageInput.files[0];
-            await api.uploadNodeOutputImage(graphId, nodeId, 'original', imageFile);
-        }
-
-        // If position was set from context menu, update node position
-        if (addNodeModalElement.dataset.canvasX && addNodeModalElement.dataset.canvasY) {
-            const x = parseFloat(addNodeModalElement.dataset.canvasX);
-            const y = parseFloat(addNodeModalElement.dataset.canvasY);
-            renderer.updateNodePosition(nodeId, x, y);
-
-            // Persist the layout (node positions)
-            const nodePositions = renderer.exportNodePositions();
-            await api.updateLayout(graphId, nodePositions);
-
-            // Clear the stored position
-            delete addNodeModalElement.dataset.canvasX;
-            delete addNodeModalElement.dataset.canvasY;
-        }
-
-        addNodeModal.close();
-        addNodeType = null;
-        // Refresh graph to show new node
-        await graphManager.reloadCurrentGraph();
-        toastManager.success(`Node "${nodeName}" added successfully`);
-    } catch (error) {
-        console.error('Failed to add node:', error);
-        toastManager.error(`Failed to add node: ${error.message}`);
-    }
-});
-
-// Edit config modal handlers
-openEditConfigModal = function(nodeId) {
-    const node = graphState.getNode(nodeId);
-    if (!node) return;
-
-    // For crop nodes, show the custom crop modal instead
-    if (node.type === 'crop') {
-        openCropEditModal(nodeId);
-        return;
-    }
-
-    currentNodeId = nodeId;
-    editNodeNameInput.value = node.name || '';
-
-    // Update modal title with display name from config
-    const configs = getNodeTypeConfigs();
-    const displayName = configs[node.type]?.name || node.type;
-    editConfigModalTitle.textContent = `Edit ${displayName} Node`;
-
-    // Update name field based on whether it's required
-    const nameRequired = configs[node.type]?.nameRequired !== false;
-    editNodeNameInput.required = nameRequired;
-    editNodeNameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
-
-    // Show/hide image upload based on node type
-    if (node.type === 'input') {
-        editImageUpload.style.display = 'block';
-        editImageInput.value = ''; // Clear any previous file selection
-    } else {
-        editImageUpload.style.display = 'none';
-        editImageInput.value = '';
-    }
-
-    // Render config fields based on node type
-    renderEditConfigFields(node.type, node.config);
-
-    editConfigModal.open();
-}
-
-function renderEditConfigFields(nodeType, currentConfig) {
-    formBuilder.renderFields(editConfigFields, nodeType, 'edit-config', currentConfig);
-}
-
-function getEditConfigValues() {
-    return formBuilder.getValues(editConfigFields);
-}
-
-// Crop modal edit handler
-async function openCropEditModal(nodeId) {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId) return;
-
-    const node = graphState.getNode(nodeId);
-    if (!node) return;
-
-    // Get the input image from connected nodes
-    const inputImageId = getNodeInputImageId(nodeId);
-
-    // Show the crop modal with current node name and config
-    await cropModal.show(inputImageId, node.config, node.name || '');
-
-    // Set up the save callback
-    cropModal.onSave = async (data) => {
-        try {
-            const { name, config } = data;
-
-            // Determine what changed
-            const nameChanged = name !== (node.name || '');
-            const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
-
-            if (nameChanged || configChanged) {
-                await api.updateNode(
-                    graphId,
-                    nodeId,
-                    nameChanged ? name : null,
-                    configChanged ? config : null
-                );
-                await graphManager.reloadCurrentGraph();
-                toastManager.success('Crop node updated');
-            }
-        } catch (error) {
-            console.error('Failed to update crop config:', error);
-            toastManager.error(`Failed to update crop: ${error.message}`);
-        }
-    };
-}
-
-editConfigCancelBtn.addEventListener('click', () => {
-    editConfigModal.close();
-});
-
-editConfigSaveBtn.addEventListener('click', async () => {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId || !currentNodeId) return;
-
-    const node = graphState.getNode(currentNodeId);
-    const newName = editNodeNameInput.value.trim();
-
-    // Check if name is required for this node type
-    const configs = getNodeTypeConfigs();
-    const nameRequired = configs[node.type]?.nameRequired !== false;
-    if (nameRequired && !newName) {
-        toastManager.warning('Please enter a node name');
-        return;
-    }
-
-    // Validate config fields
-    const validation = formBuilder.validate(editConfigFields, node.type);
-    if (!validation.valid) {
-        toastManager.warning(validation.errors[0]);
-        return;
-    }
-
-    const config = getEditConfigValues();
-
-    // Determine what changed (handle empty string vs null for optional names)
-    const oldName = node.name || '';
-    const nameChanged = newName !== oldName;
-    const configChanged = JSON.stringify(config) !== JSON.stringify(node.config);
-    const imageChanged = node.type === 'input' && editImageInput.files.length > 0;
-
-    if (!nameChanged && !configChanged && !imageChanged) {
-        editConfigModal.close();
-        return;
-    }
-
-    try {
-        // Update name and/or config if changed
-        if (nameChanged || configChanged) {
-            await api.updateNode(
-                graphId,
-                currentNodeId,
-                nameChanged ? newName : null,
-                configChanged ? config : null
-            );
-        }
-
-        // Upload new image if selected for input node
-        if (imageChanged) {
-            const imageFile = editImageInput.files[0];
-            await api.uploadNodeOutputImage(graphId, currentNodeId, 'original', imageFile);
-        }
-
-        editConfigModal.close();
-        // Refresh graph to show updates
-        await graphManager.reloadCurrentGraph();
-        toastManager.success('Node updated successfully');
-    } catch (error) {
-        console.error('Failed to update node:', error);
-        toastManager.error(`Failed to update node: ${error.message}`);
-    }
-});
-
-// View image modal
-const viewImageTitle = document.getElementById('view-image-title');
-const viewImageImg = document.getElementById('view-image-img');
-const viewImageMessage = document.getElementById('view-image-message');
-const viewImageCloseBtn = document.getElementById('view-image-close-btn');
-
-const viewImageModal = createAndRegisterModal('view-image-modal', {
-    onClose: () => {
-        viewImageImg.src = '';
-        viewImageImg.onerror = null;
-        currentNodeId = null;
-    }
-});
-
-// Delete node modal handlers
-function openDeleteNodeModal(nodeId) {
-    const node = graphState.getNode(nodeId);
-    if (!node) return;
-
-    currentNodeId = nodeId;
-    deleteNodeName.textContent = node.name;
-    deleteNodeModal.open();
-}
-
-deleteNodeCancelBtn.addEventListener('click', () => {
-    deleteNodeModal.close();
-});
-
-deleteNodeConfirmBtn.addEventListener('click', async () => {
-    const graphId = graphState.getCurrentGraphId();
-    if (!graphId || !currentNodeId) return;
-
-    try {
-        const node = graphState.getNode(currentNodeId);
-        const nodeName = node ? node.name : 'Node';
-
-        await api.deleteNode(graphId, currentNodeId);
-        deleteNodeModal.close();
-        // Refresh graph to show node removed
-        await graphManager.reloadCurrentGraph();
-        toastManager.success(`"${nodeName}" deleted successfully`);
-    } catch (error) {
-        console.error('Failed to delete node:', error);
-        toastManager.error(`Failed to delete node: ${error.message}`);
-    }
-});
-
-function openViewImageModal(nodeId) {
-    const node = graphState.getNode(nodeId);
-    if (!node) return;
-
-    currentNodeId = nodeId;
-    viewImageTitle.textContent = `${node.name} - Output`;
-
-    // Get the first output
-    const outputs = node.outputs || [];
-    if (outputs.length === 0 || !outputs[0].image_id) {
-        // No output image available
-        viewImageImg.style.display = 'none';
-        viewImageMessage.textContent = 'No output image available for this node.';
-        viewImageMessage.style.display = 'block';
-    } else {
-        // Load and display the image
-        const imageId = outputs[0].image_id;
-        const imageUrl = API_PATHS.images(imageId);
-
-        viewImageImg.src = imageUrl;
-        viewImageImg.style.display = 'block';
-        viewImageMessage.style.display = 'none';
-
-        // Handle image load error
-        viewImageImg.onerror = () => {
-            viewImageImg.style.display = 'none';
-            viewImageMessage.textContent = 'Failed to load image.';
-            viewImageMessage.style.display = 'block';
-        };
-    }
-
-    viewImageModal.open();
-}
-
-viewImageCloseBtn.addEventListener('click', () => {
-    viewImageModal.close();
-});
 
 // Handle connection delete button clicks
 svg.addEventListener('click', (e) => {
@@ -668,7 +199,7 @@ contextMenu.addEventListener('click', (e) => {
     if (nodeTypeItem) {
         const nodeType = nodeTypeItem.getAttribute('data-node-type');
         contextMenu.classList.remove('active');
-        openAddNodeModalAtPosition(nodeType, contextMenuPosition);
+        modals?.addNode.open(nodeType, contextMenuPosition);
     }
 });
 
@@ -680,31 +211,16 @@ nodeContextMenu.addEventListener('click', (e) => {
         nodeContextMenu.classList.remove('active');
 
         if (action === 'view') {
-            openViewImageModal(contextMenuNodeId);
+            modals?.viewImage.open(contextMenuNodeId);
         } else if (action === 'edit-config') {
-            openEditConfigModal(contextMenuNodeId);
+            modals?.editNode.open(contextMenuNodeId);
         } else if (action === 'delete') {
-            openDeleteNodeModal(contextMenuNodeId);
+            modals?.deleteNode.open(contextMenuNodeId);
         }
 
         contextMenuNodeId = null;
     }
 });
-
-// Open add node modal with pre-selected type and position
-function openAddNodeModalAtPosition(nodeType, position) {
-    if (!graphState.getCurrentGraphId()) {
-        toastManager.warning('Please select a graph first');
-        return;
-    }
-
-    // Store the position for use when creating the node
-    addNodeModalElement.dataset.canvasX = position.x;
-    addNodeModalElement.dataset.canvasY = position.y;
-
-    // Open the modal with the specified node type
-    openAddNodeModal(nodeType);
-}
 
 // Clean up WebSocket on page unload
 window.addEventListener('beforeunload', () => {
@@ -799,6 +315,27 @@ async function initialize() {
 
         // Initialize form builder with loaded schemas
         formBuilder = new NodeConfigFormBuilder(schemas);
+
+        // Initialize modal controllers now that formBuilder is ready
+        modals = {
+            createGraph: new CreateGraphModalController(
+                api, graphManager, toastManager, modalManager, interactions
+            ),
+            addNode: new AddNodeModalController(
+                api, graphState, graphManager, renderer, formBuilder,
+                toastManager, modalManager, interactions, getNodeTypeConfigs
+            ),
+            editNode: new EditNodeModalController(
+                api, graphState, graphManager, formBuilder, cropModal,
+                toastManager, modalManager, interactions, getNodeTypeConfigs
+            ),
+            deleteNode: new DeleteNodeModalController(
+                api, graphState, graphManager, toastManager, modalManager, interactions
+            ),
+            viewImage: new ViewImageModalController(
+                graphState, modalManager, interactions
+            )
+        };
 
         // Populate context menu with node types
         populateAddNodeContextMenu(schemas);
