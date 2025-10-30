@@ -25,8 +25,10 @@ export class CropModal {
         this.imageOffsetY = 0;
         this.cropRect = { left: 0, top: 0, right: 100, bottom: 100 };
         this.isDrawing = false;
+        this.isDragging = false;
         this.drawStartX = 0;
         this.drawStartY = 0;
+        this.dragStartRect = null;
 
         this.onSave = null;
 
@@ -240,25 +242,35 @@ export class CropModal {
         // Convert to image coordinates
         const imageCoords = this.canvasToImageCoords(x, y);
 
-        // Start drawing a new crop box
-        this.isDrawing = true;
-        this.drawStartX = imageCoords.x;
-        this.drawStartY = imageCoords.y;
+        // If shift is held, start dragging the existing crop region
+        if (e.shiftKey) {
+            this.isDragging = true;
+            this.drawStartX = imageCoords.x;
+            this.drawStartY = imageCoords.y;
+            this.dragStartRect = { ...this.cropRect };
+            this.canvas.style.cursor = 'move';
+        } else {
+            // Start drawing a new crop box
+            this.isDrawing = true;
+            this.drawStartX = imageCoords.x;
+            this.drawStartY = imageCoords.y;
 
-        // Initialize crop rect at the starting point
-        this.cropRect = {
-            left: Math.round(imageCoords.x),
-            top: Math.round(imageCoords.y),
-            right: Math.round(imageCoords.x),
-            bottom: Math.round(imageCoords.y)
-        };
+            // Initialize crop rect at the starting point
+            this.cropRect = {
+                left: Math.round(imageCoords.x),
+                top: Math.round(imageCoords.y),
+                right: Math.round(imageCoords.x),
+                bottom: Math.round(imageCoords.y)
+            };
 
-        this.canvas.style.cursor = 'crosshair';
+            this.canvas.style.cursor = 'crosshair';
+        }
     }
 
     handleMouseMove(e) {
-        if (!this.isDrawing) {
-            this.canvas.style.cursor = 'crosshair';
+        if (!this.isDrawing && !this.isDragging) {
+            // Update cursor based on shift key
+            this.canvas.style.cursor = e.shiftKey ? 'move' : 'crosshair';
             return;
         }
 
@@ -269,22 +281,46 @@ export class CropModal {
         // Convert to image coordinates
         const imageCoords = this.canvasToImageCoords(x, y);
 
-        // Clamp to image bounds
-        const clampedX = Math.max(0, Math.min(this.image.width, imageCoords.x));
-        const clampedY = Math.max(0, Math.min(this.image.height, imageCoords.y));
+        if (this.isDragging) {
+            // Move the entire crop rectangle
+            const dx = imageCoords.x - this.drawStartX;
+            const dy = imageCoords.y - this.drawStartY;
 
-        // Update crop rectangle (handle dragging in any direction)
-        const left = Math.min(this.drawStartX, clampedX);
-        const right = Math.max(this.drawStartX, clampedX);
-        const top = Math.min(this.drawStartY, clampedY);
-        const bottom = Math.max(this.drawStartY, clampedY);
+            const width = this.dragStartRect.right - this.dragStartRect.left;
+            const height = this.dragStartRect.bottom - this.dragStartRect.top;
 
-        this.cropRect = {
-            left: Math.round(left),
-            top: Math.round(top),
-            right: Math.round(right),
-            bottom: Math.round(bottom)
-        };
+            let newLeft = this.dragStartRect.left + dx;
+            let newTop = this.dragStartRect.top + dy;
+
+            // Constrain to image bounds
+            newLeft = Math.max(0, Math.min(newLeft, this.image.width - width));
+            newTop = Math.max(0, Math.min(newTop, this.image.height - height));
+
+            this.cropRect = {
+                left: Math.round(newLeft),
+                top: Math.round(newTop),
+                right: Math.round(newLeft + width),
+                bottom: Math.round(newTop + height)
+            };
+        } else {
+            // Drawing a new crop box
+            // Clamp to image bounds
+            const clampedX = Math.max(0, Math.min(this.image.width, imageCoords.x));
+            const clampedY = Math.max(0, Math.min(this.image.height, imageCoords.y));
+
+            // Update crop rectangle (handle dragging in any direction)
+            const left = Math.min(this.drawStartX, clampedX);
+            const right = Math.max(this.drawStartX, clampedX);
+            const top = Math.min(this.drawStartY, clampedY);
+            const bottom = Math.max(this.drawStartY, clampedY);
+
+            this.cropRect = {
+                left: Math.round(left),
+                top: Math.round(top),
+                right: Math.round(right),
+                bottom: Math.round(bottom)
+            };
+        }
 
         this.updateFieldsFromRect();
         this.render();
@@ -293,7 +329,7 @@ export class CropModal {
     handleMouseUp(e) {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.canvas.style.cursor = 'crosshair';
+            this.canvas.style.cursor = e.shiftKey ? 'move' : 'crosshair';
 
             // Ensure minimum size (at least 10x10 pixels)
             const width = this.cropRect.right - this.cropRect.left;
@@ -310,6 +346,12 @@ export class CropModal {
                 this.updateFieldsFromRect();
                 this.render();
             }
+        }
+
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.dragStartRect = null;
+            this.canvas.style.cursor = e.shiftKey ? 'move' : 'crosshair';
         }
     }
 
