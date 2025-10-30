@@ -26,6 +26,7 @@ const (
 )
 
 type nodeConfigField struct {
+	name      string
 	fieldType NodeConfigFieldType
 	required  bool
 	options   []string
@@ -36,7 +37,7 @@ type nodeTypeConfig struct {
 	inputs       []InputName
 	outputs      []OutputName
 	nameRequired bool
-	fields       map[string]nodeConfigField
+	fields       []nodeConfigField
 	validate     func(NodeConfig) error
 }
 
@@ -56,13 +57,13 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		nodeType: NodeTypeCrop,
 		inputs:   []InputName{"original"},
 		outputs:  []OutputName{"cropped"},
-		fields: map[string]nodeConfigField{
-			"left":                {NodeConfigTypeInt, true, nil},
-			"right":               {NodeConfigTypeInt, true, nil},
-			"top":                 {NodeConfigTypeInt, true, nil},
-			"bottom":              {NodeConfigTypeInt, true, nil},
-			"aspect_ratio_width":  {NodeConfigTypeInt, false, nil},
-			"aspect_ratio_height": {NodeConfigTypeInt, false, nil},
+		fields: []nodeConfigField{
+			{"left", NodeConfigTypeInt, true, nil},
+			{"right", NodeConfigTypeInt, true, nil},
+			{"top", NodeConfigTypeInt, true, nil},
+			{"bottom", NodeConfigTypeInt, true, nil},
+			{"aspect_ratio_width", NodeConfigTypeInt, false, nil},
+			{"aspect_ratio_height", NodeConfigTypeInt, false, nil},
 		},
 		validate: func(config NodeConfig) error {
 			left := config["left"].(int)
@@ -123,8 +124,8 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		nodeType: NodeTypeBlur,
 		inputs:   []InputName{"original"},
 		outputs:  []OutputName{"blurred"},
-		fields: map[string]nodeConfigField{
-			"radius": {NodeConfigTypeInt, true, nil},
+		fields: []nodeConfigField{
+			{"radius", NodeConfigTypeInt, true, nil},
 		},
 		validate: func(config NodeConfig) error {
 			radius := config["radius"].(int)
@@ -141,10 +142,10 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		nodeType: NodeTypeResize,
 		inputs:   []InputName{"original"},
 		outputs:  []OutputName{"resized"},
-		fields: map[string]nodeConfigField{
-			"width":  {NodeConfigTypeInt, false, nil},
-			"height": {NodeConfigTypeInt, false, nil},
-			"interpolation": {NodeConfigTypeOption, true, []string{
+		fields: []nodeConfigField{
+			{"width", NodeConfigTypeInt, false, nil},
+			{"height", NodeConfigTypeInt, false, nil},
+			{"interpolation", NodeConfigTypeOption, true, []string{
 				"NearestNeighbor",
 				"Bilinear",
 				"Bicubic",
@@ -191,8 +192,8 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		nodeType: NodeTypeResizeMatch,
 		inputs:   []InputName{"original", "size_match"},
 		outputs:  []OutputName{"resized"},
-		fields: map[string]nodeConfigField{
-			"interpolation": {NodeConfigTypeOption, true, []string{
+		fields: []nodeConfigField{
+			{"interpolation", NodeConfigTypeOption, true, []string{
 				"NearestNeighbor",
 				"Bilinear",
 				"Bicubic",
@@ -220,18 +221,24 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 		return fmt.Errorf("node type %q does not have config", nt)
 	}
 
+	// Build a map for quick lookup
+	fieldMap := make(map[string]nodeConfigField)
+	for _, field := range nodeTypeConfig.fields {
+		fieldMap[field.name] = field
+	}
+
 	// Validate required fields are present
-	for fieldName, fieldDef := range nodeTypeConfig.fields {
-		if fieldDef.required {
-			if !nodeConfig.Exists(fieldName) {
-				return fmt.Errorf("required field %q is missing", fieldName)
+	for _, field := range nodeTypeConfig.fields {
+		if field.required {
+			if !nodeConfig.Exists(field.name) {
+				return fmt.Errorf("required field %q is missing", field.name)
 			}
 		}
 	}
 
 	// Validate field types and reject unknown fields
 	for key, value := range nodeConfig {
-		fieldDef, exists := nodeTypeConfig.fields[key]
+		fieldDef, exists := fieldMap[key]
 		if !exists {
 			return fmt.Errorf("unknown field %q", key)
 		}
@@ -367,11 +374,11 @@ func (nt NodeType) GetSchema() NodeTypeSchema {
 
 	// Convert fields
 	fields := make(map[string]NodeTypeSchemaField)
-	for fieldName, fieldDef := range cfg.fields {
-		fields[fieldName] = NodeTypeSchemaField{
-			Type:     fieldDef.fieldType.String(),
-			Required: fieldDef.required,
-			Options:  fieldDef.options,
+	for _, field := range cfg.fields {
+		fields[field.name] = NodeTypeSchemaField{
+			Type:     field.fieldType.String(),
+			Required: field.required,
+			Options:  field.options,
 		}
 	}
 

@@ -15,11 +15,6 @@ to process images in a non-destructive way.
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
 
-- DONE - much better cropping, interactive probably best
-- DONE - initial crop node
-- DONE - delete images when they are no longer being used
-- DONE - don't share output nodes
-
 ## Overview
 
 The core model in this project is called an "ImageGraph". An ImageGraph
@@ -59,6 +54,11 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 
 ## Done
+
+- DONE - much better cropping, interactive probably best
+- DONE - initial crop node
+- DONE - delete images when they are no longer being used
+- DONE - don't share output nodes
 
 - DONE - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
 - DONE - publish node field config to frontend?

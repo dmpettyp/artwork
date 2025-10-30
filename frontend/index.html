@@ -144,12 +144,16 @@
             <label for="crop-node-name">Node Name (optional)</label>
             <input type="text" id="crop-node-name" class="form-input" placeholder="Enter node name" />
 
-            <div class="aspect-ratio-container" style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-                <label for="crop-aspect-width" style="margin: 0;">Aspect Ratio (w:h):</label>
-                <input type="number" id="crop-aspect-width" class="form-input" min="1" placeholder="w" style="width: 80px;" />
+            <div class="aspect-ratio-container"
+                style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                <label for="crop-aspect-width" style="margin: 0;">Aspect Ratio:</label>
+                <input type="number" id="crop-aspect-width" class="form-input" min="1" placeholder="w"
+                    style="width: 80px;" />
                 <span>:</span>
-                <input type="number" id="crop-aspect-height" class="form-input" min="1" placeholder="h" style="width: 80px;" />
-                <small style="color: #7f8c8d; margin-left: 10px;">Leave empty for no constraint</small>
+                <input type="number" id="crop-aspect-height" class="form-input" min="1" placeholder="h"
+                    style="width: 80px;" />
+                <button id="crop-aspect-reset-btn" class="btn"
+                    style="padding: 6px 12px; font-size: 13px;">Reset</button>
             </div>
 
             <div class="crop-canvas-container">

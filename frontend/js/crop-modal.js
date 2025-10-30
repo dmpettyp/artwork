@@ -19,6 +19,7 @@ export class CropModal {
         // Buttons
         this.cancelBtn = document.getElementById('crop-cancel-btn');
         this.saveBtn = document.getElementById('crop-save-btn');
+        this.aspectResetBtn = document.getElementById('crop-aspect-reset-btn');
 
         // State
         this.image = null;
@@ -55,6 +56,7 @@ export class CropModal {
         // Aspect ratio input changes
         this.aspectWidthInput.addEventListener('input', () => this.handleAspectRatioChange());
         this.aspectHeightInput.addEventListener('input', () => this.handleAspectRatioChange());
+        this.aspectResetBtn.addEventListener('click', () => this.resetAspectRatio());
 
         // Continue drawing even when mouse leaves canvas
         document.addEventListener('mousemove', (e) => {
@@ -505,6 +507,14 @@ export class CropModal {
         if (this.isAspectConstrained() && this.image) {
             this.adjustCropToAspectRatio();
         }
+    }
+
+    resetAspectRatio() {
+        // Clear the aspect ratio inputs and state
+        this.aspectWidthInput.value = '';
+        this.aspectHeightInput.value = '';
+        this.aspectRatioWidth = null;
+        this.aspectRatioHeight = null;
     }
 
     adjustCropToAspectRatio() {
