@@ -13,6 +13,8 @@ export class CropModal {
         this.rightInput = document.getElementById('crop-right');
         this.topInput = document.getElementById('crop-top');
         this.bottomInput = document.getElementById('crop-bottom');
+        this.aspectWidthInput = document.getElementById('crop-aspect-width');
+        this.aspectHeightInput = document.getElementById('crop-aspect-height');
 
         // Buttons
         this.cancelBtn = document.getElementById('crop-cancel-btn');
@@ -30,6 +32,10 @@ export class CropModal {
         this.drawStartY = 0;
         this.dragStartRect = null;
 
+        // Aspect ratio constraint
+        this.aspectRatioWidth = null;
+        this.aspectRatioHeight = null;
+
         this.onSave = null;
 
         this.setupEventListeners();
@@ -45,6 +51,10 @@ export class CropModal {
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+
+        // Aspect ratio input changes
+        this.aspectWidthInput.addEventListener('input', () => this.handleAspectRatioChange());
+        this.aspectHeightInput.addEventListener('input', () => this.handleAspectRatioChange());
 
         // Continue drawing even when mouse leaves canvas
         document.addEventListener('mousemove', (e) => {
@@ -71,6 +81,20 @@ export class CropModal {
                 top: existingConfig.top,
                 bottom: existingConfig.bottom
             };
+        }
+
+        // Set aspect ratio values if present
+        if (existingConfig.aspect_ratio_width !== undefined && existingConfig.aspect_ratio_height !== undefined) {
+            this.aspectWidthInput.value = existingConfig.aspect_ratio_width;
+            this.aspectHeightInput.value = existingConfig.aspect_ratio_height;
+            this.aspectRatioWidth = existingConfig.aspect_ratio_width;
+            this.aspectRatioHeight = existingConfig.aspect_ratio_height;
+        } else {
+            // Clear aspect ratio inputs
+            this.aspectWidthInput.value = '';
+            this.aspectHeightInput.value = '';
+            this.aspectRatioWidth = null;
+            this.aspectRatioHeight = null;
         }
 
         // Load the input image
@@ -309,17 +333,19 @@ export class CropModal {
             const clampedX = Math.max(0, Math.min(this.image.width, imageCoords.x));
             const clampedY = Math.max(0, Math.min(this.image.height, imageCoords.y));
 
-            // Update crop rectangle (handle dragging in any direction)
-            const left = Math.min(this.drawStartX, clampedX);
-            const right = Math.max(this.drawStartX, clampedX);
-            const top = Math.min(this.drawStartY, clampedY);
-            const bottom = Math.max(this.drawStartY, clampedY);
+            // Apply aspect ratio constraint if enabled
+            const constrainedRect = this.applyAspectRatioConstraint(
+                this.drawStartX,
+                this.drawStartY,
+                clampedX,
+                clampedY
+            );
 
             this.cropRect = {
-                left: Math.round(left),
-                top: Math.round(top),
-                right: Math.round(right),
-                bottom: Math.round(bottom)
+                left: Math.round(constrainedRect.left),
+                top: Math.round(constrainedRect.top),
+                right: Math.round(constrainedRect.right),
+                bottom: Math.round(constrainedRect.bottom)
             };
         }
 
@@ -363,6 +389,95 @@ export class CropModal {
         this.bottomInput.value = this.cropRect.bottom;
     }
 
+    isAspectConstrained() {
+        return this.aspectRatioWidth !== null &&
+               this.aspectRatioHeight !== null &&
+               this.aspectRatioWidth > 0 &&
+               this.aspectRatioHeight > 0;
+    }
+
+    /**
+     * Apply aspect ratio constraint to a rectangle
+     * @param {number} startX - Starting X coordinate
+     * @param {number} startY - Starting Y coordinate
+     * @param {number} currentX - Current X coordinate
+     * @param {number} currentY - Current Y coordinate
+     * @returns {object} - Constrained rectangle {left, right, top, bottom}
+     */
+    applyAspectRatioConstraint(startX, startY, currentX, currentY) {
+        if (!this.isAspectConstrained()) {
+            // No constraint - return unconstrained rect
+            return {
+                left: Math.min(startX, currentX),
+                right: Math.max(startX, currentX),
+                top: Math.min(startY, currentY),
+                bottom: Math.max(startY, currentY)
+            };
+        }
+
+        const aspectRatio = this.aspectRatioWidth / this.aspectRatioHeight;
+
+        // Calculate deltas
+        const deltaX = Math.abs(currentX - startX);
+        const deltaY = Math.abs(currentY - startY);
+
+        let width, height;
+
+        // Determine which dimension to use as anchor based on which is being dragged more
+        if (deltaX > deltaY) {
+            // Width is anchor
+            width = deltaX;
+            height = width / aspectRatio;
+        } else {
+            // Height is anchor
+            height = deltaY;
+            width = height * aspectRatio;
+        }
+
+        // Calculate rectangle based on direction of drag
+        let left, right, top, bottom;
+
+        if (currentX >= startX) {
+            left = startX;
+            right = startX + width;
+        } else {
+            left = startX - width;
+            right = startX;
+        }
+
+        if (currentY >= startY) {
+            top = startY;
+            bottom = startY + height;
+        } else {
+            top = startY - height;
+            bottom = startY;
+        }
+
+        // Clamp to image bounds
+        if (right > this.image.width) {
+            const excess = right - this.image.width;
+            right = this.image.width;
+            left = Math.max(0, left - excess);
+        }
+        if (left < 0) {
+            const excess = -left;
+            left = 0;
+            right = Math.min(this.image.width, right + excess);
+        }
+        if (bottom > this.image.height) {
+            const excess = bottom - this.image.height;
+            bottom = this.image.height;
+            top = Math.max(0, top - excess);
+        }
+        if (top < 0) {
+            const excess = -top;
+            top = 0;
+            bottom = Math.min(this.image.height, bottom + excess);
+        }
+
+        return { left, right, top, bottom };
+    }
+
     handleFieldChange() {
         // Update crop rect from fields
         const left = parseInt(this.leftInput.value) || 0;
@@ -375,6 +490,89 @@ export class CropModal {
             this.cropRect = { left, right, top, bottom };
             this.render();
         }
+    }
+
+    handleAspectRatioChange() {
+        // Update aspect ratio state from inputs
+        const widthVal = parseInt(this.aspectWidthInput.value);
+        const heightVal = parseInt(this.aspectHeightInput.value);
+
+        // Update state
+        this.aspectRatioWidth = (widthVal > 0) ? widthVal : null;
+        this.aspectRatioHeight = (heightVal > 0) ? heightVal : null;
+
+        // If both are set and we have an image, adjust current crop box to match new ratio
+        if (this.isAspectConstrained() && this.image) {
+            this.adjustCropToAspectRatio();
+        }
+    }
+
+    adjustCropToAspectRatio() {
+        if (!this.isAspectConstrained() || !this.image) return;
+
+        const aspectRatio = this.aspectRatioWidth / this.aspectRatioHeight;
+
+        // Get current center
+        const centerX = (this.cropRect.left + this.cropRect.right) / 2;
+        const centerY = (this.cropRect.top + this.cropRect.bottom) / 2;
+
+        // Get current dimensions
+        const currentWidth = this.cropRect.right - this.cropRect.left;
+        const currentHeight = this.cropRect.bottom - this.cropRect.top;
+        const currentRatio = currentWidth / currentHeight;
+
+        let newWidth, newHeight;
+
+        // Preserve the larger dimension and calculate the other
+        if (currentRatio > aspectRatio) {
+            // Current box is wider than target ratio - preserve height
+            newHeight = currentHeight;
+            newWidth = newHeight * aspectRatio;
+        } else {
+            // Current box is taller than target ratio - preserve width
+            newWidth = currentWidth;
+            newHeight = newWidth / aspectRatio;
+        }
+
+        // Calculate new bounds centered around current center
+        let newLeft = centerX - newWidth / 2;
+        let newRight = centerX + newWidth / 2;
+        let newTop = centerY - newHeight / 2;
+        let newBottom = centerY + newHeight / 2;
+
+        // Constrain to image bounds
+        if (newLeft < 0) {
+            newLeft = 0;
+            newRight = newWidth;
+        }
+        if (newRight > this.image.width) {
+            newRight = this.image.width;
+            newLeft = this.image.width - newWidth;
+        }
+        if (newTop < 0) {
+            newTop = 0;
+            newBottom = newHeight;
+        }
+        if (newBottom > this.image.height) {
+            newBottom = this.image.height;
+            newTop = this.image.height - newHeight;
+        }
+
+        // Final bounds check
+        newLeft = Math.max(0, newLeft);
+        newRight = Math.min(this.image.width, newRight);
+        newTop = Math.max(0, newTop);
+        newBottom = Math.min(this.image.height, newBottom);
+
+        this.cropRect = {
+            left: Math.round(newLeft),
+            top: Math.round(newTop),
+            right: Math.round(newRight),
+            bottom: Math.round(newBottom)
+        };
+
+        this.updateFieldsFromRect();
+        this.render();
     }
 
     handleWheel(e) {
@@ -394,8 +592,37 @@ export class CropModal {
         const currentWidth = this.cropRect.right - this.cropRect.left;
         const currentHeight = this.cropRect.bottom - this.cropRect.top;
 
-        const newWidth = currentWidth * zoomFactor;
-        const newHeight = currentHeight * zoomFactor;
+        let newWidth = currentWidth * zoomFactor;
+        let newHeight = currentHeight * zoomFactor;
+
+        // If aspect ratio is constrained, ensure both dimensions stay within bounds
+        if (this.isAspectConstrained()) {
+            const aspectRatio = this.aspectRatioWidth / this.aspectRatioHeight;
+
+            // Check if the new dimensions would exceed image bounds
+            // If so, clamp to the maximum possible size that maintains aspect ratio
+            const maxWidth = this.image.width;
+            const maxHeight = this.image.height;
+
+            // Calculate maximum dimensions that fit in the image with this aspect ratio
+            let maxFitWidth = maxWidth;
+            let maxFitHeight = maxFitWidth / aspectRatio;
+
+            if (maxFitHeight > maxHeight) {
+                maxFitHeight = maxHeight;
+                maxFitWidth = maxFitHeight * aspectRatio;
+            }
+
+            // Clamp new dimensions to fit
+            if (newWidth > maxFitWidth) {
+                newWidth = maxFitWidth;
+                newHeight = newWidth / aspectRatio;
+            }
+            if (newHeight > maxFitHeight) {
+                newHeight = maxFitHeight;
+                newWidth = newHeight * aspectRatio;
+            }
+        }
 
         // Calculate new bounds centered around the center point
         let newLeft = centerX - newWidth / 2;
@@ -446,14 +673,22 @@ export class CropModal {
 
     handleSave() {
         if (this.onSave) {
+            const config = {
+                left: this.cropRect.left,
+                right: this.cropRect.right,
+                top: this.cropRect.top,
+                bottom: this.cropRect.bottom
+            };
+
+            // Include aspect ratio if set
+            if (this.isAspectConstrained()) {
+                config.aspect_ratio_width = this.aspectRatioWidth;
+                config.aspect_ratio_height = this.aspectRatioHeight;
+            }
+
             this.onSave({
                 name: this.nameInput.value.trim(),
-                config: {
-                    left: this.cropRect.left,
-                    right: this.cropRect.right,
-                    top: this.cropRect.top,
-                    bottom: this.cropRect.bottom
-                }
+                config: config
             });
         }
         this.hide();

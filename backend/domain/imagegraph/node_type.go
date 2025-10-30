@@ -57,10 +57,12 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		inputs:   []InputName{"original"},
 		outputs:  []OutputName{"cropped"},
 		fields: map[string]nodeConfigField{
-			"left":   {NodeConfigTypeInt, true, nil},
-			"right":  {NodeConfigTypeInt, true, nil},
-			"top":    {NodeConfigTypeInt, true, nil},
-			"bottom": {NodeConfigTypeInt, true, nil},
+			"left":                {NodeConfigTypeInt, true, nil},
+			"right":               {NodeConfigTypeInt, true, nil},
+			"top":                 {NodeConfigTypeInt, true, nil},
+			"bottom":              {NodeConfigTypeInt, true, nil},
+			"aspect_ratio_width":  {NodeConfigTypeInt, false, nil},
+			"aspect_ratio_height": {NodeConfigTypeInt, false, nil},
 		},
 		validate: func(config NodeConfig) error {
 			left := config["left"].(int)
@@ -79,6 +81,39 @@ var nodeTypeConfigs = []nodeTypeConfig{
 			}
 			if top >= bottom {
 				return fmt.Errorf("top must be less than bottom")
+			}
+
+			// Validate aspect ratio if specified
+			aspectWidthVal, hasAspectWidth := config["aspect_ratio_width"]
+			aspectHeightVal, hasAspectHeight := config["aspect_ratio_height"]
+
+			// Both must be set together or both omitted
+			if hasAspectWidth != hasAspectHeight {
+				return fmt.Errorf("aspect_ratio_width and aspect_ratio_height must both be set or both omitted")
+			}
+
+			if hasAspectWidth && hasAspectHeight {
+				aspectWidth := aspectWidthVal.(int)
+				aspectHeight := aspectHeightVal.(int)
+
+				// Both must be positive
+				if aspectWidth <= 0 || aspectHeight <= 0 {
+					return fmt.Errorf("aspect ratio values must be positive integers")
+				}
+
+				// Validate that crop dimensions match the aspect ratio (within rounding tolerance)
+				cropWidth := right - left
+				cropHeight := bottom - top
+
+				// Calculate expected aspect ratio
+				expectedRatio := float64(aspectWidth) / float64(aspectHeight)
+				actualRatio := float64(cropWidth) / float64(cropHeight)
+
+				// Allow 1% tolerance for rounding
+				tolerance := 0.01
+				if actualRatio < expectedRatio*(1-tolerance) || actualRatio > expectedRatio*(1+tolerance) {
+					return fmt.Errorf("crop dimensions (%dx%d) do not match specified aspect ratio (%d:%d)", cropWidth, cropHeight, aspectWidth, aspectHeight)
+				}
 			}
 
 			return nil
