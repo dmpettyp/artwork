@@ -44,6 +44,7 @@ export class CropModal {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
 
         // Continue drawing even when mouse leaves canvas
         document.addEventListener('mousemove', (e) => {
@@ -372,6 +373,73 @@ export class CropModal {
         // Validate
         if (left < right && top < bottom) {
             this.cropRect = { left, right, top, bottom };
+            this.render();
+        }
+    }
+
+    handleWheel(e) {
+        // Only zoom when shift is held
+        if (!e.shiftKey || !this.image) return;
+
+        e.preventDefault();
+
+        // Calculate center of current crop rectangle
+        const centerX = (this.cropRect.left + this.cropRect.right) / 2;
+        const centerY = (this.cropRect.top + this.cropRect.bottom) / 2;
+
+        // Determine zoom factor (scroll up = zoom in, scroll down = zoom out)
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+
+        // Calculate new dimensions
+        const currentWidth = this.cropRect.right - this.cropRect.left;
+        const currentHeight = this.cropRect.bottom - this.cropRect.top;
+
+        const newWidth = currentWidth * zoomFactor;
+        const newHeight = currentHeight * zoomFactor;
+
+        // Calculate new bounds centered around the center point
+        let newLeft = centerX - newWidth / 2;
+        let newRight = centerX + newWidth / 2;
+        let newTop = centerY - newHeight / 2;
+        let newBottom = centerY + newHeight / 2;
+
+        // Constrain to image bounds
+        if (newLeft < 0) {
+            newLeft = 0;
+            newRight = newWidth;
+        }
+        if (newRight > this.image.width) {
+            newRight = this.image.width;
+            newLeft = this.image.width - newWidth;
+        }
+        if (newTop < 0) {
+            newTop = 0;
+            newBottom = newHeight;
+        }
+        if (newBottom > this.image.height) {
+            newBottom = this.image.height;
+            newTop = this.image.height - newHeight;
+        }
+
+        // Ensure we don't go beyond image bounds after constraining
+        newLeft = Math.max(0, newLeft);
+        newRight = Math.min(this.image.width, newRight);
+        newTop = Math.max(0, newTop);
+        newBottom = Math.min(this.image.height, newBottom);
+
+        // Ensure minimum size (at least 10x10 pixels)
+        const finalWidth = newRight - newLeft;
+        const finalHeight = newBottom - newTop;
+
+        if (finalWidth >= 10 && finalHeight >= 10) {
+            this.cropRect = {
+                left: Math.round(newLeft),
+                top: Math.round(newTop),
+                right: Math.round(newRight),
+                bottom: Math.round(newBottom)
+            };
+
+            this.updateFieldsFromRect();
             this.render();
         }
     }
