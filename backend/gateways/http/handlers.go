@@ -12,14 +12,12 @@ import (
 )
 
 func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
-	// Build and return node type schemas
 	respondJSON(w, http.StatusOK, nodeTypeSchemasResponse{
 		NodeTypes: buildNodeTypeSchemas(),
 	})
 }
 
 func (s *HTTPServer) handleListImageGraphs(w http.ResponseWriter, r *http.Request) {
-	// Fetch all ImageGraphs from views
 	imageGraphs, err := s.imageGraphViews.List(r.Context())
 	if err != nil {
 		s.logger.Error("failed to list image graphs", "error", err)
@@ -27,7 +25,6 @@ func (s *HTTPServer) handleListImageGraphs(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Map to response DTOs
 	summaries := make([]imageGraphSummary, 0, len(imageGraphs))
 	for _, ig := range imageGraphs {
 		summaries = append(summaries, imageGraphSummary{
@@ -36,52 +33,39 @@ func (s *HTTPServer) handleListImageGraphs(w http.ResponseWriter, r *http.Reques
 		})
 	}
 
-	// Return successful response
 	respondJSON(w, http.StatusOK, listImageGraphsResponse{ImageGraphs: summaries})
 }
 
 func (s *HTTPServer) handleCreateImageGraph(w http.ResponseWriter, r *http.Request) {
 	var req createImageGraphRequest
 
-	// Parse JSON request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid request body"})
 		return
 	}
 
-	// Generate new ImageGraphID
 	imageGraphID := imagegraph.MustNewImageGraphID()
-
-	// Create command
 	command := application.NewCreateImageGraphCommand(imageGraphID, req.Name)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
 		s.logger.Error("failed to handle CreateImageGraphCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to create image graph"})
 		return
 	}
 
-	// Return successful response
 	respondJSON(w, http.StatusCreated, createImageGraphResponse{ID: imageGraphID.String()})
 }
 
 func (s *HTTPServer) handleGetImageGraph(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from path
-	idStr := r.PathValue("id")
-
-	// Parse ImageGraphID
-	imageGraphID, err := imagegraph.ParseImageGraphID(idStr)
+	imageGraphID, err := imagegraph.ParseImageGraphID(r.PathValue("id"))
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Fetch ImageGraph from view
 	ig, err := s.imageGraphViews.Get(r.Context(), imageGraphID)
 	if err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -91,25 +75,18 @@ func (s *HTTPServer) handleGetImageGraph(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Map domain model to response DTO
-	response := mapImageGraphToResponse(ig)
-
-	// Return successful response
-	respondJSON(w, http.StatusOK, response)
+	respondJSON(w, http.StatusOK, mapImageGraphToResponse(ig))
 }
 
 func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Parse request body
 	var req addNodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -126,7 +103,6 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse NodeType
 	nodeType, err := nodeTypeMapper.To(req.Type)
 
 	if err != nil {
@@ -135,10 +111,8 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate new NodeID
 	nodeID := imagegraph.MustNewNodeID()
 
-	// Create command
 	command := application.NewAddImageGraphNodeCommand(
 		imageGraphID,
 		nodeID,
@@ -147,9 +121,7 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		req.Config,
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -159,37 +131,29 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return successful response
 	respondJSON(w, http.StatusCreated, addNodeResponse{ID: nodeID.String()})
 }
 
 func (s *HTTPServer) handleDeleteNode(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Extract Node ID from path
 	nodeIDStr := r.PathValue("node_id")
 
-	// Parse NodeID
 	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
 		return
 	}
 
-	// Create command
 	command := application.NewRemoveImageGraphNodeCommand(imageGraphID, nodeID)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -199,22 +163,18 @@ func (s *HTTPServer) handleDeleteNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Parse request body
 	var req connectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -222,7 +182,6 @@ func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Validate inputs
 	if req.FromNodeID == "" {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "from_node_id is required"})
 		return
@@ -240,21 +199,18 @@ func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Parse FromNodeID
 	fromNodeID, err := imagegraph.ParseNodeID(req.FromNodeID)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid from_node_id"})
 		return
 	}
 
-	// Parse ToNodeID
 	toNodeID, err := imagegraph.ParseNodeID(req.ToNodeID)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid to_node_id"})
 		return
 	}
 
-	// Create command
 	command := application.NewConnectImageGraphNodesCommand(
 		imageGraphID,
 		fromNodeID,
@@ -263,9 +219,7 @@ func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) 
 		imagegraph.InputName(req.InputName),
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -275,22 +229,18 @@ func (s *HTTPServer) handleConnectNodes(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Parse request body
 	var req connectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -298,7 +248,6 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Validate inputs
 	if req.FromNodeID == "" {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "from_node_id is required"})
 		return
@@ -316,21 +265,18 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Parse FromNodeID
 	fromNodeID, err := imagegraph.ParseNodeID(req.FromNodeID)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid from_node_id"})
 		return
 	}
 
-	// Parse ToNodeID
 	toNodeID, err := imagegraph.ParseNodeID(req.ToNodeID)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid to_node_id"})
 		return
 	}
 
-	// Create command
 	command := application.NewDisconnectImageGraphNodesCommand(
 		imageGraphID,
 		fromNodeID,
@@ -339,9 +285,7 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 		imagegraph.InputName(req.InputName),
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -351,32 +295,26 @@ func (s *HTTPServer) handleDisconnectNodes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Extract Node ID from path
 	nodeIDStr := r.PathValue("node_id")
 
-	// Parse NodeID
 	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
 		return
 	}
 
-	// Parse request body
 	var req updateNodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -399,7 +337,6 @@ func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 		)
 
 		if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-			// Check if it's a not found error
 			if errors.Is(err, application.ErrImageGraphNotFound) {
 				respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 				return
@@ -419,7 +356,6 @@ func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 		)
 
 		if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-			// Check if it's a not found error
 			if errors.Is(err, application.ErrImageGraphNotFound) {
 				respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 				return
@@ -430,48 +366,40 @@ func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.Request) {
 	const maxUploadSize = 10 * 1024 * 1024 // 10 MB
 
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Extract Node ID from path
 	nodeIDStr := r.PathValue("node_id")
 
-	// Parse NodeID
 	nodeID, err := imagegraph.ParseNodeID(nodeIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid node ID"})
 		return
 	}
 
-	// Extract output name from path
 	outputName := r.PathValue("output_name")
 	if outputName == "" {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "output_name is required"})
 		return
 	}
 
-	// Parse multipart form
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		s.logger.Error("failed to parse multipart form", "error", err)
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid multipart form data"})
 		return
 	}
 
-	// Get the uploaded file
 	file, header, err := r.FormFile("image")
 	if err != nil {
 		s.logger.Error("failed to get form file", "error", err)
@@ -493,7 +421,6 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Read file data
 	imageData, err := io.ReadAll(file)
 	if err != nil {
 		s.logger.Error("failed to read image data", "error", err)
@@ -501,17 +428,14 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Generate new ImageID
 	imageID := imagegraph.MustNewImageID()
 
-	// Save image to storage
 	if err := s.imageStorage.Save(imageID, imageData); err != nil {
 		s.logger.Error("failed to save image to storage", "error", err, "image_id", imageID)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to save image"})
 		return
 	}
 
-	// Create command to set the image on the node output
 	command := application.NewSetImageGraphNodeOutputImageCommand(
 		imageGraphID,
 		nodeID,
@@ -519,9 +443,7 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		imageID,
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
@@ -531,7 +453,6 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Return the generated image ID
 	respondJSON(w, http.StatusCreated, uploadImageResponse{ImageID: imageID.String()})
 }
 
@@ -545,17 +466,14 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 // Layout Handlers
 
 func (s *HTTPServer) handleGetLayout(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from path
 	idStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(idStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Fetch layout from view
 	layout, err := s.layoutViews.Get(r.Context(), imageGraphID)
 	if err != nil {
 		// If not found, return empty layout with 200 OK
@@ -571,7 +489,6 @@ func (s *HTTPServer) handleGetLayout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map domain model to response DTO
 	nodePositions := make([]nodePosition, 0, len(layout.NodePositions))
 	for _, pos := range layout.NodePositions {
 		nodePositions = append(nodePositions, nodePosition{
@@ -586,22 +503,18 @@ func (s *HTTPServer) handleGetLayout(w http.ResponseWriter, r *http.Request) {
 		NodePositions: nodePositions,
 	}
 
-	// Return successful response
 	respondJSON(w, http.StatusOK, response)
 }
 
 func (s *HTTPServer) handleUpdateLayout(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Parse request body
 	var req updateLayoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -609,42 +522,35 @@ func (s *HTTPServer) handleUpdateLayout(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Convert to domain types
 	nodePositions, err := req.toDomain()
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
 		return
 	}
 
-	// Create command
 	command := application.NewUpdateLayoutCommand(
 		imageGraphID,
 		nodePositions,
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
 		s.logger.Error("failed to handle UpdateLayoutCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update layout"})
 		return
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *HTTPServer) handleGetViewport(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from path
 	idStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(idStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Fetch viewport from view
 	viewport, err := s.viewportViews.Get(r.Context(), imageGraphID)
 	if err != nil {
 		// If not found, return default viewport with 200 OK
@@ -662,7 +568,6 @@ func (s *HTTPServer) handleGetViewport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map domain model to response DTO
 	response := viewportResponse{
 		GraphID: viewport.GraphID.String(),
 		Zoom:    viewport.Zoom,
@@ -670,22 +575,18 @@ func (s *HTTPServer) handleGetViewport(w http.ResponseWriter, r *http.Request) {
 		PanY:    viewport.PanY,
 	}
 
-	// Return successful response
 	respondJSON(w, http.StatusOK, response)
 }
 
 func (s *HTTPServer) handleUpdateViewport(w http.ResponseWriter, r *http.Request) {
-	// Extract ImageGraph ID from path
 	imageGraphIDStr := r.PathValue("id")
 
-	// Parse ImageGraphID
 	imageGraphID, err := imagegraph.ParseImageGraphID(imageGraphIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image graph ID"})
 		return
 	}
 
-	// Parse request body
 	var req updateViewportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.logger.Error("failed to parse request body", "error", err)
@@ -693,7 +594,6 @@ func (s *HTTPServer) handleUpdateViewport(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Create command
 	command := application.NewUpdateViewportCommand(
 		imageGraphID,
 		req.Zoom,
@@ -701,31 +601,26 @@ func (s *HTTPServer) handleUpdateViewport(w http.ResponseWriter, r *http.Request
 		req.PanY,
 	)
 
-	// Send command to message bus
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
 		s.logger.Error("failed to handle UpdateViewportCommand", "error", err)
 		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to update viewport"})
 		return
 	}
 
-	// Return successful response with no content
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // Image Retrieval Handlers
 
 func (s *HTTPServer) handleGetImage(w http.ResponseWriter, r *http.Request) {
-	// Extract image ID from path
 	imageIDStr := r.PathValue("image_id")
 
-	// Parse ImageID
 	imageID, err := imagegraph.ParseImageID(imageIDStr)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid image ID"})
 		return
 	}
 
-	// Get image from storage
 	imageData, err := s.imageStorage.Get(imageID)
 	if err != nil {
 		s.logger.Error("failed to get image from storage", "error", err, "image_id", imageID)
@@ -733,7 +628,6 @@ func (s *HTTPServer) handleGetImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and write image data
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	w.Write(imageData)
