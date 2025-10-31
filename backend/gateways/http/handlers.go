@@ -117,10 +117,26 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
+// nodeTypeSchemaField represents a single field's schema information for API responses
+type nodeTypeSchemaField struct {
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Required bool     `json:"required"`
+	Options  []string `json:"options,omitempty"`
+}
+
+// nodeTypeSchema represents the complete schema for a node type for API responses
+type nodeTypeSchema struct {
+	Inputs       []string              `json:"inputs"`
+	Outputs      []string              `json:"outputs"`
+	NameRequired bool                  `json:"name_required"`
+	Fields       []nodeTypeSchemaField `json:"fields"`
+}
+
 type nodeTypeSchemaAPIEntry struct {
-	Name        string                    `json:"name"`
-	DisplayName string                    `json:"display_name"`
-	Schema      imagegraph.NodeTypeSchema `json:"schema"`
+	Name        string         `json:"name"`
+	DisplayName string         `json:"display_name"`
+	Schema      nodeTypeSchema `json:"schema"`
 }
 
 type nodeTypeSchemasResponse struct {
@@ -144,21 +160,50 @@ var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
 }
 
 func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
-	// Get all node type schemas from domain
-	schemas := imagegraph.GetAllNodeTypeSchemas()
+	// Get all node type configs from domain
+	configs := imagegraph.NodeTypeConfigs
 
 	// Convert to API format with string names and display names
-	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(schemas))
-	for _, entry := range schemas {
-		info, ok := nodeTypeMetadata[entry.NodeType]
+	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(configs))
+	for _, cfg := range configs {
+		info, ok := nodeTypeMetadata[cfg.NodeType]
 		if !ok {
 			// Skip unknown node types
 			continue
 		}
+
+		// Convert inputs
+		inputs := make([]string, len(cfg.Inputs))
+		for i, input := range cfg.Inputs {
+			inputs[i] = string(input)
+		}
+
+		// Convert outputs
+		outputs := make([]string, len(cfg.Outputs))
+		for i, output := range cfg.Outputs {
+			outputs[i] = string(output)
+		}
+
+		// Convert fields (preserve order from domain)
+		fields := make([]nodeTypeSchemaField, len(cfg.Fields))
+		for i, field := range cfg.Fields {
+			fields[i] = nodeTypeSchemaField{
+				Name:     field.Name,
+				Type:     field.FieldType.String(),
+				Required: field.Required,
+				Options:  field.Options,
+			}
+		}
+
 		apiSchemas = append(apiSchemas, nodeTypeSchemaAPIEntry{
 			Name:        info.name,
 			DisplayName: info.displayName,
-			Schema:      entry.Schema,
+			Schema: nodeTypeSchema{
+				Inputs:       inputs,
+				Outputs:      outputs,
+				NameRequired: cfg.NameRequired,
+				Fields:       fields,
+			},
 		})
 	}
 

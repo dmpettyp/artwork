@@ -25,39 +25,41 @@ const (
 	NodeConfigTypeOption
 )
 
-type nodeConfigField struct {
-	name      string
-	fieldType NodeConfigFieldType
-	required  bool
-	options   []string
+// NodeConfigField represents a single configuration field for a node type
+type NodeConfigField struct {
+	Name      string
+	FieldType NodeConfigFieldType
+	Required  bool
+	Options   []string
 }
 
-type nodeTypeConfig struct {
-	nodeType     NodeType
-	inputs       []InputName
-	outputs      []OutputName
-	nameRequired bool
-	fields       []nodeConfigField
+// NodeTypeConfig represents the configuration for a node type
+type NodeTypeConfig struct {
+	NodeType     NodeType
+	Inputs       []InputName
+	Outputs      []OutputName
+	NameRequired bool
+	Fields       []NodeConfigField
 	validate     func(NodeConfig) error
 }
 
-// nodeTypeConfigs defines all node type configurations in order
-var nodeTypeConfigs = []nodeTypeConfig{
+// NodeTypeConfigs defines all node type configurations in order
+var NodeTypeConfigs = []NodeTypeConfig{
 	{
-		nodeType: NodeTypeInput,
-		outputs:  []OutputName{"original"},
+		NodeType: NodeTypeInput,
+		Outputs:  []OutputName{"original"},
 	},
 	{
-		nodeType:     NodeTypeOutput,
-		inputs:       []InputName{"input"},
-		outputs:      []OutputName{"final"},
-		nameRequired: true,
+		NodeType:     NodeTypeOutput,
+		Inputs:       []InputName{"input"},
+		Outputs:      []OutputName{"final"},
+		NameRequired: true,
 	},
 	{
-		nodeType: NodeTypeCrop,
-		inputs:   []InputName{"original"},
-		outputs:  []OutputName{"cropped"},
-		fields: []nodeConfigField{
+		NodeType: NodeTypeCrop,
+		Inputs:   []InputName{"original"},
+		Outputs:  []OutputName{"cropped"},
+		Fields: []NodeConfigField{
 			{"left", NodeConfigTypeInt, true, nil},
 			{"right", NodeConfigTypeInt, true, nil},
 			{"top", NodeConfigTypeInt, true, nil},
@@ -121,10 +123,10 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		},
 	},
 	{
-		nodeType: NodeTypeBlur,
-		inputs:   []InputName{"original"},
-		outputs:  []OutputName{"blurred"},
-		fields: []nodeConfigField{
+		NodeType: NodeTypeBlur,
+		Inputs:   []InputName{"original"},
+		Outputs:  []OutputName{"blurred"},
+		Fields: []NodeConfigField{
 			{"radius", NodeConfigTypeInt, true, nil},
 		},
 		validate: func(config NodeConfig) error {
@@ -139,10 +141,10 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		},
 	},
 	{
-		nodeType: NodeTypeResize,
-		inputs:   []InputName{"original"},
-		outputs:  []OutputName{"resized"},
-		fields: []nodeConfigField{
+		NodeType: NodeTypeResize,
+		Inputs:   []InputName{"original"},
+		Outputs:  []OutputName{"resized"},
+		Fields: []NodeConfigField{
 			{"width", NodeConfigTypeInt, false, nil},
 			{"height", NodeConfigTypeInt, false, nil},
 			{"interpolation", NodeConfigTypeOption, true, []string{
@@ -189,10 +191,10 @@ var nodeTypeConfigs = []nodeTypeConfig{
 		},
 	},
 	{
-		nodeType: NodeTypeResizeMatch,
-		inputs:   []InputName{"original", "size_match"},
-		outputs:  []OutputName{"resized"},
-		fields: []nodeConfigField{
+		NodeType: NodeTypeResizeMatch,
+		Inputs:   []InputName{"original", "size_match"},
+		Outputs:  []OutputName{"resized"},
+		Fields: []NodeConfigField{
 			{"interpolation", NodeConfigTypeOption, true, []string{
 				"NearestNeighbor",
 				"Bilinear",
@@ -206,10 +208,10 @@ var nodeTypeConfigs = []nodeTypeConfig{
 }
 
 // getNodeTypeConfig returns the config for a given node type
-func getNodeTypeConfig(nt NodeType) *nodeTypeConfig {
-	for i := range nodeTypeConfigs {
-		if nodeTypeConfigs[i].nodeType == nt {
-			return &nodeTypeConfigs[i]
+func getNodeTypeConfig(nt NodeType) *NodeTypeConfig {
+	for i := range NodeTypeConfigs {
+		if NodeTypeConfigs[i].NodeType == nt {
+			return &NodeTypeConfigs[i]
 		}
 	}
 	return nil
@@ -222,16 +224,16 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 	}
 
 	// Build a map for quick lookup
-	fieldMap := make(map[string]nodeConfigField)
-	for _, field := range nodeTypeConfig.fields {
-		fieldMap[field.name] = field
+	fieldMap := make(map[string]NodeConfigField)
+	for _, field := range nodeTypeConfig.Fields {
+		fieldMap[field.Name] = field
 	}
 
 	// Validate required fields are present
-	for _, field := range nodeTypeConfig.fields {
-		if field.required {
-			if !nodeConfig.Exists(field.name) {
-				return fmt.Errorf("required field %q is missing", field.name)
+	for _, field := range nodeTypeConfig.Fields {
+		if field.Required {
+			if !nodeConfig.Exists(field.Name) {
+				return fmt.Errorf("required field %q is missing", field.Name)
 			}
 		}
 	}
@@ -243,7 +245,7 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 			return fmt.Errorf("unknown field %q", key)
 		}
 
-		switch fieldDef.fieldType {
+		switch fieldDef.FieldType {
 		case NodeConfigTypeString:
 			if _, ok := value.(string); !ok {
 				return fmt.Errorf("field %q must be a string", key)
@@ -272,14 +274,14 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 			}
 			// Check if value is in allowed options
 			validOption := false
-			for _, opt := range fieldDef.options {
+			for _, opt := range fieldDef.Options {
 				if str == opt {
 					validOption = true
 					break
 				}
 			}
 			if !validOption {
-				return fmt.Errorf("field %q has invalid value %q, must be one of: %v", key, str, fieldDef.options)
+				return fmt.Errorf("field %q has invalid value %q, must be one of: %v", key, str, fieldDef.Options)
 			}
 		}
 	}
@@ -300,7 +302,7 @@ func (nt NodeType) InputNames() []InputName {
 	if cfg == nil {
 		return []InputName{}
 	}
-	return cfg.inputs
+	return cfg.Inputs
 }
 
 // OutputNames returns the ordered list of output names for this node type
@@ -309,7 +311,7 @@ func (nt NodeType) OutputNames() []OutputName {
 	if cfg == nil {
 		return []OutputName{}
 	}
-	return cfg.outputs
+	return cfg.Outputs
 }
 
 func (nt NodeType) NameRequired() bool {
@@ -317,25 +319,10 @@ func (nt NodeType) NameRequired() bool {
 	if cfg == nil {
 		return false
 	}
-	return cfg.nameRequired
+	return cfg.NameRequired
 }
 
-// NodeTypeSchemaField represents a single field's schema information
-type NodeTypeSchemaField struct {
-	Type     string   `json:"type"`
-	Required bool     `json:"required"`
-	Options  []string `json:"options,omitempty"`
-}
-
-// NodeTypeSchema represents the complete schema for a node type
-type NodeTypeSchema struct {
-	Inputs       []string                       `json:"inputs"`
-	Outputs      []string                       `json:"outputs"`
-	NameRequired bool                           `json:"name_required"`
-	Fields       map[string]NodeTypeSchemaField `json:"fields"`
-}
-
-// GetFieldTypeString converts a NodeConfigFieldType to its string representation
+// String converts a NodeConfigFieldType to its string representation
 func (ft NodeConfigFieldType) String() string {
 	switch ft {
 	case NodeConfigTypeString:
@@ -351,61 +338,4 @@ func (ft NodeConfigFieldType) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-// GetSchema returns the schema for this node type
-func (nt NodeType) GetSchema() NodeTypeSchema {
-	cfg := getNodeTypeConfig(nt)
-	if cfg == nil {
-		return NodeTypeSchema{}
-	}
-
-	// Convert inputs
-	inputs := make([]string, len(cfg.inputs))
-	for i, input := range cfg.inputs {
-		inputs[i] = string(input)
-	}
-
-	// Convert outputs
-	outputs := make([]string, len(cfg.outputs))
-	for i, output := range cfg.outputs {
-		outputs[i] = string(output)
-	}
-
-	// Convert fields
-	fields := make(map[string]NodeTypeSchemaField)
-	for _, field := range cfg.fields {
-		fields[field.name] = NodeTypeSchemaField{
-			Type:     field.fieldType.String(),
-			Required: field.required,
-			Options:  field.options,
-		}
-	}
-
-	return NodeTypeSchema{
-		Inputs:       inputs,
-		Outputs:      outputs,
-		NameRequired: cfg.nameRequired,
-		Fields:       fields,
-	}
-}
-
-// NodeTypeSchemaEntry represents a node type with its schema
-type NodeTypeSchemaEntry struct {
-	NodeType NodeType       `json:"node_type"`
-	Schema   NodeTypeSchema `json:"schema"`
-}
-
-// GetAllNodeTypeSchemas returns schemas for all node types in order
-func GetAllNodeTypeSchemas() []NodeTypeSchemaEntry {
-	schemas := make([]NodeTypeSchemaEntry, 0, len(nodeTypeConfigs))
-
-	for _, cfg := range nodeTypeConfigs {
-		schemas = append(schemas, NodeTypeSchemaEntry{
-			NodeType: cfg.nodeType,
-			Schema:   cfg.nodeType.GetSchema(),
-		})
-	}
-
-	return schemas
 }

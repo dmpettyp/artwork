@@ -16,7 +16,7 @@ export class NodeConfigFormBuilder {
         container.innerHTML = '';
 
         const config = this.nodeTypeConfigs[nodeType];
-        if (!config || !config.fields) {
+        if (!config || !config.fields || config.fields.length === 0) {
             if (currentValues !== null) {
                 // Only show "no fields" message when editing (currentValues is provided)
                 container.innerHTML = '<p style="color: #7f8c8d;">This node has no configurable fields.</p>';
@@ -24,8 +24,9 @@ export class NodeConfigFormBuilder {
             return;
         }
 
-        Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
-            const { label, input } = this._createField(fieldName, fieldDef, idPrefix, currentValues);
+        // Fields is now an array, iterate directly to preserve order
+        config.fields.forEach(fieldDef => {
+            const { label, input } = this._createField(fieldDef.name, fieldDef, idPrefix, currentValues);
             container.appendChild(label);
             container.appendChild(input);
         });
@@ -117,7 +118,7 @@ export class NodeConfigFormBuilder {
         const errors = [];
         const config = this.nodeTypeConfigs[nodeType];
 
-        if (!config || !config.fields) {
+        if (!config || !config.fields || config.fields.length === 0) {
             return { valid: true, errors: [] };
         }
 
@@ -136,8 +137,9 @@ export class NodeConfigFormBuilder {
             });
         });
 
-        // Validate each field definition
-        Object.entries(config.fields).forEach(([fieldName, fieldDef]) => {
+        // Validate each field definition (fields is now an array)
+        config.fields.forEach(fieldDef => {
+            const fieldName = fieldDef.name;
             const field = fieldMap.get(fieldName);
 
             if (!field) {
