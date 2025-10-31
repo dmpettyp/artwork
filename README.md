@@ -6,10 +6,10 @@ to process images in a non-destructive way.
 
 ## TODO
 
+- decopule handlers from json/domain converters
+- setting a preview image
 - node types
   - pallet matching node
-  - pixel blow up node
-    - deliniating lines, width, colour
 - need better error handling when image generation fails
 - durable repository/unit of work implementation: sqlite
 - maybe just do event sourcing approach? that actually might be fun
@@ -54,6 +54,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - pixel blow up node deliniating lines, width, colour
 - DONE - crop ratio: can set w/h ratio, drag and zoom the crop
 - DONE - much better cropping, interactive probably best
 - DONE - initial crop node
