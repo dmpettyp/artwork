@@ -12,8 +12,8 @@ export const NODE_DESIGN = {
         radius: 6
     },
     thumbnail: {
-        width: 120,
-        height: 90,
+        width: 160,
+        height: 120,
         y: 48
     }
 };
