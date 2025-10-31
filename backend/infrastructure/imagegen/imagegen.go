@@ -365,3 +365,79 @@ func (ig *ImageGen) GenerateOutputsForOutputNode(
 
 	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, originalImage, format)
 }
+
+func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	inputImageID imagegraph.ImageID,
+	width int,
+	lineWidth int,
+	lineColor string,
+	outputName imagegraph.OutputName,
+) error {
+	// Load the input image
+	img, format, err := ig.loadImage(inputImageID)
+	if err != nil {
+		return err
+	}
+
+	// Get original dimensions
+	bounds := img.Bounds()
+	originalWidth := bounds.Dx()
+	originalHeight := bounds.Dy()
+
+	// Calculate new height maintaining aspect ratio
+	targetWidth := uint(width)
+	targetHeight := uint(float64(width) * float64(originalHeight) / float64(originalWidth))
+
+	// Scale the image using NearestNeighbor to preserve pixel appearance
+	scaledImg := resize.Resize(targetWidth, targetHeight, img, resize.NearestNeighbor)
+
+	// Create a mutable RGBA image from the scaled image
+	scaledBounds := scaledImg.Bounds()
+	outputImg := image.NewRGBA(scaledBounds)
+	for y := scaledBounds.Min.Y; y < scaledBounds.Max.Y; y++ {
+		for x := scaledBounds.Min.X; x < scaledBounds.Max.X; x++ {
+			outputImg.Set(x, y, scaledImg.At(x, y))
+		}
+	}
+
+	// Parse hex color #RRGGBB
+	var r, g, b uint8
+	fmt.Sscanf(lineColor, "#%02x%02x%02x", &r, &g, &b)
+	lineCol := color.RGBA{R: r, G: g, B: b, A: 255}
+
+	// Calculate scale factor
+	scaleX := float64(targetWidth) / float64(originalWidth)
+	scaleY := float64(targetHeight) / float64(originalHeight)
+
+	// Draw vertical lines (delineating original pixel columns)
+	for i := 1; i < originalWidth; i++ {
+		x := int(float64(i) * scaleX)
+		for lineOffset := 0; lineOffset < lineWidth; lineOffset++ {
+			xPos := x + lineOffset - lineWidth/2
+			if xPos >= 0 && xPos < int(targetWidth) {
+				for y := 0; y < int(targetHeight); y++ {
+					outputImg.Set(xPos, y, lineCol)
+				}
+			}
+		}
+	}
+
+	// Draw horizontal lines (delineating original pixel rows)
+	for i := 1; i < originalHeight; i++ {
+		y := int(float64(i) * scaleY)
+		for lineOffset := 0; lineOffset < lineWidth; lineOffset++ {
+			yPos := y + lineOffset - lineWidth/2
+			if yPos >= 0 && yPos < int(targetHeight) {
+				for x := 0; x < int(targetWidth); x++ {
+					outputImg.Set(x, yPos, lineCol)
+				}
+			}
+		}
+	}
+
+	// Save and set output
+	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, outputImg, format)
+}

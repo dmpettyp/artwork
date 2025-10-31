@@ -8,7 +8,6 @@ to process images in a non-destructive way.
 
 - node types
   - pallet matching node
-  - crop ratio: can set w/h ratio, drag and zoom the crop
   - pixel blow up node
     - deliniating lines, width, colour
 - need better error handling when image generation fails
@@ -55,6 +54,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - crop ratio: can set w/h ratio, drag and zoom the crop
 - DONE - much better cropping, interactive probably best
 - DONE - initial crop node
 - DONE - delete images when they are no longer being used

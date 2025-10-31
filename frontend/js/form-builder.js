@@ -208,13 +208,16 @@ export class NodeConfigFormBuilder {
             } else if (fieldType === 'option') {
                 // Keep as string
                 value = input.value;
+            } else if (fieldType === 'string') {
+                // Keep as string
+                value = input.value;
             }
 
             // Only include valid values
             if (value !== '' && !isNaN(value)) {
                 config[fieldName] = value;
-            } else if (fieldType === 'option' && value !== '') {
-                // Include option values even if they're strings
+            } else if ((fieldType === 'option' || fieldType === 'string') && value !== '') {
+                // Include option and string values even if they're strings
                 config[fieldName] = value;
             }
         });

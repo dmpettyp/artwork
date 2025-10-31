@@ -12,6 +12,7 @@ const (
 	NodeTypeOutput
 	NodeTypeResize
 	NodeTypeResizeMatch
+	NodeTypePixelInflate
 )
 
 type NodeConfigFieldType int
@@ -203,6 +204,47 @@ var NodeTypeConfigs = []NodeTypeConfig{
 				"Lanczos2",
 				"Lanczos3",
 			}},
+		},
+	},
+	{
+		NodeType: NodeTypePixelInflate,
+		Inputs:   []InputName{"original"},
+		Outputs:  []OutputName{"inflated"},
+		Fields: []NodeConfigField{
+			{"width", NodeConfigTypeInt, true, nil},
+			{"line_width", NodeConfigTypeInt, true, nil},
+			{"line_color", NodeConfigTypeString, true, nil},
+		},
+		validate: func(config NodeConfig) error {
+			width := config["width"].(int)
+			if width < 1 {
+				return fmt.Errorf("width must be at least 1")
+			}
+			if width > 10000 {
+				return fmt.Errorf("width must be 10000 or less")
+			}
+
+			lineWidth := config["line_width"].(int)
+			if lineWidth < 1 {
+				return fmt.Errorf("line_width must be at least 1")
+			}
+			if lineWidth > 100 {
+				return fmt.Errorf("line_width must be 100 or less")
+			}
+
+			lineColor := config["line_color"].(string)
+			// Validate hex color format #RRGGBB
+			if len(lineColor) != 7 || lineColor[0] != '#' {
+				return fmt.Errorf("line_color must be in #RRGGBB format")
+			}
+			for i := 1; i < 7; i++ {
+				c := lineColor[i]
+				if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) {
+					return fmt.Errorf("line_color must be in #RRGGBB format")
+				}
+			}
+
+			return nil
 		},
 	},
 }

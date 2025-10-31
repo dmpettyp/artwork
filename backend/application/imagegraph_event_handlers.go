@@ -282,6 +282,49 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypePixelInflate {
+		width, err := event.NodeConfig.GetInt("width")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		lineWidth, err := event.NodeConfig.GetInt("line_width")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		lineColor, err := event.NodeConfig.GetString("line_color")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		// Find the "original" input
+		var inputImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "original" {
+				inputImageID = input.ImageID
+				break
+			}
+		}
+
+		if inputImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'original' input")
+		}
+
+		go func() {
+			_ = h.imageGen.GenerateOutputsForPixelInflateNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				inputImageID,
+				width,
+				lineWidth,
+				lineColor,
+				"inflated",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeOutput {
 		// Find the "input" input
 		var inputImageID imagegraph.ImageID

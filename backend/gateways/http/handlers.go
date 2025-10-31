@@ -105,6 +105,7 @@ var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"blur", imagegraph.NodeTypeBlur,
 	"resize", imagegraph.NodeTypeResize,
 	"resize_match", imagegraph.NodeTypeResizeMatch,
+	"pixel_inflate", imagegraph.NodeTypePixelInflate,
 )
 
 var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
@@ -159,12 +160,13 @@ type nodeTypeInfo struct {
 
 // nodeTypeMetadata maps NodeType constants to their API metadata
 var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
-	imagegraph.NodeTypeInput:       {"input", "Input"},
-	imagegraph.NodeTypeOutput:      {"output", "Output"},
-	imagegraph.NodeTypeCrop:        {"crop", "Crop"},
-	imagegraph.NodeTypeBlur:        {"blur", "Blur"},
-	imagegraph.NodeTypeResize:      {"resize", "Resize"},
-	imagegraph.NodeTypeResizeMatch: {"resize_match", "Resize Match"},
+	imagegraph.NodeTypeInput:        {"input", "Input"},
+	imagegraph.NodeTypeOutput:       {"output", "Output"},
+	imagegraph.NodeTypeCrop:         {"crop", "Crop"},
+	imagegraph.NodeTypeBlur:         {"blur", "Blur"},
+	imagegraph.NodeTypeResize:       {"resize", "Resize"},
+	imagegraph.NodeTypeResizeMatch:  {"resize_match", "Resize Match"},
+	imagegraph.NodeTypePixelInflate: {"pixel_inflate", "Pixel Inflate"},
 }
 
 func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Request) {
