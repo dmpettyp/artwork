@@ -321,21 +321,3 @@ func (nt NodeType) NameRequired() bool {
 	}
 	return cfg.NameRequired
 }
-
-// String converts a NodeConfigFieldType to its string representation
-func (ft NodeConfigFieldType) String() string {
-	switch ft {
-	case NodeConfigTypeString:
-		return "string"
-	case NodeConfigTypeInt:
-		return "int"
-	case NodeConfigTypeFloat:
-		return "float"
-	case NodeConfigTypeBool:
-		return "bool"
-	case NodeConfigTypeOption:
-		return "option"
-	default:
-		return "unknown"
-	}
-}

@@ -17,10 +17,6 @@ export class NodeConfigFormBuilder {
 
         const config = this.nodeTypeConfigs[nodeType];
         if (!config || !config.fields || config.fields.length === 0) {
-            if (currentValues !== null) {
-                // Only show "no fields" message when editing (currentValues is provided)
-                container.innerHTML = '<p style="color: #7f8c8d;">This node has no configurable fields.</p>';
-            }
             return;
         }
 

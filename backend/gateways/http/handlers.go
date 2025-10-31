@@ -113,6 +113,14 @@ var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
 	"generated", imagegraph.Generated,
 )
 
+var fieldTypeMapper = mapper.MustNew[imagegraph.NodeConfigFieldType, string](
+	imagegraph.NodeConfigTypeString, "string",
+	imagegraph.NodeConfigTypeInt, "int",
+	imagegraph.NodeConfigTypeFloat, "float",
+	imagegraph.NodeConfigTypeBool, "bool",
+	imagegraph.NodeConfigTypeOption, "option",
+)
+
 type errorResponse struct {
 	Error string `json:"error"`
 }
@@ -189,7 +197,7 @@ func (s *HTTPServer) handleGetNodeTypeSchemas(w http.ResponseWriter, r *http.Req
 		for i, field := range cfg.Fields {
 			fields[i] = nodeTypeSchemaField{
 				Name:     field.Name,
-				Type:     field.FieldType.String(),
+				Type:     fieldTypeMapper.ToWithDefault(field.FieldType, "unknown"),
 				Required: field.Required,
 				Options:  field.Options,
 			}
