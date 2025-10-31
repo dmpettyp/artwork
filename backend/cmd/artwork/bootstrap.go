@@ -21,9 +21,11 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	resizeShrinkNodeID := imagegraph.MustNewNodeID()
 	blurNodeID := imagegraph.MustNewNodeID()
 	resizeGrowNodeID := imagegraph.MustNewNodeID()
-	output1NodeID := imagegraph.MustNewNodeID()
 	resizeMatchNodeID := imagegraph.MustNewNodeID()
+	pixelInflateNodeID := imagegraph.MustNewNodeID()
+	output1NodeID := imagegraph.MustNewNodeID()
 	output2NodeID := imagegraph.MustNewNodeID()
+	output3NodeID := imagegraph.MustNewNodeID()
 	imageID, _ := imagegraph.ParseImageID("117284ec-f712-42e9-827e-342bd61368db")
 
 	// Create the ImageGraph
@@ -48,10 +50,10 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 
 	// Add Crop node
 	cropConfig := imagegraph.NodeConfig{
-		"left":   500,
-		"right":  1599,
-		"top":    400,
-		"bottom": 1900,
+		"left":   564,
+		"right":  1565,
+		"top":    771,
+		"bottom": 1994,
 	}
 	addCropCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
@@ -115,19 +117,6 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	}
 	logger.Info("added Resize node (grow to 500w)", "id", resizeGrowNodeID.String())
 
-	// Add Output node (Width 500)
-	addOutput1Cmd := application.NewAddImageGraphNodeCommand(
-		graphID,
-		output1NodeID,
-		imagegraph.NodeTypeOutput,
-		"Width 500",
-		imagegraph.NodeConfig{},
-	)
-	if err := messageBus.HandleCommand(ctx, addOutput1Cmd); err != nil {
-		return err
-	}
-	logger.Info("added Output node (Width 500)", "id", output1NodeID.String())
-
 	// Add Resize Match node
 	resizeMatchConfig := imagegraph.NodeConfig{
 		"interpolation": "NearestNeighbor",
@@ -144,6 +133,37 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	}
 	logger.Info("added Resize Match node", "id", resizeMatchNodeID.String())
 
+	// Add Pixel Inflate node
+	pixelInflateConfig := imagegraph.NodeConfig{
+		"width":      500,
+		"line_width": 3,
+		"line_color": "#333333",
+	}
+	addPixelInflateCmd := application.NewAddImageGraphNodeCommand(
+		graphID,
+		pixelInflateNodeID,
+		imagegraph.NodeTypePixelInflate,
+		"",
+		pixelInflateConfig,
+	)
+	if err := messageBus.HandleCommand(ctx, addPixelInflateCmd); err != nil {
+		return err
+	}
+	logger.Info("added Pixel Inflate node", "id", pixelInflateNodeID.String())
+
+	// Add Output node (Width 500)
+	addOutput1Cmd := application.NewAddImageGraphNodeCommand(
+		graphID,
+		output1NodeID,
+		imagegraph.NodeTypeOutput,
+		"Width 500",
+		imagegraph.NodeConfig{},
+	)
+	if err := messageBus.HandleCommand(ctx, addOutput1Cmd); err != nil {
+		return err
+	}
+	logger.Info("added Output node (Width 500)", "id", output1NodeID.String())
+
 	// Add Output node (Output with original size)
 	addOutput2Cmd := application.NewAddImageGraphNodeCommand(
 		graphID,
@@ -156,6 +176,19 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		return err
 	}
 	logger.Info("added Output node (Output with original size)", "id", output2NodeID.String())
+
+	// Add Output node (no lines)
+	addOutput3Cmd := application.NewAddImageGraphNodeCommand(
+		graphID,
+		output3NodeID,
+		imagegraph.NodeTypeOutput,
+		"no lines",
+		imagegraph.NodeConfig{},
+	)
+	if err := messageBus.HandleCommand(ctx, addOutput3Cmd); err != nil {
+		return err
+	}
+	logger.Info("added Output node (no lines)", "id", output3NodeID.String())
 
 	// Connect Input → Crop
 	connect1Cmd := application.NewConnectImageGraphNodesCommand(
@@ -222,57 +255,85 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	}
 	logger.Info("connected Resize (shrink) to Resize Match (original)")
 
-	// Connect Blur → Resize (grow to 500w)
+	// Connect Resize (shrink) → Pixel Inflate
 	connect6Cmd := application.NewConnectImageGraphNodesCommand(
+		graphID,
+		resizeShrinkNodeID,
+		"resized",
+		pixelInflateNodeID,
+		"original",
+	)
+	if err := messageBus.HandleCommand(ctx, connect6Cmd); err != nil {
+		return err
+	}
+	logger.Info("connected Resize (shrink) to Pixel Inflate")
+
+	// Connect Blur → Resize (grow to 500w)
+	connect7Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		blurNodeID,
 		"blurred",
 		resizeGrowNodeID,
 		"original",
 	)
-	if err := messageBus.HandleCommand(ctx, connect6Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect7Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Blur to Resize (grow to 500w)")
 
 	// Connect Resize (grow to 500w) → Output (Width 500)
-	connect7Cmd := application.NewConnectImageGraphNodesCommand(
+	connect8Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
 		resizeGrowNodeID,
 		"resized",
 		output1NodeID,
 		"input",
 	)
-	if err := messageBus.HandleCommand(ctx, connect7Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect8Cmd); err != nil {
 		return err
 	}
 	logger.Info("connected Resize (grow to 500w) to Output (Width 500)")
 
-	// Connect Resize Match → Output (Output with original size)
-	connect8Cmd := application.NewConnectImageGraphNodesCommand(
+	// Connect Pixel Inflate → Output (Output with original size)
+	connect9Cmd := application.NewConnectImageGraphNodesCommand(
 		graphID,
-		resizeMatchNodeID,
-		"resized",
+		pixelInflateNodeID,
+		"inflated",
 		output2NodeID,
 		"input",
 	)
-	if err := messageBus.HandleCommand(ctx, connect8Cmd); err != nil {
+	if err := messageBus.HandleCommand(ctx, connect9Cmd); err != nil {
 		return err
 	}
-	logger.Info("connected Resize Match to Output (Output with original size)")
+	logger.Info("connected Pixel Inflate to Output (Output with original size)")
+
+	// Connect Resize Match → Output (no lines)
+	connect10Cmd := application.NewConnectImageGraphNodesCommand(
+		graphID,
+		resizeMatchNodeID,
+		"resized",
+		output3NodeID,
+		"input",
+	)
+	if err := messageBus.HandleCommand(ctx, connect10Cmd); err != nil {
+		return err
+	}
+	logger.Info("connected Resize Match to Output (no lines)")
 
 	// Set node layout positions
 	layoutCmd := application.NewUpdateLayoutCommand(
 		graphID,
 		[]ui.NodePosition{
 			{NodeID: inputNodeID, X: -530.6755718206077, Y: 697.8155894863006},
-			{NodeID: cropNodeID, X: -203.67722892973154, Y: 469.38986386272},
+			{NodeID: cropNodeID, X: -203.67722892973154, Y: 467.9825097594408},
 			{NodeID: resizeShrinkNodeID, X: 88.46872385139525, Y: 140.27954065464667},
 			{NodeID: blurNodeID, X: 441.1165295054946, Y: 68.33292188308917},
 			{NodeID: resizeGrowNodeID, X: 759.1643755098712, Y: 173.30806002694175},
 			{NodeID: output1NodeID, X: 1097.7823165595007, Y: 195.33684713308418},
 			{NodeID: resizeMatchNodeID, X: 626.7919132756106, Y: 502.2265824180362},
-			{NodeID: output2NodeID, X: 1106.6541194569395, Y: 481.84135099908485},
+			{NodeID: output2NodeID, X: 933.5495647535879, Y: 922.3431853255},
+			{NodeID: pixelInflateNodeID, X: 545.3986714153481, Y: 922.3273270022839},
+			{NodeID: output3NodeID, X: 991.5299221548803, Y: 540.9343650135985},
 		},
 	)
 	if err := messageBus.HandleCommand(ctx, layoutCmd); err != nil {
