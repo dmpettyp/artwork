@@ -26,6 +26,13 @@ type outputSetter interface {
 		outputName imagegraph.OutputName,
 		imageID imagegraph.ImageID,
 	) error
+
+	SetNodePreviewImage(
+		ctx context.Context,
+		imageGraphID imagegraph.ImageGraphID,
+		nodeID imagegraph.NodeID,
+		imageID imagegraph.ImageID,
+	) error
 }
 
 type ImageGen struct {
@@ -117,6 +124,40 @@ func (ig *ImageGen) saveAndSetOutput(
 	return nil
 }
 
+func (ig *ImageGen) saveAndSetPreview(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	img image.Image,
+	format string,
+) error {
+	// Encode the image
+	imageData, err := ig.encodeImage(img, format)
+	if err != nil {
+		return err
+	}
+
+	// Generate new image ID
+	previewImageID, err := imagegraph.NewImageID()
+	if err != nil {
+		return fmt.Errorf("could not generate preview image ID: %w", err)
+	}
+
+	// Save to storage
+	err = ig.imageStorage.Save(previewImageID, imageData)
+	if err != nil {
+		return fmt.Errorf("could not save preview image: %w", err)
+	}
+
+	// Set the output image on the node
+	err = ig.outputSetter.SetNodePreviewImage(ctx, imageGraphID, nodeID, previewImageID)
+	if err != nil {
+		return fmt.Errorf("could not set node preview image: %w", err)
+	}
+
+	return nil
+}
+
 func (ig *ImageGen) GenerateOutputsForBlurNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
@@ -193,8 +234,19 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 		}
 	}
 
-	// Save and set output
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, blurredImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for blur node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, blurredImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for blur node: %w", err)
+	}
+
+	return nil
 }
 
 func (ig *ImageGen) GenerateOutputsForResizeNode(
@@ -238,11 +290,21 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 		return fmt.Errorf("at least one of width or height must be set")
 	}
 
-	// Resize using the library
 	resizedImg := resize.Resize(targetWidth, targetHeight, img, interpolationFunction)
 
-	// Save and set output
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for resize node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for resize node: %w", err)
+	}
+
+	return nil
 }
 
 var resizeInterpolationFunctions = map[string]resize.InterpolationFunction{
@@ -293,8 +355,19 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 		interpolationFunction,
 	)
 
-	// Save and set output
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, resizedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
+	}
+
+	return nil
 }
 
 func (ig *ImageGen) GenerateOutputsForCropNode(
@@ -346,8 +419,19 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 		return fmt.Errorf("image type does not support cropping")
 	}
 
-	// Save and set output
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, croppedImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, croppedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for crop node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, croppedImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for crop node: %w", err)
+	}
+
+	return nil
 }
 
 func (ig *ImageGen) GenerateOutputsForOutputNode(
@@ -363,7 +447,19 @@ func (ig *ImageGen) GenerateOutputsForOutputNode(
 		return err
 	}
 
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, originalImage, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for output node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, originalImage, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for output node: %w", err)
+	}
+
+	return nil
 }
 
 func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
@@ -438,6 +534,17 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 		}
 	}
 
-	// Save and set output
-	return ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, outputImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
+	}
+
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, outputImg, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
+	}
+
+	return nil
 }

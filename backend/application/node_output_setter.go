@@ -33,8 +33,30 @@ func (s *NodeOutputSetter) SetNodeOutputImage(
 	)
 
 	err := s.messageBus.HandleCommand(ctx, cmd)
+
 	if err != nil {
-		return fmt.Errorf("could not handle SetImageGraphNodeOutputImageCommand: %w", err)
+		return fmt.Errorf("could not set node output image: %w", err)
+	}
+
+	return nil
+}
+
+func (s *NodeOutputSetter) SetNodePreviewImage(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	imageID imagegraph.ImageID,
+) error {
+	cmd := NewSetImageGraphNodePreviewCommand(
+		imageGraphID,
+		nodeID,
+		imageID,
+	)
+
+	err := s.messageBus.HandleCommand(ctx, cmd)
+
+	if err != nil {
+		return fmt.Errorf("could not set node preview image: %w", err)
 	}
 
 	return nil

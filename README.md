@@ -6,13 +6,21 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- decopule handlers from json/domain converters
 - setting a preview image
+  - interface to set
+  - implement in image generators
+    - create with appropriate size
+    - zoom in with nearest neighbour
+    - zoom out with something cleaner
+  - use in UI if exists
 - node types
   - pallet matching node
+  - paint? paint over? something that can be used to create a stencil
+  - stencil apply
 - need better error handling when image generation fails
+  - error state in node? store error in node?
 - durable repository/unit of work implementation: sqlite
-- maybe just do event sourcing approach? that actually might be fun
+  - maybe just do event sourcing approach? that actually might be fun
 
 ## Overview
 
@@ -54,13 +62,13 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - decopule handlers from json/domain converters
 - DONE - pixel blow up node deliniating lines, width, colour
 - DONE - crop ratio: can set w/h ratio, drag and zoom the crop
 - DONE - much better cropping, interactive probably best
 - DONE - initial crop node
 - DONE - delete images when they are no longer being used
 - DONE - don't share output nodes
-
 - DONE - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
 - DONE - publish node field config to frontend?
 - DONE - clean up and commonize aspects of imagegen
