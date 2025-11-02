@@ -107,10 +107,8 @@ export class Renderer {
         const inputs = node.inputs || [];
         const outputs = node.outputs || [];
 
-        // Store default thumbnail image ID (first output's image)
-        const defaultImageId = (node.outputs && node.outputs.length > 0 && node.outputs[0].image_id)
-            ? node.outputs[0].image_id
-            : null;
+        // Store default thumbnail image ID (preview image)
+        const defaultImageId = node.preview || null;
         if (defaultImageId) {
             g.setAttribute('data-default-image-id', defaultImageId);
         }

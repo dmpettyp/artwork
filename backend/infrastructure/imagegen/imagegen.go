@@ -131,8 +131,28 @@ func (ig *ImageGen) saveAndSetPreview(
 	img image.Image,
 	format string,
 ) error {
+	bounds := img.Bounds()
+	width := uint(bounds.Dx())
+	height := uint(bounds.Dy())
+
+	interpolationFunction := resize.Bicubic
+
+	if width < 160 || height < 120 {
+		interpolationFunction = resize.NearestNeighbor
+	}
+
+	if width > height {
+		width = 160
+		height = 0
+	} else {
+		width = 0
+		height = 120
+	}
+
+	previewImg := resize.Resize(width, height, img, interpolationFunction)
+
 	// Encode the image
-	imageData, err := ig.encodeImage(img, format)
+	imageData, err := ig.encodeImage(previewImg, format)
 	if err != nil {
 		return err
 	}
