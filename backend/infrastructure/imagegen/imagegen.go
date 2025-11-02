@@ -10,6 +10,7 @@ import (
 	"image/jpeg"
 	"image/png"
 
+	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/nfnt/resize"
 )
@@ -193,67 +194,7 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 		return err
 	}
 
-	// Apply Gaussian blur
-	bounds := img.Bounds()
-	blurredImg := image.NewRGBA(bounds)
-
-	// Simple box blur approximation of Gaussian blur
-	// Apply horizontal blur pass
-	tempImg := image.NewRGBA(bounds)
-	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			var r, g, b, a uint32
-			count := 0
-
-			for dx := -radius; dx <= radius; dx++ {
-				px := x + dx
-				if px >= bounds.Min.X && px < bounds.Max.X {
-					c := img.At(px, y)
-					rr, gg, bb, aa := c.RGBA()
-					r += rr
-					g += gg
-					b += bb
-					a += aa
-					count++
-				}
-			}
-
-			tempImg.Set(x, y, color.RGBA{
-				R: uint8(r / uint32(count) >> 8),
-				G: uint8(g / uint32(count) >> 8),
-				B: uint8(b / uint32(count) >> 8),
-				A: uint8(a / uint32(count) >> 8),
-			})
-		}
-	}
-
-	// Apply vertical blur pass
-	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			var r, g, b, a uint32
-			count := 0
-
-			for dy := -radius; dy <= radius; dy++ {
-				py := y + dy
-				if py >= bounds.Min.Y && py < bounds.Max.Y {
-					c := tempImg.At(x, py)
-					rr, gg, bb, aa := c.RGBA()
-					r += rr
-					g += gg
-					b += bb
-					a += aa
-					count++
-				}
-			}
-
-			blurredImg.Set(x, y, color.RGBA{
-				R: uint8(r / uint32(count) >> 8),
-				G: uint8(g / uint32(count) >> 8),
-				B: uint8(b / uint32(count) >> 8),
-				A: uint8(a / uint32(count) >> 8),
-			})
-		}
-	}
+	blurredImg := blur.Box(img, float64(radius))
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg, format)
 
