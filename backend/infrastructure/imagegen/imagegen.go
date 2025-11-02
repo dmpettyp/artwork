@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/jpeg"
 	"image/png"
 
@@ -135,42 +136,42 @@ func (ig *ImageGen) saveAndSetPreview(
 	width := uint(bounds.Dx())
 	height := uint(bounds.Dy())
 
-	interpolationFunction := resize.Bicubic
+	interpolationFunction := resize.Lanczos2
 
-	if width < 160 || height < 120 {
+	if width < 300 || height < 300 {
 		interpolationFunction = resize.NearestNeighbor
 	}
 
 	if width > height {
-		width = 160
+		width = 300
 		height = 0
 	} else {
 		width = 0
-		height = 120
+		height = 300
 	}
 
 	previewImg := resize.Resize(width, height, img, interpolationFunction)
 
-	// Encode the image
 	imageData, err := ig.encodeImage(previewImg, format)
+
 	if err != nil {
 		return err
 	}
 
-	// Generate new image ID
 	previewImageID, err := imagegraph.NewImageID()
+
 	if err != nil {
 		return fmt.Errorf("could not generate preview image ID: %w", err)
 	}
 
-	// Save to storage
 	err = ig.imageStorage.Save(previewImageID, imageData)
+
 	if err != nil {
 		return fmt.Errorf("could not save preview image: %w", err)
 	}
 
-	// Set the output image on the node
 	err = ig.outputSetter.SetNodePreviewImage(ctx, imageGraphID, nodeID, previewImageID)
+
 	if err != nil {
 		return fmt.Errorf("could not set node preview image: %w", err)
 	}
@@ -390,6 +391,86 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	return nil
 }
 
+// createCropPreviewImage creates a preview image showing the crop region overlay
+func (ig *ImageGen) createCropPreviewImage(originalImage image.Image, left, top, right, bottom int) image.Image {
+	bounds := originalImage.Bounds()
+
+	// Create a new RGBA image
+	previewImg := image.NewRGBA(bounds)
+
+	// Copy original image to preview
+	draw.Draw(previewImg, bounds, originalImage, bounds.Min, draw.Src)
+
+	// Define overlay color (semi-transparent black)
+	overlayColor := color.RGBA{R: 0, G: 0, B: 0, A: 128}
+
+	// Draw semi-transparent overlay on areas outside crop region
+	// Top rectangle
+	if top > bounds.Min.Y {
+		topRect := image.Rect(bounds.Min.X, bounds.Min.Y, bounds.Max.X, top)
+		draw.Draw(previewImg, topRect, &image.Uniform{overlayColor}, image.Point{}, draw.Over)
+	}
+
+	// Bottom rectangle
+	if bottom < bounds.Max.Y {
+		bottomRect := image.Rect(bounds.Min.X, bottom, bounds.Max.X, bounds.Max.Y)
+		draw.Draw(previewImg, bottomRect, &image.Uniform{overlayColor}, image.Point{}, draw.Over)
+	}
+
+	// Left rectangle (only the crop region height to avoid overlapping corners)
+	if left > bounds.Min.X {
+		leftRect := image.Rect(bounds.Min.X, top, left, bottom)
+		draw.Draw(previewImg, leftRect, &image.Uniform{overlayColor}, image.Point{}, draw.Over)
+	}
+
+	// Right rectangle (only the crop region height to avoid overlapping corners)
+	if right < bounds.Max.X {
+		rightRect := image.Rect(right, top, bounds.Max.X, bottom)
+		draw.Draw(previewImg, rightRect, &image.Uniform{overlayColor}, image.Point{}, draw.Over)
+	}
+
+	// Draw white border around crop rectangle
+	borderColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	borderWidth := int(float64(bounds.Dx()) * 0.02)
+
+	// Draw border by drawing thick lines on each side of the crop rectangle
+	for offset := 0; offset < borderWidth; offset++ {
+		// Top border
+		for x := left; x < right; x++ {
+			y := top + offset
+			if y >= bounds.Min.Y && y < bounds.Max.Y && x >= bounds.Min.X && x < bounds.Max.X {
+				previewImg.Set(x, y, borderColor)
+			}
+		}
+
+		// Bottom border
+		for x := left; x < right; x++ {
+			y := bottom - offset - 1
+			if y >= bounds.Min.Y && y < bounds.Max.Y && x >= bounds.Min.X && x < bounds.Max.X {
+				previewImg.Set(x, y, borderColor)
+			}
+		}
+
+		// Left border
+		for y := top; y < bottom; y++ {
+			x := left + offset
+			if x >= bounds.Min.X && x < bounds.Max.X && y >= bounds.Min.Y && y < bounds.Max.Y {
+				previewImg.Set(x, y, borderColor)
+			}
+		}
+
+		// Right border
+		for y := top; y < bottom; y++ {
+			x := right - offset - 1
+			if x >= bounds.Min.X && x < bounds.Max.X && y >= bounds.Min.Y && y < bounds.Max.Y {
+				previewImg.Set(x, y, borderColor)
+			}
+		}
+	}
+
+	return previewImg
+}
+
 func (ig *ImageGen) GenerateOutputsForCropNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
@@ -439,7 +520,10 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 		return fmt.Errorf("image type does not support cropping")
 	}
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, croppedImg, format)
+	// Generate preview with crop overlay visualization
+	previewImg := ig.createCropPreviewImage(originalImage, left, top, right, bottom)
+
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, previewImg, format)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for crop node: %w", err)

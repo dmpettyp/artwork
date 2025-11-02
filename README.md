@@ -6,13 +6,8 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- setting a preview image
-  - interface to set
-  - implement in image generators
-    - create with appropriate size
-    - zoom in with nearest neighbour
-    - zoom out with something cleaner
-  - use in UI if exists
+- lib for blur?
+- fix preview for input node
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
@@ -62,6 +57,13 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - setting a preview image
+  - interface to set
+  - implement in image generators
+    - create with appropriate size
+    - zoom in with nearest neighbour
+    - zoom out with something cleaner
+  - use in UI if exists
 - DONE - decopule handlers from json/domain converters
 - DONE - pixel blow up node deliniating lines, width, colour
 - DONE - crop ratio: can set w/h ratio, drag and zoom the crop
