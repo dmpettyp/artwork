@@ -180,36 +180,26 @@ func (ig *ImageGen) saveAndSetPreview(
 	return nil
 }
 
-// func (ig *ImageGen) GeneratePreviewForInputNode(
-// 	ctx context.Context,
-// 	imageGraphID imagegraph.ImageGraphID,
-// 	nodeID imagegraph.NodeID,
-// 	inputImageID imagegraph.ImageID,
-// 	radius int,
-// 	outputName imagegraph.OutputName,
-// ) error {
-// 	// Load the input image
-// 	img, format, err := ig.loadImage(inputImageID)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	blurredImg := blur.Box(img, float64(radius))
-//
-// 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg, format)
-//
-// 	if err != nil {
-// 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
-// 	}
-//
-// 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, blurredImg, format)
-//
-// 	if err != nil {
-// 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
-// 	}
-//
-// 	return nil
-// }
+func (ig *ImageGen) GeneratePreviewForInputNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	outputImageID imagegraph.ImageID,
+) error {
+	// Load the input image
+	outputImage, format, err := ig.loadImage(outputImageID)
+	if err != nil {
+		return err
+	}
+
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImage, format)
+
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for blur node: %w", err)
+	}
+
+	return nil
+}
 
 func (ig *ImageGen) GenerateOutputsForBlurNode(
 	ctx context.Context,

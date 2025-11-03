@@ -369,6 +369,17 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 		},
 	})
 
+	if event.NodeType == imagegraph.NodeTypeInput {
+		go func() {
+			_ = h.imageGen.GeneratePreviewForInputNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				event.ImageID,
+			)
+		}()
+	}
+
 	return nil, nil
 }
 
