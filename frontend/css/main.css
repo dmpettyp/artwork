@@ -210,6 +210,15 @@ body {
     user-select: none;
 }
 
+.node-thumbnail.pixelated {
+    image-rendering: -moz-crisp-edges;         /* Firefox */
+    image-rendering: -webkit-crisp-edges;      /* Webkit (old) */
+    image-rendering: -webkit-optimize-contrast; /* Webkit */
+    image-rendering: pixelated;                /* Standard - use pixelated for small images */
+    image-rendering: crisp-edges;              /* Fallback */
+    -ms-interpolation-mode: nearest-neighbor;  /* IE */
+}
+
 /* Port table header */
 .port-table-header-bg {
     fill: var(--color-bg-gray);

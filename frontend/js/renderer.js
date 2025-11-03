@@ -215,11 +215,46 @@ export class Renderer {
         image.classList.add('node-thumbnail');
         image.setAttribute('x', (NODE_DESIGN.width - NODE_DESIGN.thumbnail.width) / 2);
         image.setAttribute('y', yPos);
+        image.setAttribute('data-original-y', yPos); // Store original Y position for updates
         image.setAttribute('width', NODE_DESIGN.thumbnail.width);
         image.setAttribute('height', NODE_DESIGN.thumbnail.height);
         image.setAttribute('href', API_PATHS.images(imageId));
         image.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        image.style.imageRendering = 'pixelated';
+
+        // Use canvas for small images to get crisp scaling
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            const naturalWidth = tempImg.naturalWidth || 0;
+            const naturalHeight = tempImg.naturalHeight || 0;
+
+            // Only use canvas for small images
+            if (naturalWidth > 0 && naturalHeight > 0 &&
+                naturalWidth < NODE_DESIGN.thumbnail.pixelatedThreshold &&
+                naturalHeight < NODE_DESIGN.thumbnail.pixelatedThreshold) {
+
+                // Create canvas - always at full thumbnail size
+                const canvas = document.createElement('canvas');
+                canvas.width = NODE_DESIGN.thumbnail.width;
+                canvas.height = NODE_DESIGN.thumbnail.height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+
+                // Calculate how to fit the image in the thumbnail area
+                const scale = Math.min(
+                    NODE_DESIGN.thumbnail.width / naturalWidth,
+                    NODE_DESIGN.thumbnail.height / naturalHeight
+                );
+                const scaledWidth = naturalWidth * scale;
+                const scaledHeight = naturalHeight * scale;
+                const x = (NODE_DESIGN.thumbnail.width - scaledWidth) / 2;
+                const y = (NODE_DESIGN.thumbnail.height - scaledHeight) / 2;
+
+                ctx.drawImage(tempImg, x, y, scaledWidth, scaledHeight);
+                image.setAttribute('href', canvas.toDataURL());
+            }
+        };
+        tempImg.src = API_PATHS.images(imageId);
+
         parentG.appendChild(image);
     }
 
@@ -254,6 +289,40 @@ export class Renderer {
         if (existingThumbnail) {
             // Update the href to show the new image
             existingThumbnail.setAttribute('href', API_PATHS.images(imageId));
+
+            // Use canvas for small images to get crisp scaling
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const naturalWidth = tempImg.naturalWidth || 0;
+                const naturalHeight = tempImg.naturalHeight || 0;
+
+                // Only use canvas for small images
+                if (naturalWidth > 0 && naturalHeight > 0 &&
+                    naturalWidth < NODE_DESIGN.thumbnail.pixelatedThreshold &&
+                    naturalHeight < NODE_DESIGN.thumbnail.pixelatedThreshold) {
+
+                    // Create canvas - always at full thumbnail size
+                    const canvas = document.createElement('canvas');
+                    canvas.width = NODE_DESIGN.thumbnail.width;
+                    canvas.height = NODE_DESIGN.thumbnail.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+
+                    // Calculate how to fit the image in the thumbnail area
+                    const scale = Math.min(
+                        NODE_DESIGN.thumbnail.width / naturalWidth,
+                        NODE_DESIGN.thumbnail.height / naturalHeight
+                    );
+                    const scaledWidth = naturalWidth * scale;
+                    const scaledHeight = naturalHeight * scale;
+                    const x = (NODE_DESIGN.thumbnail.width - scaledWidth) / 2;
+                    const y = (NODE_DESIGN.thumbnail.height - scaledHeight) / 2;
+
+                    ctx.drawImage(tempImg, x, y, scaledWidth, scaledHeight);
+                    existingThumbnail.setAttribute('href', canvas.toDataURL());
+                }
+            };
+            tempImg.src = API_PATHS.images(imageId);
         } else {
             // Create thumbnail if it doesn't exist
             this.renderThumbnail(nodeGroup, imageId);

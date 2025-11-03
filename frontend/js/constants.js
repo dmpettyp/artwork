@@ -14,7 +14,8 @@ export const NODE_DESIGN = {
     thumbnail: {
         width: 160,
         height: 120,
-        y: 48
+        y: 48,
+        pixelatedThreshold: 100 // Images smaller than this use pixelated rendering
     }
 };
 
