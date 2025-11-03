@@ -388,6 +388,8 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	// If the node previously had all inputs set, revert the state to
 	// WaitingForInputs
 	if !n.allInputsSet() {
+		n.Preview = ImageID{}
+
 		err := n.State.Transition(Waiting)
 
 		if err != nil {
@@ -446,6 +448,8 @@ func (n *Node) UnsetInputImage(
 	input.ResetImage()
 
 	if !n.allInputsSet() {
+		n.Preview = ImageID{}
+
 		err := n.State.Transition(Waiting)
 
 		if err != nil {
