@@ -215,7 +215,7 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 		return err
 	}
 
-	blurredImg := blur.Box(img, float64(radius))
+	blurredImg := blur.Gaussian(img, float64(radius))
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg, format)
 

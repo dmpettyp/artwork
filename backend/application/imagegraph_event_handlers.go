@@ -49,6 +49,7 @@ func NewImageGraphEventHandlers(
 
 	err := errors.Join(
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodePreviewSetEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeAddedEvent),
@@ -379,6 +380,20 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 			)
 		}()
 	}
+
+	return nil, nil
+}
+
+func (h *ImageGraphEventHandlers) HandleNodePreviewSetEvent(
+	ctx context.Context,
+	event *imagegraph.NodePreviewSetEvent,
+) (
+	[]dorky.Event,
+	error,
+) {
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+		"node_id": event.NodeID.String(),
+	})
 
 	return nil, nil
 }

@@ -6,8 +6,6 @@ to process images in a non-destructive way.
 
 ## TODO
 
-- lib for blur?
-- fix preview for input node
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
@@ -57,6 +55,8 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE lib for blur?
+- DONE fix preview for input node
 - DONE - setting a preview image
   - interface to set
   - implement in image generators
