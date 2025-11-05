@@ -1,5 +1,5 @@
 // Interactive crop modal with visual image cropping
-import { API_PATHS } from '../constants.js';
+import { API_PATHS, CROP_ASPECT_RATIOS } from '../constants.js';
 
 export class CropModal {
     constructor() {
@@ -17,6 +17,9 @@ export class CropModal {
         this.aspectCustomInputs = document.getElementById('crop-aspect-custom-inputs');
         this.aspectWidthInput = document.getElementById('crop-aspect-width');
         this.aspectHeightInput = document.getElementById('crop-aspect-height');
+
+        // Populate aspect ratio dropdown
+        this.populateAspectRatioDropdown();
 
         // Buttons
         this.cancelBtn = document.getElementById('crop-cancel-btn');
@@ -71,6 +74,19 @@ export class CropModal {
             if (this.isDrawing) {
                 this.handleMouseUp(e);
             }
+        });
+    }
+
+    populateAspectRatioDropdown() {
+        // Clear existing options
+        this.aspectSelect.innerHTML = '';
+
+        // Add options from constants
+        CROP_ASPECT_RATIOS.forEach(preset => {
+            const option = document.createElement('option');
+            option.value = preset.value;
+            option.textContent = preset.label;
+            this.aspectSelect.appendChild(option);
         });
     }
 
@@ -529,21 +545,9 @@ export class CropModal {
 
     detectAspectRatioPreset(width, height) {
         // Check if the given width/height matches a preset
-        const presets = {
-            '1:1': [1, 1],
-            '1:2': [1, 2],
-            '2:3': [2, 3],
-            '3:4': [3, 4],
-            '4:3': [4, 3],
-            '4:6': [4, 6],
-            '6:4': [6, 4],
-            '5:7': [5, 7],
-            '7:5': [7, 5]
-        };
-
-        for (const [key, [w, h]] of Object.entries(presets)) {
-            if (width === w && height === h) {
-                return key;
+        for (const preset of CROP_ASPECT_RATIOS) {
+            if (preset.ratio && preset.ratio[0] === width && preset.ratio[1] === height) {
+                return preset.value;
             }
         }
 
@@ -564,16 +568,18 @@ export class CropModal {
             // Read values from inputs if they exist
             this.handleAspectRatioChange();
         } else {
-            // Parse preset (e.g., "1:1" -> width=1, height=1)
-            const [w, h] = selectedValue.split(':').map(Number);
-            this.aspectRatioWidth = w;
-            this.aspectRatioHeight = h;
-            this.aspectCustomInputs.style.display = 'none';
+            // Look up preset from constants
+            const preset = CROP_ASPECT_RATIOS.find(p => p.value === selectedValue);
+            if (preset && preset.ratio) {
+                this.aspectRatioWidth = preset.ratio[0];
+                this.aspectRatioHeight = preset.ratio[1];
+                this.aspectCustomInputs.style.display = 'none';
 
-            // Auto-adjust crop rectangle to match new aspect ratio
-            if (this.image) {
-                this.adjustCropToAspectRatio();
-                this.render();
+                // Auto-adjust crop rectangle to match new aspect ratio
+                if (this.image) {
+                    this.adjustCropToAspectRatio();
+                    this.render();
+                }
             }
         }
     }

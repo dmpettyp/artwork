@@ -71,6 +71,22 @@ export const CONNECTION_DELETE_BUTTON = {
     hoverColor: '#e74c3c'
 };
 
+// Crop aspect ratio presets
+export const CROP_ASPECT_RATIOS = [
+    { value: 'none', label: 'None', ratio: null },
+    { value: '1:1', label: '1:1 (Square)', ratio: [1, 1] },
+    { value: '1:2', label: '1:2', ratio: [1, 2] },
+    { value: '2:3', label: '2:3', ratio: [2, 3] },
+    { value: '3:2', label: '3:2', ratio: [3, 2] },
+    { value: '3:4', label: '3:4', ratio: [3, 4] },
+    { value: '4:3', label: '4:3', ratio: [4, 3] },
+    { value: '4:6', label: '4:6', ratio: [4, 6] },
+    { value: '5:7', label: '5:7', ratio: [5, 7] },
+    { value: '6:4', label: '6:4', ratio: [6, 4] },
+    { value: '7:5', label: '7:5', ratio: [7, 5] },
+    { value: 'custom', label: 'Custom', ratio: null }
+];
+
 // Node type configurations are now loaded dynamically from the backend API
 // See node-type-schemas.js and node-type-config-store.js
 
