@@ -438,39 +438,74 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	imageID imagegraph.ImageID,
-	left, right, top, bottom int,
+	left, right, top, bottom *int,
 	outputName imagegraph.OutputName,
 ) error {
-	// Load the original image
 	originalImage, format, err := ig.loadImage(imageID)
+
 	if err != nil {
 		return err
 	}
 
-	// Get the original image bounds
 	bounds := originalImage.Bounds()
 
+	// If no crop bounds are provided, pass through the original image
+	if left == nil && right == nil && top == nil && bottom == nil {
+		err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage, format)
+
+		if err != nil {
+			return fmt.Errorf("could not generate outputs for crop node: %w", err)
+		}
+
+		err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, originalImage, format)
+
+		if err != nil {
+			return fmt.Errorf("could not generate outputs for crop node: %w", err)
+		}
+
+		return nil
+	}
+
+	// Fill in missing bounds with defaults based on image dimensions
+	actualLeft := bounds.Min.X
+	actualRight := bounds.Max.X
+	actualTop := bounds.Min.Y
+	actualBottom := bounds.Max.Y
+
+	if left != nil {
+		actualLeft = *left
+	}
+	if right != nil {
+		actualRight = *right
+	}
+	if top != nil {
+		actualTop = *top
+	}
+	if bottom != nil {
+		actualBottom = *bottom
+	}
+
 	// Clamp crop coordinates to actual image bounds
-	if left < bounds.Min.X {
-		left = bounds.Min.X
+	if actualLeft < bounds.Min.X {
+		actualLeft = bounds.Min.X
 	}
-	if right > bounds.Max.X {
-		right = bounds.Max.X
+	if actualRight > bounds.Max.X {
+		actualRight = bounds.Max.X
 	}
-	if top < bounds.Min.Y {
-		top = bounds.Min.Y
+	if actualTop < bounds.Min.Y {
+		actualTop = bounds.Min.Y
 	}
-	if bottom > bounds.Max.Y {
-		bottom = bounds.Max.Y
+	if actualBottom > bounds.Max.Y {
+		actualBottom = bounds.Max.Y
 	}
 
 	// Ensure we still have a valid rectangle after clamping
-	if left >= right || top >= bottom {
+	if actualLeft >= actualRight || actualTop >= actualBottom {
 		return fmt.Errorf("crop rectangle is invalid or outside image bounds")
 	}
 
 	// Create the crop rectangle
-	cropRect := image.Rect(left, top, right, bottom)
+	cropRect := image.Rect(actualLeft, actualTop, actualRight, actualBottom)
 
 	// Create a sub-image (this is a view, not a copy)
 	var croppedImg image.Image
@@ -483,7 +518,7 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	}
 
 	// Generate preview with crop overlay visualization
-	previewImg := ig.createCropPreviewImage(originalImage, left, top, right, bottom)
+	previewImg := ig.createCropPreviewImage(originalImage, actualLeft, actualTop, actualRight, actualBottom)
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, previewImg, format)
 

@@ -20,6 +20,7 @@ export class CropModal {
         this.cancelBtn = document.getElementById('crop-cancel-btn');
         this.saveBtn = document.getElementById('crop-save-btn');
         this.aspectResetBtn = document.getElementById('crop-aspect-reset-btn');
+        this.clearCropBtn = document.getElementById('crop-clear-btn');
 
         // State
         this.image = null;
@@ -57,6 +58,7 @@ export class CropModal {
         this.aspectWidthInput.addEventListener('input', () => this.handleAspectRatioChange());
         this.aspectHeightInput.addEventListener('input', () => this.handleAspectRatioChange());
         this.aspectResetBtn.addEventListener('click', () => this.resetAspectRatio());
+        this.clearCropBtn.addEventListener('click', () => this.clearCrop());
 
         // Continue drawing even when mouse leaves canvas
         document.addEventListener('mousemove', (e) => {
@@ -683,12 +685,22 @@ export class CropModal {
 
     handleSave() {
         if (this.onSave) {
-            const config = {
-                left: this.cropRect.left,
-                right: this.cropRect.right,
-                top: this.cropRect.top,
-                bottom: this.cropRect.bottom
-            };
+            const config = {};
+
+            // Only include crop bounds if they don't cover the full image
+            // (passthrough mode when crop = full image)
+            const isFullImage = this.image &&
+                this.cropRect.left === 0 &&
+                this.cropRect.top === 0 &&
+                this.cropRect.right === this.image.width &&
+                this.cropRect.bottom === this.image.height;
+
+            if (!isFullImage) {
+                config.left = this.cropRect.left;
+                config.right = this.cropRect.right;
+                config.top = this.cropRect.top;
+                config.bottom = this.cropRect.bottom;
+            }
 
             // Include aspect ratio if set
             if (this.isAspectConstrained()) {
@@ -702,5 +714,19 @@ export class CropModal {
             });
         }
         this.hide();
+    }
+
+    clearCrop() {
+        // Reset crop to full image (passthrough mode)
+        if (this.image) {
+            this.cropRect = {
+                left: 0,
+                top: 0,
+                right: this.image.width,
+                bottom: this.image.height
+            };
+            this.updateFieldsFromRect();
+            this.render();
+        }
     }
 }

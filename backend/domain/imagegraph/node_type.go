@@ -61,33 +61,65 @@ var NodeTypeConfigs = []NodeTypeConfig{
 		Inputs:   []InputName{"original"},
 		Outputs:  []OutputName{"cropped"},
 		Fields: []NodeConfigField{
-			{"left", NodeConfigTypeInt, true, nil},
-			{"right", NodeConfigTypeInt, true, nil},
-			{"top", NodeConfigTypeInt, true, nil},
-			{"bottom", NodeConfigTypeInt, true, nil},
+			{"left", NodeConfigTypeInt, false, nil},
+			{"right", NodeConfigTypeInt, false, nil},
+			{"top", NodeConfigTypeInt, false, nil},
+			{"bottom", NodeConfigTypeInt, false, nil},
 			{"aspect_ratio_width", NodeConfigTypeInt, false, nil},
 			{"aspect_ratio_height", NodeConfigTypeInt, false, nil},
 		},
 		validate: func(config NodeConfig) error {
-			left := config["left"].(int)
-			right := config["right"].(int)
-			top := config["top"].(int)
-			bottom := config["bottom"].(int)
+			// Check which crop bounds are provided
+			leftVal, hasLeft := config["left"]
+			rightVal, hasRight := config["right"]
+			topVal, hasTop := config["top"]
+			bottomVal, hasBottom := config["bottom"]
 
-			// All coordinates must be non-negative
-			if left < 0 || right < 0 || top < 0 || bottom < 0 {
-				return fmt.Errorf("crop coordinates must be non-negative")
+			// If no bounds are provided at all, this is valid (passthrough mode)
+			if !hasLeft && !hasRight && !hasTop && !hasBottom {
+				return nil
 			}
 
-			// Rectangle must have positive width and height
-			if left >= right {
+			// Get the actual values, using safe type assertions
+			var left, right, top, bottom int
+			if hasLeft {
+				left = leftVal.(int)
+			}
+			if hasRight {
+				right = rightVal.(int)
+			}
+			if hasTop {
+				top = topVal.(int)
+			}
+			if hasBottom {
+				bottom = bottomVal.(int)
+			}
+
+			// Validate provided coordinates are non-negative
+			if hasLeft && left < 0 {
+				return fmt.Errorf("left coordinate must be non-negative")
+			}
+			if hasRight && right < 0 {
+				return fmt.Errorf("right coordinate must be non-negative")
+			}
+			if hasTop && top < 0 {
+				return fmt.Errorf("top coordinate must be non-negative")
+			}
+			if hasBottom && bottom < 0 {
+				return fmt.Errorf("bottom coordinate must be non-negative")
+			}
+
+			// If both left and right are provided, validate their relationship
+			if hasLeft && hasRight && left >= right {
 				return fmt.Errorf("left must be less than right")
 			}
-			if top >= bottom {
+
+			// If both top and bottom are provided, validate their relationship
+			if hasTop && hasBottom && top >= bottom {
 				return fmt.Errorf("top must be less than bottom")
 			}
 
-			// Validate aspect ratio if specified
+			// Validate aspect ratio if specified and bounds are complete
 			aspectWidthVal, hasAspectWidth := config["aspect_ratio_width"]
 			aspectHeightVal, hasAspectHeight := config["aspect_ratio_height"]
 
@@ -96,7 +128,8 @@ var NodeTypeConfigs = []NodeTypeConfig{
 				return fmt.Errorf("aspect_ratio_width and aspect_ratio_height must both be set or both omitted")
 			}
 
-			if hasAspectWidth && hasAspectHeight {
+			// Only validate aspect ratio if we have all four bounds and aspect ratio is specified
+			if hasAspectWidth && hasAspectHeight && hasLeft && hasRight && hasTop && hasBottom {
 				aspectWidth := aspectWidthVal.(int)
 				aspectHeight := aspectHeightVal.(int)
 

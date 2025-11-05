@@ -145,23 +145,23 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	}
 
 	if event.NodeType == imagegraph.NodeTypeCrop {
-		// Extract crop coordinates
-		left, err := event.NodeConfig.GetInt("left")
+		// Extract optional crop coordinates
+		left, err := event.NodeConfig.GetIntOptional("left")
 		if err != nil {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
 
-		right, err := event.NodeConfig.GetInt("right")
+		right, err := event.NodeConfig.GetIntOptional("right")
 		if err != nil {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
 
-		top, err := event.NodeConfig.GetInt("top")
+		top, err := event.NodeConfig.GetIntOptional("top")
 		if err != nil {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
 
-		bottom, err := event.NodeConfig.GetInt("bottom")
+		bottom, err := event.NodeConfig.GetIntOptional("bottom")
 		if err != nil {
 			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
 		}
