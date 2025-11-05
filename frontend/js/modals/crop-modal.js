@@ -1,5 +1,5 @@
 // Interactive crop modal with visual image cropping
-import { API_PATHS } from './constants.js';
+import { API_PATHS } from '../constants.js';
 
 export class CropModal {
     constructor() {

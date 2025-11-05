@@ -11,14 +11,14 @@ import { GraphManager } from './graph-manager.js';
 import { SIDEBAR_CONFIG } from './constants.js';
 import { loadNodeTypeSchemas } from './node-type-schemas.js';
 import { setNodeTypeConfigs, getNodeTypeConfigs } from './node-type-config-store.js';
-import { CropModal } from './crop-modal.js';
 import { OutputSidebar } from './output-sidebar.js';
 import {
     CreateGraphModalController,
     AddNodeModalController,
     EditNodeModalController,
     DeleteNodeModalController,
-    ViewImageModalController
+    ViewImageModalController,
+    CropModal
 } from './modals/index.js';
 
 // Initialize state and rendering
