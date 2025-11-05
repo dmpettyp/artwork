@@ -146,14 +146,24 @@
 
             <div class="aspect-ratio-container"
                 style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-                <label for="crop-aspect-width" style="margin: 0;">Aspect Ratio:</label>
-                <input type="number" id="crop-aspect-width" class="form-input" min="1" placeholder="w"
-                    style="width: 80px;" />
-                <span>:</span>
-                <input type="number" id="crop-aspect-height" class="form-input" min="1" placeholder="h"
-                    style="width: 80px;" />
-                <button id="crop-aspect-reset-btn" class="btn"
-                    style="padding: 6px 12px; font-size: 13px;">Reset</button>
+                <label for="crop-aspect-select" style="margin: 0;">Aspect Ratio:</label>
+                <select id="crop-aspect-select" class="form-input" style="width: 150px;">
+                    <option value="none">None</option>
+                    <option value="1:1">1:1 (Square)</option>
+                    <option value="1:2">1:2</option>
+                    <option value="2:3">2:3</option>
+                    <option value="3:4">3:4</option>
+                    <option value="4:6">4:6</option>
+                    <option value="5:7">5:7</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <div id="crop-aspect-custom-inputs" style="display: none; align-items: center; gap: 10px;">
+                    <input type="number" id="crop-aspect-width" class="form-input" min="1" placeholder="w"
+                        style="width: 80px;" />
+                    <span>:</span>
+                    <input type="number" id="crop-aspect-height" class="form-input" min="1" placeholder="h"
+                        style="width: 80px;" />
+                </div>
             </div>
 
             <div class="crop-canvas-container">

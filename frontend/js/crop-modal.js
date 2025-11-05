@@ -13,13 +13,14 @@ export class CropModal {
         this.rightInput = document.getElementById('crop-right');
         this.topInput = document.getElementById('crop-top');
         this.bottomInput = document.getElementById('crop-bottom');
+        this.aspectSelect = document.getElementById('crop-aspect-select');
+        this.aspectCustomInputs = document.getElementById('crop-aspect-custom-inputs');
         this.aspectWidthInput = document.getElementById('crop-aspect-width');
         this.aspectHeightInput = document.getElementById('crop-aspect-height');
 
         // Buttons
         this.cancelBtn = document.getElementById('crop-cancel-btn');
         this.saveBtn = document.getElementById('crop-save-btn');
-        this.aspectResetBtn = document.getElementById('crop-aspect-reset-btn');
         this.clearCropBtn = document.getElementById('crop-clear-btn');
 
         // State
@@ -54,10 +55,10 @@ export class CropModal {
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
 
-        // Aspect ratio input changes
+        // Aspect ratio changes
+        this.aspectSelect.addEventListener('change', () => this.handleAspectRatioSelect());
         this.aspectWidthInput.addEventListener('input', () => this.handleAspectRatioChange());
         this.aspectHeightInput.addEventListener('input', () => this.handleAspectRatioChange());
-        this.aspectResetBtn.addEventListener('click', () => this.resetAspectRatio());
         this.clearCropBtn.addEventListener('click', () => this.clearCrop());
 
         // Continue drawing even when mouse leaves canvas
@@ -87,14 +88,29 @@ export class CropModal {
             };
         }
 
-        // Set aspect ratio values if present
+        // Set aspect ratio from existing config
         if (existingConfig.aspect_ratio_width !== undefined && existingConfig.aspect_ratio_height !== undefined) {
-            this.aspectWidthInput.value = existingConfig.aspect_ratio_width;
-            this.aspectHeightInput.value = existingConfig.aspect_ratio_height;
-            this.aspectRatioWidth = existingConfig.aspect_ratio_width;
-            this.aspectRatioHeight = existingConfig.aspect_ratio_height;
+            const w = existingConfig.aspect_ratio_width;
+            const h = existingConfig.aspect_ratio_height;
+            this.aspectRatioWidth = w;
+            this.aspectRatioHeight = h;
+
+            // Check if it matches a preset
+            const preset = this.detectAspectRatioPreset(w, h);
+            if (preset) {
+                this.aspectSelect.value = preset;
+                this.aspectCustomInputs.style.display = 'none';
+            } else {
+                // Custom aspect ratio
+                this.aspectSelect.value = 'custom';
+                this.aspectCustomInputs.style.display = 'flex';
+                this.aspectWidthInput.value = w;
+                this.aspectHeightInput.value = h;
+            }
         } else {
-            // Clear aspect ratio inputs
+            // No aspect ratio - default to "none"
+            this.aspectSelect.value = 'none';
+            this.aspectCustomInputs.style.display = 'none';
             this.aspectWidthInput.value = '';
             this.aspectHeightInput.value = '';
             this.aspectRatioWidth = null;
@@ -511,12 +527,52 @@ export class CropModal {
         }
     }
 
-    resetAspectRatio() {
-        // Clear the aspect ratio inputs and state
-        this.aspectWidthInput.value = '';
-        this.aspectHeightInput.value = '';
-        this.aspectRatioWidth = null;
-        this.aspectRatioHeight = null;
+    detectAspectRatioPreset(width, height) {
+        // Check if the given width/height matches a preset
+        const presets = {
+            '1:1': [1, 1],
+            '1:2': [1, 2],
+            '2:3': [2, 3],
+            '3:4': [3, 4],
+            '4:6': [4, 6],
+            '5:7': [5, 7]
+        };
+
+        for (const [key, [w, h]] of Object.entries(presets)) {
+            if (width === w && height === h) {
+                return key;
+            }
+        }
+
+        return null; // No match, it's custom
+    }
+
+    handleAspectRatioSelect() {
+        const selectedValue = this.aspectSelect.value;
+
+        if (selectedValue === 'none') {
+            // No aspect ratio constraint
+            this.aspectRatioWidth = null;
+            this.aspectRatioHeight = null;
+            this.aspectCustomInputs.style.display = 'none';
+        } else if (selectedValue === 'custom') {
+            // Show custom inputs
+            this.aspectCustomInputs.style.display = 'flex';
+            // Read values from inputs if they exist
+            this.handleAspectRatioChange();
+        } else {
+            // Parse preset (e.g., "1:1" -> width=1, height=1)
+            const [w, h] = selectedValue.split(':').map(Number);
+            this.aspectRatioWidth = w;
+            this.aspectRatioHeight = h;
+            this.aspectCustomInputs.style.display = 'none';
+
+            // Auto-adjust crop rectangle to match new aspect ratio
+            if (this.image) {
+                this.adjustCropToAspectRatio();
+                this.render();
+            }
+        }
     }
 
     adjustCropToAspectRatio() {
