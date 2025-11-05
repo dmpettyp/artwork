@@ -411,9 +411,9 @@ export class CropModal {
 
     isAspectConstrained() {
         return this.aspectRatioWidth !== null &&
-               this.aspectRatioHeight !== null &&
-               this.aspectRatioWidth > 0 &&
-               this.aspectRatioHeight > 0;
+            this.aspectRatioHeight !== null &&
+            this.aspectRatioWidth > 0 &&
+            this.aspectRatioHeight > 0;
     }
 
     /**
@@ -534,8 +534,11 @@ export class CropModal {
             '1:2': [1, 2],
             '2:3': [2, 3],
             '3:4': [3, 4],
+            '4:3': [4, 3],
             '4:6': [4, 6],
-            '5:7': [5, 7]
+            '6:4': [6, 4],
+            '5:7': [5, 7],
+            '7:5': [7, 5]
         };
 
         for (const [key, [w, h]] of Object.entries(presets)) {
