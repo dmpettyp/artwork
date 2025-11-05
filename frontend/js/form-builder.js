@@ -62,9 +62,11 @@ export class NodeConfigFormBuilder {
                 input.required = true;
             }
 
-            // Set current value if provided
+            // Set current value if provided, otherwise use default
             if (currentValues && currentValues[fieldName] !== undefined) {
                 input.value = currentValues[fieldName];
+            } else if (fieldDef.default !== undefined && fieldDef.default !== null) {
+                input.value = fieldDef.default;
             }
         } else {
             // Standard input field
@@ -91,12 +93,19 @@ export class NodeConfigFormBuilder {
                 input.required = true;
             }
 
-            // Set current value if provided
+            // Set current value if provided, otherwise use default
             if (currentValues && currentValues[fieldName] !== undefined) {
                 if (fieldDef.type === 'bool') {
                     input.checked = currentValues[fieldName];
                 } else {
                     input.value = currentValues[fieldName];
+                }
+            } else if (fieldDef.default !== undefined && fieldDef.default !== null) {
+                // Use default value
+                if (fieldDef.type === 'bool') {
+                    input.checked = fieldDef.default;
+                } else {
+                    input.value = fieldDef.default;
                 }
             }
         }

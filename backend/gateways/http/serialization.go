@@ -160,10 +160,11 @@ type nodeTypeSchema struct {
 }
 
 type nodeTypeSchemaField struct {
-	Name     string   `json:"name"`
-	Type     string   `json:"type"`
-	Required bool     `json:"required"`
-	Options  []string `json:"options,omitempty"`
+	Name     string      `json:"name"`
+	Type     string      `json:"type"`
+	Required bool        `json:"required"`
+	Options  []string    `json:"options,omitempty"`
+	Default  interface{} `json:"default,omitempty"`
 }
 
 type errorResponse struct {
@@ -334,6 +335,7 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 				Type:     fieldTypeMapper.ToWithDefault(field.FieldType, "unknown"),
 				Required: field.Required,
 				Options:  field.Options,
+				Default:  field.Default,
 			}
 		}
 

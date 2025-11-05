@@ -151,7 +151,11 @@ export class AddNodeModalController {
             this.close();
             // Refresh graph to show new node
             await this.graphManager.reloadCurrentGraph();
-            this.toastManager.success(`Node "${nodeName}" added successfully`);
+            const displayName = configs[nodeType]?.name || nodeType;
+            const message = nodeName
+                ? `${displayName} node "${nodeName}" added successfully`
+                : `${displayName} node added successfully`;
+            this.toastManager.success(message);
         } catch (error) {
             console.error('Failed to add node:', error);
             this.toastManager.error(`Failed to add node: ${error.message}`);

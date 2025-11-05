@@ -32,6 +32,7 @@ type NodeConfigField struct {
 	FieldType NodeConfigFieldType
 	Required  bool
 	Options   []string
+	Default   interface{} // Default value for the field (type depends on FieldType)
 }
 
 // NodeTypeConfig represents the configuration for a node type
@@ -61,12 +62,12 @@ var NodeTypeConfigs = []NodeTypeConfig{
 		Inputs:   []InputName{"original"},
 		Outputs:  []OutputName{"cropped"},
 		Fields: []NodeConfigField{
-			{"left", NodeConfigTypeInt, false, nil},
-			{"right", NodeConfigTypeInt, false, nil},
-			{"top", NodeConfigTypeInt, false, nil},
-			{"bottom", NodeConfigTypeInt, false, nil},
-			{"aspect_ratio_width", NodeConfigTypeInt, false, nil},
-			{"aspect_ratio_height", NodeConfigTypeInt, false, nil},
+			{"left", NodeConfigTypeInt, false, nil, nil},
+			{"right", NodeConfigTypeInt, false, nil, nil},
+			{"top", NodeConfigTypeInt, false, nil, nil},
+			{"bottom", NodeConfigTypeInt, false, nil, nil},
+			{"aspect_ratio_width", NodeConfigTypeInt, false, nil, nil},
+			{"aspect_ratio_height", NodeConfigTypeInt, false, nil, nil},
 		},
 		validate: func(config NodeConfig) error {
 			// Check which crop bounds are provided
@@ -161,7 +162,7 @@ var NodeTypeConfigs = []NodeTypeConfig{
 		Inputs:   []InputName{"original"},
 		Outputs:  []OutputName{"blurred"},
 		Fields: []NodeConfigField{
-			{"radius", NodeConfigTypeInt, true, nil},
+			{"radius", NodeConfigTypeInt, false, nil, 2},
 		},
 		validate: func(config NodeConfig) error {
 			radius := config["radius"].(int)
@@ -179,8 +180,8 @@ var NodeTypeConfigs = []NodeTypeConfig{
 		Inputs:   []InputName{"original"},
 		Outputs:  []OutputName{"resized"},
 		Fields: []NodeConfigField{
-			{"width", NodeConfigTypeInt, false, nil},
-			{"height", NodeConfigTypeInt, false, nil},
+			{"width", NodeConfigTypeInt, false, nil, nil},
+			{"height", NodeConfigTypeInt, false, nil, nil},
 			{"interpolation", NodeConfigTypeOption, true, []string{
 				"NearestNeighbor",
 				"Bilinear",
@@ -188,7 +189,7 @@ var NodeTypeConfigs = []NodeTypeConfig{
 				"MitchellNetravali",
 				"Lanczos2",
 				"Lanczos3",
-			}},
+			}, nil},
 		},
 		validate: func(config NodeConfig) error {
 			width, hasWidth := config["width"]
@@ -236,7 +237,7 @@ var NodeTypeConfigs = []NodeTypeConfig{
 				"MitchellNetravali",
 				"Lanczos2",
 				"Lanczos3",
-			}},
+			}, nil},
 		},
 	},
 	{
@@ -244,9 +245,9 @@ var NodeTypeConfigs = []NodeTypeConfig{
 		Inputs:   []InputName{"original"},
 		Outputs:  []OutputName{"inflated"},
 		Fields: []NodeConfigField{
-			{"width", NodeConfigTypeInt, true, nil},
-			{"line_width", NodeConfigTypeInt, true, nil},
-			{"line_color", NodeConfigTypeString, true, nil},
+			{"width", NodeConfigTypeInt, true, nil, nil},
+			{"line_width", NodeConfigTypeInt, true, nil, nil},
+			{"line_color", NodeConfigTypeString, true, nil, nil},
 		},
 		validate: func(config NodeConfig) error {
 			width := config["width"].(int)
