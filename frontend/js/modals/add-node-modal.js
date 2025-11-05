@@ -44,11 +44,6 @@ export class AddNodeModalController {
             return;
         }
 
-        // For crop nodes, show info message
-        if (nodeType === 'crop') {
-            this.toastManager.info('Please add the crop node first, then connect an input and edit it to configure the crop area');
-        }
-
         // Store the node type
         this.currentNodeType = nodeType;
 
@@ -81,7 +76,10 @@ export class AddNodeModalController {
         }
 
         // Render config fields for the node type
-        this.formBuilder.renderFields(this.configFields, nodeType, 'config');
+        // For crop nodes, don't show config fields since they're configured via the crop modal after creation
+        if (nodeType !== 'crop') {
+            this.formBuilder.renderFields(this.configFields, nodeType, 'config');
+        }
 
         this.modal.open();
         this.nameInput.focus();
