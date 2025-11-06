@@ -10,7 +10,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"math"
-	"sort"
 
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -679,8 +678,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 		palette = kmeansClusteringRGB(colors, numColors)
 	}
 
-	// Sort by hue
-	sortColorsByHue(palette)
+	// No sorting - use colors as returned by clustering
 
 	// Create output image with near-square dimensions
 	outputImg := createPaletteImage(palette)
@@ -835,8 +833,8 @@ func kmeansClusteringHSL(colors []color.Color, k int) []color.Color {
 		// Distribute evenly across hue (0-360), mid saturation, mid lightness
 		centroids[i] = [3]float64{
 			float64(i) * 360.0 / float64(k), // Hue evenly distributed
-			0.5,                              // Mid saturation
-			0.5,                              // Mid lightness
+			0.5,                             // Mid saturation
+			0.5,                             // Mid lightness
 		}
 	}
 
@@ -1007,53 +1005,8 @@ func rgbToHSL(c color.Color) (h, s, l float64) {
 
 // colorWithHSL holds a color and its HSL values for sorting
 type colorWithHSL struct {
-	color color.Color
+	color   color.Color
 	h, s, l float64
-}
-
-// sortColorsByHue sorts colors by their hue value
-// Separates grayscale colors and sorts them by lightness at the end
-func sortColorsByHue(colors []color.Color) {
-	const saturationThreshold = 0.1 // Colors below this saturation are considered grayscale
-
-	// Convert all colors to HSL
-	colorData := make([]colorWithHSL, len(colors))
-	for i, c := range colors {
-		h, s, l := rgbToHSL(c)
-		colorData[i] = colorWithHSL{color: c, h: h, s: s, l: l}
-	}
-
-	// Sort using standard library
-	sort.SliceStable(colorData, func(i, j int) bool {
-		c1, c2 := colorData[i], colorData[j]
-
-		isGray1 := c1.s < saturationThreshold
-		isGray2 := c2.s < saturationThreshold
-
-		// Grayscale colors go to the end
-		if isGray1 != isGray2 {
-			return !isGray1 // chromatic colors (false) come before grayscale (true)
-		}
-
-		// Both are grayscale - sort by lightness (dark to light)
-		if isGray1 && isGray2 {
-			return c1.l < c2.l
-		}
-
-		// Both are chromatic - sort by hue, then saturation, then lightness
-		if c1.h != c2.h {
-			return c1.h < c2.h
-		}
-		if c1.s != c2.s {
-			return c1.s > c2.s // Higher saturation first
-		}
-		return c1.l < c2.l // Darker first
-	})
-
-	// Copy sorted colors back
-	for i, cd := range colorData {
-		colors[i] = cd.color
-	}
 }
 
 // createPaletteImage creates a near-square image from palette colors
