@@ -2,7 +2,8 @@
 import { API_PATHS, CROP_ASPECT_RATIOS } from '../constants.js';
 
 export class CropModal {
-    constructor() {
+    constructor(toastManager) {
+        this.toastManager = toastManager;
         this.modal = document.getElementById('crop-modal');
         this.canvas = document.getElementById('crop-canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -160,11 +161,11 @@ export class CropModal {
                 });
             } catch (error) {
                 console.error('Failed to load image for crop:', error);
-                alert('Failed to load input image. Make sure the crop node has an input connection.');
+                this.toastManager.error('Failed to load input image. Make sure the crop node has an input connection.');
                 return;
             }
         } else {
-            alert('Cannot open crop editor: No input image available. Connect an input to this crop node first.');
+            this.toastManager.error('Cannot open crop editor: No input image available. Connect an input to this crop node first.');
             return;
         }
 

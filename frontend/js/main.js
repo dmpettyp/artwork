@@ -35,7 +35,7 @@ const graphManager = new GraphManager(api, graphState, renderer, toastManager);
 const outputSidebar = new OutputSidebar(graphState, renderer, toastManager);
 
 // Crop modal for visual crop configuration
-const cropModal = new CropModal();
+const cropModal = new CropModal(toastManager);
 
 // Form builder will be initialized after loading schemas
 let formBuilder = null;

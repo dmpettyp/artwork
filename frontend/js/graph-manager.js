@@ -72,7 +72,6 @@ export class GraphManager {
                 const layout = await this.api.getLayout(graphId);
                 this.renderer.restoreNodePositions(layout.node_positions);
             } catch (error) {
-                console.log('No layout found, using defaults:', error);
                 // Not an error - just means no layout was saved yet
             }
 
@@ -80,7 +79,6 @@ export class GraphManager {
                 const viewport = await this.api.getViewport(graphId);
                 this.renderer.restoreViewport(viewport);
             } catch (error) {
-                console.log('No viewport found, using defaults:', error);
                 // Not an error - just means no viewport was saved yet
             }
 
@@ -129,13 +127,10 @@ export class GraphManager {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}${API_PATHS.graphWebSocket(graphId)}`;
 
-        console.log('Connecting to WebSocket:', wsUrl);
-
         try {
             this.wsConnection = new WebSocket(wsUrl);
 
             this.wsConnection.onopen = () => {
-                console.log('WebSocket connected for graph:', graphId);
                 // Clear any pending reconnect attempts
                 if (this.wsReconnectTimeout) {
                     clearTimeout(this.wsReconnectTimeout);
@@ -146,7 +141,6 @@ export class GraphManager {
             this.wsConnection.onmessage = async (event) => {
                 try {
                     const message = JSON.parse(event.data);
-                    console.log('WebSocket message received:', message);
 
                     // Handle different message types
                     if (message.type === 'layout_update') {
@@ -169,13 +163,11 @@ export class GraphManager {
             };
 
             this.wsConnection.onclose = (event) => {
-                console.log('WebSocket closed:', event.code, event.reason);
                 this.wsConnection = null;
 
                 // Attempt to reconnect if the graph is still selected
                 const currentGraphId = this.graphState.getCurrentGraphId();
                 if (currentGraphId === graphId) {
-                    console.log(`Will attempt to reconnect in ${WS_CONFIG.reconnectDelay}ms`);
                     this.wsReconnectTimeout = setTimeout(() => {
                         this.connectWebSocket(graphId);
                     }, WS_CONFIG.reconnectDelay);
@@ -195,7 +187,6 @@ export class GraphManager {
 
         // Close existing connection
         if (this.wsConnection) {
-            console.log('Disconnecting WebSocket');
             this.wsConnection.close(1000, 'Client disconnecting');
             this.wsConnection = null;
         }
