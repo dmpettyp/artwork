@@ -9,6 +9,8 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"math"
+	"sort"
 
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -648,4 +650,441 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	}
 
 	return nil
+}
+
+func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	sourceImageID imagegraph.ImageID,
+	numColors int,
+	clusterBy string,
+	outputName imagegraph.OutputName,
+) error {
+	// Load source image
+	sourceImg, format, err := ig.loadImage(sourceImageID)
+	if err != nil {
+		return err
+	}
+
+	// Extract colors from the image (ignoring alpha)
+	colors := extractColorsFromImage(sourceImg)
+
+	// Apply k-means clustering to get dominant colors
+	var palette []color.Color
+	if clusterBy == "HSL" {
+		palette = kmeansClusteringHSL(colors, numColors)
+	} else {
+		// Default to RGB clustering
+		palette = kmeansClusteringRGB(colors, numColors)
+	}
+
+	// Sort by hue
+	sortColorsByHue(palette)
+
+	// Create output image with near-square dimensions
+	outputImg := createPaletteImage(palette)
+
+	// Save preview
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
+	}
+
+	// Save output
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, outputImg, format)
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
+	}
+
+	return nil
+}
+
+// extractColorsFromImage extracts all unique RGB colors from an image
+func extractColorsFromImage(img image.Image) []color.Color {
+	bounds := img.Bounds()
+	colorMap := make(map[uint32]color.Color)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.At(x, y)
+			r, g, b, _ := c.RGBA()
+			// Convert to 8-bit and ignore alpha
+			r8, g8, b8 := uint8(r>>8), uint8(g>>8), uint8(b>>8)
+			key := uint32(r8)<<16 | uint32(g8)<<8 | uint32(b8)
+			colorMap[key] = color.RGBA{R: r8, G: g8, B: b8, A: 255}
+		}
+	}
+
+	// Convert map to slice
+	colors := make([]color.Color, 0, len(colorMap))
+	for _, c := range colorMap {
+		colors = append(colors, c)
+	}
+
+	return colors
+}
+
+// kmeansClusteringRGB performs k-means clustering in RGB space to find dominant colors
+func kmeansClusteringRGB(colors []color.Color, k int) []color.Color {
+	if len(colors) == 0 {
+		return []color.Color{}
+	}
+
+	// If we have fewer colors than k, return all colors
+	if len(colors) <= k {
+		return colors
+	}
+
+	// Initialize centroids by evenly spacing through sorted colors
+	centroids := make([][3]float64, k)
+	step := len(colors) / k
+	for i := 0; i < k; i++ {
+		idx := i * step
+		if idx >= len(colors) {
+			idx = len(colors) - 1
+		}
+		r, g, b, _ := colors[idx].RGBA()
+		centroids[i] = [3]float64{float64(r >> 8), float64(g >> 8), float64(b >> 8)}
+	}
+
+	// Run k-means iterations
+	const maxIterations = 20
+	for iteration := 0; iteration < maxIterations; iteration++ {
+		// Assign colors to nearest centroid
+		assignments := make([]int, len(colors))
+		for i, c := range colors {
+			r, g, b, _ := c.RGBA()
+			r8, g8, b8 := float64(r>>8), float64(g>>8), float64(b>>8)
+
+			minDist := float64(1000000)
+			bestCluster := 0
+			for j, centroid := range centroids {
+				dr := r8 - centroid[0]
+				dg := g8 - centroid[1]
+				db := b8 - centroid[2]
+				dist := dr*dr + dg*dg + db*db
+
+				if dist < minDist {
+					minDist = dist
+					bestCluster = j
+				}
+			}
+			assignments[i] = bestCluster
+		}
+
+		// Update centroids
+		newCentroids := make([][3]float64, k)
+		counts := make([]int, k)
+
+		for i, c := range colors {
+			cluster := assignments[i]
+			r, g, b, _ := c.RGBA()
+			newCentroids[cluster][0] += float64(r >> 8)
+			newCentroids[cluster][1] += float64(g >> 8)
+			newCentroids[cluster][2] += float64(b >> 8)
+			counts[cluster]++
+		}
+
+		for i := 0; i < k; i++ {
+			if counts[i] > 0 {
+				newCentroids[i][0] /= float64(counts[i])
+				newCentroids[i][1] /= float64(counts[i])
+				newCentroids[i][2] /= float64(counts[i])
+			}
+		}
+
+		centroids = newCentroids
+	}
+
+	// Convert centroids to colors
+	result := make([]color.Color, k)
+	for i, centroid := range centroids {
+		result[i] = color.RGBA{
+			R: uint8(centroid[0]),
+			G: uint8(centroid[1]),
+			B: uint8(centroid[2]),
+			A: 255,
+		}
+	}
+
+	return result
+}
+
+// kmeansClusteringHSL performs k-means clustering in HSL space to find perceptually distributed colors
+func kmeansClusteringHSL(colors []color.Color, k int) []color.Color {
+	if len(colors) == 0 {
+		return []color.Color{}
+	}
+
+	// If we have fewer colors than k, return all colors
+	if len(colors) <= k {
+		return colors
+	}
+
+	// Convert all colors to HSL
+	colorData := make([]colorWithHSL, len(colors))
+	for i, c := range colors {
+		h, s, l := rgbToHSL(c)
+		colorData[i] = colorWithHSL{color: c, h: h, s: s, l: l}
+	}
+
+	// Initialize centroids by evenly spacing through hue spectrum
+	centroids := make([][3]float64, k)
+	for i := 0; i < k; i++ {
+		// Distribute evenly across hue (0-360), mid saturation, mid lightness
+		centroids[i] = [3]float64{
+			float64(i) * 360.0 / float64(k), // Hue evenly distributed
+			0.5,                              // Mid saturation
+			0.5,                              // Mid lightness
+		}
+	}
+
+	// Run k-means iterations
+	const maxIterations = 20
+	for iteration := 0; iteration < maxIterations; iteration++ {
+		// Assign colors to nearest centroid in HSL space
+		assignments := make([]int, len(colorData))
+		for i, cd := range colorData {
+			minDist := float64(1000000)
+			bestCluster := 0
+			for j, centroid := range centroids {
+				// Calculate distance in HSL space
+				// Hue is circular, so we need to handle wraparound
+				dh := math.Abs(cd.h - centroid[0])
+				if dh > 180 {
+					dh = 360 - dh
+				}
+				// Weight hue more heavily (scale by 2)
+				dh *= 2.0
+
+				ds := cd.s - centroid[1]
+				dl := cd.l - centroid[2]
+				dist := dh*dh + ds*ds + dl*dl
+
+				if dist < minDist {
+					minDist = dist
+					bestCluster = j
+				}
+			}
+			assignments[i] = bestCluster
+		}
+
+		// Update centroids
+		newCentroids := make([][3]float64, k)
+		counts := make([]int, k)
+
+		for i, cd := range colorData {
+			cluster := assignments[i]
+			newCentroids[cluster][0] += cd.h
+			newCentroids[cluster][1] += cd.s
+			newCentroids[cluster][2] += cd.l
+			counts[cluster]++
+		}
+
+		for i := 0; i < k; i++ {
+			if counts[i] > 0 {
+				newCentroids[i][0] /= float64(counts[i])
+				newCentroids[i][1] /= float64(counts[i])
+				newCentroids[i][2] /= float64(counts[i])
+			}
+		}
+
+		centroids = newCentroids
+	}
+
+	// Convert centroids back to RGB
+	result := make([]color.Color, k)
+	for i, centroid := range centroids {
+		result[i] = hslToRGB(centroid[0], centroid[1], centroid[2])
+	}
+
+	return result
+}
+
+// hslToRGB converts HSL color to RGB
+func hslToRGB(h, s, l float64) color.Color {
+	var r, g, b float64
+
+	if s == 0 {
+		// Achromatic (gray)
+		r, g, b = l, l, l
+	} else {
+		var q float64
+		if l < 0.5 {
+			q = l * (1 + s)
+		} else {
+			q = l + s - l*s
+		}
+		p := 2*l - q
+
+		r = hueToRGB(p, q, h+120)
+		g = hueToRGB(p, q, h)
+		b = hueToRGB(p, q, h-120)
+	}
+
+	return color.RGBA{
+		R: uint8(r * 255),
+		G: uint8(g * 255),
+		B: uint8(b * 255),
+		A: 255,
+	}
+}
+
+// hueToRGB is a helper for HSL to RGB conversion
+func hueToRGB(p, q, t float64) float64 {
+	// Normalize hue to 0-360
+	for t < 0 {
+		t += 360
+	}
+	for t > 360 {
+		t -= 360
+	}
+
+	if t < 60 {
+		return p + (q-p)*t/60
+	}
+	if t < 180 {
+		return q
+	}
+	if t < 240 {
+		return p + (q-p)*(240-t)/60
+	}
+	return p
+}
+
+// rgbToHSL converts RGB color to HSL
+func rgbToHSL(c color.Color) (h, s, l float64) {
+	r, g, b, _ := c.RGBA()
+	r8, g8, b8 := float64(r>>8)/255.0, float64(g>>8)/255.0, float64(b>>8)/255.0
+
+	max := r8
+	if g8 > max {
+		max = g8
+	}
+	if b8 > max {
+		max = b8
+	}
+
+	min := r8
+	if g8 < min {
+		min = g8
+	}
+	if b8 < min {
+		min = b8
+	}
+
+	l = (max + min) / 2.0
+
+	if max == min {
+		h = 0
+		s = 0
+		return
+	}
+
+	d := max - min
+	if l > 0.5 {
+		s = d / (2.0 - max - min)
+	} else {
+		s = d / (max + min)
+	}
+
+	switch max {
+	case r8:
+		h = (g8 - b8) / d
+		if g8 < b8 {
+			h += 6
+		}
+	case g8:
+		h = (b8-r8)/d + 2
+	case b8:
+		h = (r8-g8)/d + 4
+	}
+
+	h *= 60
+	return
+}
+
+// colorWithHSL holds a color and its HSL values for sorting
+type colorWithHSL struct {
+	color color.Color
+	h, s, l float64
+}
+
+// sortColorsByHue sorts colors by their hue value
+// Separates grayscale colors and sorts them by lightness at the end
+func sortColorsByHue(colors []color.Color) {
+	const saturationThreshold = 0.1 // Colors below this saturation are considered grayscale
+
+	// Convert all colors to HSL
+	colorData := make([]colorWithHSL, len(colors))
+	for i, c := range colors {
+		h, s, l := rgbToHSL(c)
+		colorData[i] = colorWithHSL{color: c, h: h, s: s, l: l}
+	}
+
+	// Sort using standard library
+	sort.SliceStable(colorData, func(i, j int) bool {
+		c1, c2 := colorData[i], colorData[j]
+
+		isGray1 := c1.s < saturationThreshold
+		isGray2 := c2.s < saturationThreshold
+
+		// Grayscale colors go to the end
+		if isGray1 != isGray2 {
+			return !isGray1 // chromatic colors (false) come before grayscale (true)
+		}
+
+		// Both are grayscale - sort by lightness (dark to light)
+		if isGray1 && isGray2 {
+			return c1.l < c2.l
+		}
+
+		// Both are chromatic - sort by hue, then saturation, then lightness
+		if c1.h != c2.h {
+			return c1.h < c2.h
+		}
+		if c1.s != c2.s {
+			return c1.s > c2.s // Higher saturation first
+		}
+		return c1.l < c2.l // Darker first
+	})
+
+	// Copy sorted colors back
+	for i, cd := range colorData {
+		colors[i] = cd.color
+	}
+}
+
+// createPaletteImage creates a near-square image from palette colors
+func createPaletteImage(colors []color.Color) image.Image {
+	if len(colors) == 0 {
+		// Return a 1x1 black image if no colors
+		img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+		return img
+	}
+
+	// Calculate near-square dimensions
+	numColors := len(colors)
+	width := int(math.Ceil(math.Sqrt(float64(numColors))))
+	height := (numColors + width - 1) / width // Ceiling division
+
+	// Create image
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill with colors
+	idx := 0
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			if idx < len(colors) {
+				img.Set(x, y, colors[idx])
+				idx++
+			} else {
+				// Fill remaining with transparent pixels
+				img.Set(x, y, color.RGBA{R: 0, G: 0, B: 0, A: 0})
+			}
+		}
+	}
+
+	return img
 }

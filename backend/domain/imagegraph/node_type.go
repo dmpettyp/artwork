@@ -13,6 +13,7 @@ const (
 	NodeTypeResize
 	NodeTypeResizeMatch
 	NodeTypePixelInflate
+	NodeTypePaletteExtract
 )
 
 type NodeConfigFieldType int
@@ -278,6 +279,28 @@ var NodeTypeConfigs = []NodeTypeConfig{
 				}
 			}
 
+			return nil
+		},
+	},
+	{
+		NodeType: NodeTypePaletteExtract,
+		Inputs:   []InputName{"source"},
+		Outputs:  []OutputName{"palette"},
+		Fields: []NodeConfigField{
+			{"num_colors", NodeConfigTypeInt, true, nil, 16},
+			{"cluster_by", NodeConfigTypeOption, true, []string{
+				"RGB",
+				"HSL",
+			}, "RGB"},
+		},
+		validate: func(config NodeConfig) error {
+			numColors := config["num_colors"].(int)
+			if numColors < 1 {
+				return fmt.Errorf("num_colors must be at least 1")
+			}
+			if numColors > 1000 {
+				return fmt.Errorf("num_colors must be 1000 or less")
+			}
 			return nil
 		},
 	},

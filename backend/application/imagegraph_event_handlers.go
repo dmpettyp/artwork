@@ -326,6 +326,45 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypePaletteExtract {
+		// Extract config values
+		numColors, err := event.NodeConfig.GetInt("num_colors")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		clusterBy, err := event.NodeConfig.GetString("cluster_by")
+		if err != nil {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: %w", err)
+		}
+
+		// Find the "source" input
+		var sourceImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "source" {
+				sourceImageID = input.ImageID
+				break
+			}
+		}
+
+		if sourceImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'source' input")
+		}
+
+		// Process asynchronously
+		go func() {
+			_ = h.imageGen.GenerateOutputsForPaletteExtractNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				sourceImageID,
+				numColors,
+				clusterBy,
+				"palette",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeOutput {
 		// Find the "input" input
 		var inputImageID imagegraph.ImageID
