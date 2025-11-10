@@ -182,6 +182,7 @@ var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
 	"resize_match", imagegraph.NodeTypeResizeMatch,
 	"pixel_inflate", imagegraph.NodeTypePixelInflate,
 	"palette_extract", imagegraph.NodeTypePaletteExtract,
+	"palette_apply", imagegraph.NodeTypePaletteApply,
 )
 
 var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
@@ -206,14 +207,15 @@ type nodeTypeInfo struct {
 
 // nodeTypeMetadata maps NodeType constants to their API metadata
 var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
-	imagegraph.NodeTypeInput:         {"input", "Input"},
-	imagegraph.NodeTypeOutput:        {"output", "Output"},
-	imagegraph.NodeTypeCrop:          {"crop", "Crop"},
-	imagegraph.NodeTypeBlur:          {"blur", "Blur"},
-	imagegraph.NodeTypeResize:        {"resize", "Resize"},
-	imagegraph.NodeTypeResizeMatch:   {"resize_match", "Resize Match"},
-	imagegraph.NodeTypePixelInflate:  {"pixel_inflate", "Pixel Inflate"},
+	imagegraph.NodeTypeInput:          {"input", "Input"},
+	imagegraph.NodeTypeOutput:         {"output", "Output"},
+	imagegraph.NodeTypeCrop:           {"crop", "Crop"},
+	imagegraph.NodeTypeBlur:           {"blur", "Blur"},
+	imagegraph.NodeTypeResize:         {"resize", "Resize"},
+	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Resize Match"},
+	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Pixel Inflate"},
 	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract"},
+	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply"},
 }
 
 // Conversion functions

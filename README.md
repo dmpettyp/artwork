@@ -6,6 +6,8 @@ to process images in a non-destructive way.
 
 ## TODO
 
+- registry lib for node application
+- hierarchy/class for node types
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil

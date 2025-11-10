@@ -14,6 +14,7 @@ const (
 	NodeTypeResizeMatch
 	NodeTypePixelInflate
 	NodeTypePaletteExtract
+	NodeTypePaletteApply
 )
 
 type NodeConfigFieldType int
@@ -303,6 +304,11 @@ var NodeTypeConfigs = []NodeTypeConfig{
 			}
 			return nil
 		},
+	},
+	{
+		NodeType: NodeTypePaletteApply,
+		Inputs:   []InputName{"source", "palette"},
+		Outputs:  []OutputName{"mapped"},
 	},
 }
 

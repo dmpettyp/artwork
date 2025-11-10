@@ -698,6 +698,125 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	return nil
 }
 
+func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	sourceImageID imagegraph.ImageID,
+	paletteImageID imagegraph.ImageID,
+	outputName imagegraph.OutputName,
+) error {
+	// Load source image
+	sourceImg, format, err := ig.loadImage(sourceImageID)
+	if err != nil {
+		return err
+	}
+
+	// Load palette image
+	paletteImg, _, err := ig.loadImage(paletteImageID)
+	if err != nil {
+		return err
+	}
+
+	// Extract palette colors (all non-transparent unique colors)
+	paletteColors := extractPaletteColors(paletteImg)
+
+	if len(paletteColors) == 0 {
+		return fmt.Errorf("palette image contains no colors")
+	}
+
+	// Map source image to palette
+	outputImg := mapImageToPalette(sourceImg, paletteColors)
+
+	// Save preview
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
+	}
+
+	// Save output
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, outputName, outputImg, format)
+	if err != nil {
+		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
+	}
+
+	return nil
+}
+
+// extractPaletteColors extracts all non-transparent unique colors from a palette image
+func extractPaletteColors(img image.Image) []color.Color {
+	bounds := img.Bounds()
+	colorMap := make(map[uint32]color.Color)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.At(x, y)
+			r, g, b, a := c.RGBA()
+
+			// Skip transparent pixels
+			if a>>8 == 0 {
+				continue
+			}
+
+			// Convert to 8-bit
+			r8, g8, b8 := uint8(r>>8), uint8(g>>8), uint8(b>>8)
+			key := uint32(r8)<<16 | uint32(g8)<<8 | uint32(b8)
+			colorMap[key] = color.RGBA{R: r8, G: g8, B: b8, A: 255}
+		}
+	}
+
+	// Convert map to slice
+	colors := make([]color.Color, 0, len(colorMap))
+	for _, c := range colorMap {
+		colors = append(colors, c)
+	}
+
+	return colors
+}
+
+// mapImageToPalette maps each pixel in the source image to the nearest color in the palette
+func mapImageToPalette(sourceImg image.Image, palette []color.Color) image.Image {
+	bounds := sourceImg.Bounds()
+	outputImg := image.NewRGBA(bounds)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			sourceColor := sourceImg.At(x, y)
+			nearestColor := findNearestColor(sourceColor, palette)
+			outputImg.Set(x, y, nearestColor)
+		}
+	}
+
+	return outputImg
+}
+
+// findNearestColor finds the nearest color in the palette using Euclidean distance in RGB space
+func findNearestColor(c color.Color, palette []color.Color) color.Color {
+	r1, g1, b1, _ := c.RGBA()
+	r1_8, g1_8, b1_8 := float64(r1>>8), float64(g1>>8), float64(b1>>8)
+
+	minDist := float64(1000000)
+	var nearestColor color.Color = palette[0]
+
+	for _, pc := range palette {
+		r2, g2, b2, _ := pc.RGBA()
+		r2_8, g2_8, b2_8 := float64(r2>>8), float64(g2>>8), float64(b2>>8)
+
+		// Euclidean distance in RGB space
+		dr := r1_8 - r2_8
+		dg := g1_8 - g2_8
+		db := b1_8 - b2_8
+		dist := dr*dr + dg*dg + db*db
+
+		if dist < minDist {
+			minDist = dist
+			nearestColor = pc
+		}
+	}
+
+	return nearestColor
+}
+
 // extractColorsFromImage extracts all unique RGB colors from an image
 func extractColorsFromImage(img image.Image) []color.Color {
 	bounds := img.Bounds()

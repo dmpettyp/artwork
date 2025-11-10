@@ -365,6 +365,37 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 		}()
 	}
 
+	if event.NodeType == imagegraph.NodeTypePaletteApply {
+		// Find the "source" and "palette" inputs
+		var sourceImageID, paletteImageID imagegraph.ImageID
+		for _, input := range event.Inputs {
+			if input.Name == "source" {
+				sourceImageID = input.ImageID
+			} else if input.Name == "palette" {
+				paletteImageID = input.ImageID
+			}
+		}
+
+		if sourceImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'source' input")
+		}
+		if paletteImageID.IsNil() {
+			return nil, fmt.Errorf("could not process NodeNeedsOutputsEvent: missing 'palette' input")
+		}
+
+		// Process asynchronously
+		go func() {
+			_ = h.imageGen.GenerateOutputsForPaletteApplyNode(
+				ctx,
+				event.ImageGraphID,
+				event.NodeID,
+				sourceImageID,
+				paletteImageID,
+				"mapped",
+			)
+		}()
+	}
+
 	if event.NodeType == imagegraph.NodeTypeOutput {
 		// Find the "input" input
 		var inputImageID imagegraph.ImageID
