@@ -2,8 +2,6 @@ package imagegraph
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 
 	"github.com/dmpettyp/state"
 )
@@ -37,11 +35,11 @@ type Node struct {
 
 	// The inputs that provide images to the node that are processed and
 	// then set as outputs
-	Inputs map[InputName]*Input
+	Inputs Inputs
 
 	// The outputs of the node that are passed to downstream nodes as inputs to
 	// be processed.
-	Outputs map[OutputName]*Output
+	Outputs Outputs
 
 	// addEvent is a function that can be used by the node to add an event
 	// to its ImageGraph parent
@@ -76,6 +74,18 @@ func NewNode(
 		return nil, fmt.Errorf("could not create node: %w", err)
 	}
 
+	inputs, err := NewInputs(nodeType.InputNames())
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create node: %w", err)
+	}
+
+	outputs, err := NewOutputs(nodeType.OutputNames())
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create node: %w", err)
+	}
+
 	n := &Node{
 		ID:       id,
 		State:    initState,
@@ -83,24 +93,8 @@ func NewNode(
 		Version:  0,
 		Type:     nodeType,
 		Name:     name,
-		Inputs:   make(map[InputName]*Input),
-		Outputs:  make(map[OutputName]*Output),
-	}
-
-	for _, inputName := range nodeType.InputNames() {
-		if _, ok := n.Inputs[inputName]; ok {
-			return nil, fmt.Errorf("node already has an input named %q", inputName)
-		}
-		input := MakeInput(inputName)
-		n.Inputs[inputName] = &input
-	}
-
-	for _, outputName := range nodeType.OutputNames() {
-		if _, ok := n.Outputs[outputName]; ok {
-			return nil, fmt.Errorf("node already has an output named %q", outputName)
-		}
-		output := MakeOutput(outputName)
-		n.Outputs[outputName] = &output
+		Inputs:   inputs,
+		Outputs:  outputs,
 	}
 
 	n.addEvent(NewNodeCreatedEvent(n))
@@ -179,17 +173,10 @@ func (n *Node) IsOutputConnectedTo(
 	bool,
 	error,
 ) {
-	output, ok := n.Outputs[outputName]
-
-	if !ok {
-		return false, fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	return output.IsConnected(toNodeID, inputName), nil
+	return n.Outputs.IsOutputConnectedTo(outputName, toNodeID, inputName)
 }
 
-// SetOutputImage updates a node's output to the provided ImageID. If the
-// ImageID is nil, the image is considered to be unset.
+// SetOutputImage updates a node's output to the provided ImageID.
 func (n *Node) SetOutputImage(
 	outputName OutputName,
 	imageID ImageID,
@@ -197,21 +184,15 @@ func (n *Node) SetOutputImage(
 	[]OutputConnection,
 	error,
 ) {
-	if imageID.IsNil() {
+	if err := n.Outputs.SetImage(outputName, imageID); err != nil {
 		return nil, fmt.Errorf(
-			"cannot set output %q for node %q to nil", outputName, n.ID,
+			"could not set output %q for node %q: %w", outputName, n.ID, err,
 		)
 	}
 
-	output, ok := n.Outputs[outputName]
+	n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
 
-	if !ok {
-		return nil, fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	output.SetImage(imageID)
-
-	if n.allOutputsSet() {
+	if n.Outputs.AllSet() {
 		err := n.State.Transition(Generated)
 
 		if err != nil {
@@ -221,42 +202,28 @@ func (n *Node) SetOutputImage(
 		}
 	}
 
-	n.addEvent(NewOutputImageSetEvent(n, outputName, imageID))
-
-	return slices.Collect(maps.Keys(output.Connections)), nil
+	return n.Outputs.Connections(outputName)
 }
 
-// UnsetOutputImage updates a node's output ImageID to nil
 func (n *Node) UnsetOutputImage(outputName OutputName) error {
-	output, ok := n.Outputs[outputName]
+	oldImageID, err := n.Outputs.UnsetImage(outputName)
 
-	if !ok {
-		return fmt.Errorf("no output named %q exists", outputName)
+	if err != nil {
+		return fmt.Errorf("could not unset node %q output image: %w", n.ID, err)
 	}
 
-	if output.ImageID.IsNil() {
-		return nil
+	if !oldImageID.IsNil() {
+		n.addEvent(NewOutputImageUnsetEvent(n, outputName, oldImageID))
 	}
-
-	n.addEvent(NewOutputImageUnsetEvent(n, outputName, output.ImageID))
-
-	output.ResetImage()
 
 	return nil
 }
 
-// UnsetOutputImage updates a node's output ImageID to nil
 func (n *Node) OutputConnections(outputName OutputName) (
 	[]OutputConnection,
 	error,
 ) {
-	output, ok := n.Outputs[outputName]
-
-	if !ok {
-		return nil, fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	return slices.Collect(maps.Keys(output.Connections)), nil
+	return n.Outputs.Connections(outputName)
 }
 
 func (n *Node) ConnectOutputTo(
@@ -264,16 +231,8 @@ func (n *Node) ConnectOutputTo(
 	toNodeID NodeID,
 	inputName InputName,
 ) error {
-	output, ok := n.Outputs[outputName]
-
-	if !ok {
-		return fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	err := output.Connect(toNodeID, inputName)
-
-	if err != nil {
-		return err
+	if err := n.Outputs.ConnectTo(outputName, toNodeID, inputName); err != nil {
+		return fmt.Errorf("could not connect output for node %q: %w", n.ID, err)
 	}
 
 	n.addEvent(NewOutputConnectedEvent(n, outputName, toNodeID, inputName))
@@ -286,16 +245,8 @@ func (n *Node) DisconnectOutput(
 	toNodeID NodeID,
 	inputName InputName,
 ) error {
-	output, ok := n.Outputs[outputName]
-
-	if !ok {
-		return fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	err := output.Disconnect(toNodeID, inputName)
-
-	if err != nil {
-		return err
+	if err := n.Outputs.DisconnectFrom(outputName, toNodeID, inputName); err != nil {
+		return fmt.Errorf("could not disconnect output for node %q: %w", n.ID, err)
 	}
 
 	n.addEvent(
@@ -311,8 +262,7 @@ func (n *Node) DisconnectOutput(
 }
 
 func (n *Node) HasInput(inputName InputName) bool {
-	_, ok := n.Inputs[inputName]
-	return ok
+	return n.Inputs.Exists(inputName)
 }
 
 func (n *Node) ConnectInputFrom(
@@ -320,15 +270,7 @@ func (n *Node) ConnectInputFrom(
 	fromNodeID NodeID,
 	outputName OutputName,
 ) error {
-	input, ok := n.Inputs[inputName]
-
-	if !ok {
-		return fmt.Errorf("no input named %q exists", inputName)
-	}
-
-	err := input.Connect(fromNodeID, outputName)
-
-	if err != nil {
+	if err := n.Inputs.ConnectFrom(inputName, fromNodeID, outputName); err != nil {
 		return err
 	}
 
@@ -343,28 +285,22 @@ func (n *Node) IsInputConnected(inputName InputName) (
 	bool,
 	error,
 ) {
-	input, ok := n.Inputs[inputName]
-
-	if !ok {
-		return false, fmt.Errorf("no input named %q exists", inputName)
-	}
-
-	return input.Connected, nil
+	return n.Inputs.IsConnected(inputName)
 }
 
 func (n *Node) DisconnectInput(inputName InputName) (
 	InputConnection,
 	error,
 ) {
-	input, ok := n.Inputs[inputName]
+	input, err := n.Inputs.Get(inputName)
 
-	if !ok {
-		return InputConnection{}, fmt.Errorf("no input named %q exists", inputName)
+	if err != nil {
+		return InputConnection{}, fmt.Errorf("could not disconnect input: %w", err)
 	}
 
 	inputConnection := input.InputConnection
 
-	err := input.Disconnect()
+	err = input.Disconnect()
 
 	if err != nil {
 		return inputConnection, err
@@ -387,7 +323,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 
 	// If the node previously had all inputs set, revert the state to
 	// WaitingForInputs
-	if !n.allInputsSet() {
+	if !n.Inputs.AllSet() {
 		n.Preview = ImageID{}
 
 		err := n.State.Transition(Waiting)
@@ -412,17 +348,11 @@ func (n *Node) SetInputImage(
 	inputName InputName,
 	imageID ImageID,
 ) error {
-	if imageID.IsNil() {
-		return fmt.Errorf("cannot set input %q for node %q to nil", inputName, n.ID)
+	err := n.Inputs.SetImage(inputName, imageID)
+
+	if err != nil {
+		return fmt.Errorf("could not set input image for node %q: %w", n.ID, err)
 	}
-
-	input, ok := n.Inputs[inputName]
-
-	if !ok {
-		return fmt.Errorf("no input named %q exists", inputName)
-	}
-
-	input.SetImage(imageID)
 
 	n.addEvent(NewInputImageSetEvent(n, inputName, imageID))
 
@@ -439,15 +369,13 @@ func (n *Node) SetInputImage(
 func (n *Node) UnsetInputImage(
 	inputName InputName,
 ) error {
-	input, ok := n.Inputs[inputName]
+	err := n.Inputs.UnsetImage(inputName)
 
-	if !ok {
-		return fmt.Errorf("no input named %q exists", inputName)
+	if err != nil {
+		return fmt.Errorf("could not unset input image: %w", err)
 	}
 
-	input.ResetImage()
-
-	if !n.allInputsSet() {
+	if !n.Inputs.AllSet() {
 		n.Preview = ImageID{}
 
 		err := n.State.Transition(Waiting)
@@ -467,7 +395,7 @@ func (n *Node) UnsetInputImage(
 }
 
 func (n *Node) triggerOutputsIfReady() error {
-	if !n.allInputsSet() {
+	if !n.Inputs.AllSet() {
 		return nil
 	}
 
@@ -483,15 +411,17 @@ func (n *Node) triggerOutputsIfReady() error {
 }
 
 func (n *Node) resetOutputImages() {
-	for outputName, output := range n.Outputs {
+	_ = n.Outputs.Each(func(output *Output) error {
 		if output.ImageID.IsNil() {
-			continue
+			return nil
 		}
 
-		n.addEvent(NewOutputImageUnsetEvent(n, outputName, output.ImageID))
+		n.addEvent(NewOutputImageUnsetEvent(n, output.Name, output.ImageID))
 
 		output.ResetImage()
-	}
+
+		return nil
+	})
 }
 
 func (n *Node) GetOutputImage(
@@ -500,36 +430,5 @@ func (n *Node) GetOutputImage(
 	ImageID,
 	error,
 ) {
-	output, ok := n.Outputs[outputName]
-
-	if !ok {
-		return ImageID{}, fmt.Errorf("no output named %q exists", outputName)
-	}
-
-	return output.ImageID, nil
-}
-
-// Test to see that all inputs are connected and have an image set
-func (n *Node) allInputsSet() bool {
-	for _, input := range n.Inputs {
-		if !input.Connected {
-			return false
-		}
-
-		if input.ImageID.IsNil() {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (n *Node) allOutputsSet() bool {
-	for _, input := range n.Outputs {
-		if input.ImageID.IsNil() {
-			return false
-		}
-	}
-
-	return true
+	return n.Outputs.GetImage(outputName)
 }

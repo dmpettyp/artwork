@@ -99,6 +99,10 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageUnsetEvent(
 	})
 }
 
+// type Registry struct {
+// 	mappings map[imagegraph.NodeType]func(
+// }
+
 func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	ctx context.Context,
 	event *imagegraph.NodeNeedsOutputsEvent,
