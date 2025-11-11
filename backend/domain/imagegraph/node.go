@@ -292,18 +292,12 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	InputConnection,
 	error,
 ) {
-	input, err := n.Inputs.Get(inputName)
+	inputConnection, hadImage, err := n.Inputs.Disconnect(inputName)
 
 	if err != nil {
-		return InputConnection{}, fmt.Errorf("could not disconnect input: %w", err)
-	}
-
-	inputConnection := input.InputConnection
-
-	err = input.Disconnect()
-
-	if err != nil {
-		return inputConnection, err
+		return InputConnection{}, fmt.Errorf(
+			"could not disconnect input for node %q: %w", n.ID, err,
+		)
 	}
 
 	n.addEvent(
@@ -315,14 +309,14 @@ func (n *Node) DisconnectInput(inputName InputName) (
 		),
 	)
 
-	if !input.HasImage() {
+	// If input didn't have an image, we're done
+	if !hadImage {
 		return inputConnection, nil
 	}
 
-	input.ResetImage()
+	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
-	// If the node previously had all inputs set, revert the state to
-	// WaitingForInputs
+	// If the node previously had all inputs set, revert the state to Waiting
 	if !n.Inputs.AllSet() {
 		n.Preview = ImageID{}
 
@@ -334,8 +328,6 @@ func (n *Node) DisconnectInput(inputName InputName) (
 			)
 		}
 	}
-
-	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
 	n.resetOutputImages()
 

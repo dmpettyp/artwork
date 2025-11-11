@@ -116,6 +116,30 @@ func (inputs Inputs) IsConnected(inputName InputName) (bool, error) {
 	return input.Connected, nil
 }
 
+func (inputs Inputs) Disconnect(inputName InputName) (InputConnection, bool, error) {
+	input, err := inputs.Get(inputName)
+
+	if err != nil {
+		return InputConnection{}, false, fmt.Errorf("could not disconnect input: %w", err)
+	}
+
+	// Store the connection before disconnecting
+	oldConnection := input.InputConnection
+
+	// Disconnect the input
+	if err := input.Disconnect(); err != nil {
+		return InputConnection{}, false, err
+	}
+
+	// Check if input had an image, reset it if so
+	hadImage := input.HasImage()
+	if hadImage {
+		input.ResetImage()
+	}
+
+	return oldConnection, hadImage, nil
+}
+
 func (inputs Inputs) SetImage(inputName InputName, imageID ImageID) error {
 	if imageID.IsNil() {
 		return fmt.Errorf("cannot set input %q image to nil", inputName)
