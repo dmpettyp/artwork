@@ -26,6 +26,7 @@ export async function loadNodeTypeSchemas() {
             const nodeType = entry.name;
             configs[nodeType] = {
                 name: entry.display_name,
+                category: entry.category,
                 nameRequired: entry.schema.name_required,
                 fields: entry.schema.fields
             };

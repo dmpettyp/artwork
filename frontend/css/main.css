@@ -515,7 +515,7 @@ body {
     min-width: 140px;
 }
 
-.context-menu-parent:hover .context-menu-submenu {
+.context-menu-parent:hover > .context-menu-submenu {
     display: block;
 }
 

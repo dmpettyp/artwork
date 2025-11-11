@@ -290,19 +290,66 @@ function populateAddNodeContextMenu(schemas) {
     // Clear existing items
     submenu.innerHTML = '';
 
-    // Create menu items for each node type using the order from backend
-    // The schemas object has an _orderedTypes array that preserves backend ordering
+    // Group node types by category
     const orderedTypes = schemas._orderedTypes || Object.keys(schemas);
+    const categorized = {};
 
     orderedTypes.forEach((nodeType) => {
         const config = schemas[nodeType];
         if (!config) return; // Skip if config doesn't exist (e.g., _orderedTypes itself)
 
-        const item = document.createElement('div');
-        item.className = 'context-menu-item';
-        item.setAttribute('data-node-type', nodeType);
-        item.textContent = config.name;
-        submenu.appendChild(item);
+        const category = config.category || 'Other';
+        if (!categorized[category]) {
+            categorized[category] = [];
+        }
+        categorized[category].push({ nodeType, config });
+    });
+
+    // Define category order
+    const categoryOrder = ['Input/Output', 'Transform', 'Composite', 'Other'];
+
+    // Create nested menu items for each category
+    categoryOrder.forEach((category) => {
+        const nodes = categorized[category];
+        if (!nodes || nodes.length === 0) return;
+
+        // Create category parent item with submenu
+        const categoryParent = document.createElement('div');
+        categoryParent.className = 'context-menu-item context-menu-parent';
+
+        const categoryLabel = document.createElement('span');
+        categoryLabel.textContent = category;
+        categoryParent.appendChild(categoryLabel);
+
+        // Add arrow indicator
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.setAttribute('class', 'context-menu-arrow');
+        arrow.setAttribute('width', '8');
+        arrow.setAttribute('height', '12');
+        arrow.setAttribute('viewBox', '0 0 8 12');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 1 1 L 6 6 L 1 11');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'currentColor');
+        path.setAttribute('stroke-width', '2');
+        arrow.appendChild(path);
+        categoryParent.appendChild(arrow);
+
+        // Create submenu for this category
+        const categorySubmenu = document.createElement('div');
+        categorySubmenu.className = 'context-menu-submenu';
+
+        // Add nodes in this category to the submenu
+        nodes.forEach(({ nodeType, config }) => {
+            const item = document.createElement('div');
+            item.className = 'context-menu-item';
+            item.setAttribute('data-node-type', nodeType);
+            item.textContent = config.name;
+            categorySubmenu.appendChild(item);
+        });
+
+        categoryParent.appendChild(categorySubmenu);
+        submenu.appendChild(categoryParent);
     });
 }
 

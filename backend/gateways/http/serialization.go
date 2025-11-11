@@ -149,6 +149,7 @@ type nodeTypeSchemasResponse struct {
 type nodeTypeSchemaAPIEntry struct {
 	Name        string         `json:"name"`
 	DisplayName string         `json:"display_name"`
+	Category    string         `json:"category"`
 	Schema      nodeTypeSchema `json:"schema"`
 }
 
@@ -203,19 +204,20 @@ var fieldTypeMapper = mapper.MustNew[imagegraph.NodeConfigFieldType, string](
 type nodeTypeInfo struct {
 	name        string
 	displayName string
+	category    string
 }
 
 // nodeTypeMetadata maps NodeType constants to their API metadata
 var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
-	imagegraph.NodeTypeInput:          {"input", "Input"},
-	imagegraph.NodeTypeOutput:         {"output", "Output"},
-	imagegraph.NodeTypeCrop:           {"crop", "Crop"},
-	imagegraph.NodeTypeBlur:           {"blur", "Blur"},
-	imagegraph.NodeTypeResize:         {"resize", "Resize"},
-	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Resize Match"},
-	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Pixel Inflate"},
-	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract"},
-	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply"},
+	imagegraph.NodeTypeInput:          {"input", "Input", "Input/Output"},
+	imagegraph.NodeTypeOutput:         {"output", "Output", "Input/Output"},
+	imagegraph.NodeTypeCrop:           {"crop", "Crop", "Transform"},
+	imagegraph.NodeTypeBlur:           {"blur", "Blur", "Transform"},
+	imagegraph.NodeTypeResize:         {"resize", "Resize", "Transform"},
+	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Resize Match", "Transform"},
+	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Pixel Inflate", "Transform"},
+	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract", "Composite"},
+	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply", "Composite"},
 }
 
 // Conversion functions
@@ -346,6 +348,7 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 		apiSchemas = append(apiSchemas, nodeTypeSchemaAPIEntry{
 			Name:        info.name,
 			DisplayName: info.displayName,
+			Category:    info.category,
 			Schema: nodeTypeSchema{
 				Inputs:       inputs,
 				Outputs:      outputs,
