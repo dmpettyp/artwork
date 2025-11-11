@@ -292,6 +292,8 @@ func (n *Node) DisconnectInput(inputName InputName) (
 	InputConnection,
 	error,
 ) {
+	wasAllSet := n.Inputs.AllSet()
+
 	inputConnection, hadImage, err := n.Inputs.Disconnect(inputName)
 
 	if err != nil {
@@ -316,8 +318,7 @@ func (n *Node) DisconnectInput(inputName InputName) (
 
 	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
-	// If the node previously had all inputs set, revert the state to Waiting
-	if !n.Inputs.AllSet() {
+	if wasAllSet {
 		n.Preview = ImageID{}
 
 		err := n.State.Transition(Waiting)
@@ -361,13 +362,17 @@ func (n *Node) SetInputImage(
 func (n *Node) UnsetInputImage(
 	inputName InputName,
 ) error {
+	wasAllSet := n.Inputs.AllSet()
+
 	err := n.Inputs.UnsetImage(inputName)
 
 	if err != nil {
 		return fmt.Errorf("could not unset input image: %w", err)
 	}
 
-	if !n.Inputs.AllSet() {
+	n.addEvent(NewInputImageUnsetEvent(n, inputName))
+
+	if wasAllSet {
 		n.Preview = ImageID{}
 
 		err := n.State.Transition(Waiting)
@@ -378,8 +383,6 @@ func (n *Node) UnsetInputImage(
 			)
 		}
 	}
-
-	n.addEvent(NewInputImageUnsetEvent(n, inputName))
 
 	n.resetOutputImages()
 
