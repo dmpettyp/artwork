@@ -156,15 +156,16 @@ svg.addEventListener('contextmenu', (e) => {
     const clickedConnection = e.target.closest('.connection-group');
 
     if (clickedNode) {
-        // Show node context menu
+        // Show node context menu, hide canvas context menu
         const nodeId = clickedNode.getAttribute('data-node-id');
         contextMenuNodeId = nodeId;
 
         nodeContextMenu.style.left = `${e.clientX - 5}px`;
         nodeContextMenu.style.top = `${e.clientY - 5}px`;
         nodeContextMenu.classList.add('active');
+        contextMenu.classList.remove('active');
     } else if (!clickedConnection) {
-        // Show canvas context menu (not on a node or connection)
+        // Show canvas context menu, hide node context menu
         const svgRect = svg.getBoundingClientRect();
         const screenX = e.clientX - svgRect.left;
         const screenY = e.clientY - svgRect.top;
@@ -173,40 +174,39 @@ svg.addEventListener('contextmenu', (e) => {
         contextMenu.style.left = `${e.clientX - 5}px`;
         contextMenu.style.top = `${e.clientY - 5}px`;
         contextMenu.classList.add('active');
+        nodeContextMenu.classList.remove('active');
     }
 });
 
 // Close context menu when clicking anywhere else
 document.addEventListener('click', (e) => {
+    // Check if click is outside any context menu
     if (!e.target.closest('.context-menu')) {
         contextMenu.classList.remove('active');
         nodeContextMenu.classList.remove('active');
     }
 });
 
-// Close context menu when mouse leaves it
-contextMenu.addEventListener('mouseleave', () => {
-    contextMenu.classList.remove('active');
-});
-
-nodeContextMenu.addEventListener('mouseleave', () => {
-    nodeContextMenu.classList.remove('active');
-});
-
-// Handle canvas context menu node type selection
+// Prevent clicks inside context menu from bubbling to document click handler
+// This ensures the menu stays open when clicking on non-selectable areas
 contextMenu.addEventListener('click', (e) => {
     const nodeTypeItem = e.target.closest('[data-node-type]');
     if (nodeTypeItem) {
+        // Item selected - close menu and open modal
         const nodeType = nodeTypeItem.getAttribute('data-node-type');
         contextMenu.classList.remove('active');
         modals?.addNode.open(nodeType, contextMenuPosition);
+        return;
     }
+    // Don't close menu if clicking on parent items or empty space
+    // The menu will only close when an item is selected or when clicking outside (handled by document click handler)
 });
 
 // Handle node context menu actions
 nodeContextMenu.addEventListener('click', (e) => {
     const actionItem = e.target.closest('[data-action]');
     if (actionItem && contextMenuNodeId) {
+        // Item selected - close menu and perform action
         const action = actionItem.getAttribute('data-action');
         nodeContextMenu.classList.remove('active');
 
@@ -220,6 +220,7 @@ nodeContextMenu.addEventListener('click', (e) => {
 
         contextMenuNodeId = null;
     }
+    // Don't close menu if clicking on empty space
 });
 
 // Clean up WebSocket on page unload

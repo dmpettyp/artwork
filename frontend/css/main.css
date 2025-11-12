@@ -494,6 +494,18 @@ body {
     background: var(--color-border-light);
 }
 
+.context-menu-item:first-child:hover {
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.context-menu-item:last-child:hover {
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+.context-menu-item:first-child:last-child:hover {
+    border-radius: var(--border-radius-lg);
+}
+
 .context-menu-parent {
     position: relative;
 }
@@ -521,6 +533,18 @@ body {
 
 .context-menu-submenu .context-menu-item {
     padding: var(--spacing-md) 16px;
+}
+
+.context-menu-submenu .context-menu-item:first-child:hover {
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.context-menu-submenu .context-menu-item:last-child:hover {
+    border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+.context-menu-submenu .context-menu-item:first-child:last-child:hover {
+    border-radius: var(--border-radius-lg);
 }
 
 /* Image Viewer Modal */
