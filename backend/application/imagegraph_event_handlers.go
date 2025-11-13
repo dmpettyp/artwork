@@ -48,14 +48,14 @@ func NewImageGraphEventHandlers(
 	}
 
 	err := errors.Join(
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodePreviewSetEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeAddedEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeRemovedEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputConnectedEvent),
 		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputDisconnectedEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodePreviewSetEvent),
+		dorky.RegisterEventHandler(mb, handlers.HandleNodeRemovedEvent),
 	)
 
 	if err != nil {
@@ -455,7 +455,31 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 		}()
 	}
 
-	return nil, nil
+	// Propagate output image to downstream nodes
+	return h.uow.Run(ctx, func(repos *Repos) error {
+		ig, err := repos.ImageGraphRepository.Get(event.ImageGraphID)
+		if err != nil {
+			return fmt.Errorf(
+				"could not process NodeOutputImageSetEvent for ImageGraph %q: %w",
+				event.ImageGraphID, err,
+			)
+		}
+
+		err = ig.PropagateOutputImageToConnections(
+			event.NodeID,
+			event.OutputName,
+			event.ImageID,
+		)
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not process NodeOutputImageSetEvent for ImageGraph %q: %w",
+				event.ImageGraphID, err,
+			)
+		}
+
+		return nil
+	})
 }
 
 func (h *ImageGraphEventHandlers) HandleNodePreviewSetEvent(

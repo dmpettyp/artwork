@@ -421,8 +421,8 @@ func (ig *ImageGraph) DisconnectNodes(
 	return nil
 }
 
-// SetNodeOutputImage sets the image for a specific node's output and
-// propagates it to all downstream nodes that have it set as an input
+// SetNodeOutputImage sets the image for a specific node's output.
+// Downstream propagation is handled by event handlers.
 func (ig *ImageGraph) SetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,
@@ -441,10 +441,39 @@ func (ig *ImageGraph) SetNodeOutputImage(
 		)
 	}
 
-	connections, err := node.SetOutputImage(outputName, imageID)
+	_, err := node.SetOutputImage(outputName, imageID)
 
 	if err != nil {
 		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
+	}
+
+	return nil
+}
+
+// PropagateOutputImageToConnections propagates an output image to all
+// downstream nodes connected to this output
+func (ig *ImageGraph) PropagateOutputImageToConnections(
+	nodeID NodeID,
+	outputName OutputName,
+	imageID ImageID,
+) error {
+	if nodeID.IsNil() {
+		return fmt.Errorf("cannot propagate output for node with nil ID in ImageGraph %q", ig.ID)
+	}
+
+	node, exists := ig.Nodes.Get(nodeID)
+
+	if !exists {
+		return fmt.Errorf(
+			"couldn't propagate node %q output image: node doesn't exist",
+			nodeID,
+		)
+	}
+
+	connections, err := node.OutputConnections(outputName)
+
+	if err != nil {
+		return fmt.Errorf("couldn't propagate node %q output image: %w", nodeID, err)
 	}
 
 	//
@@ -452,16 +481,13 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	//
 	for _, connection := range connections {
 		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
-			return n.SetInputImage(
-				connection.InputName,
-				imageID,
-			)
+			return n.SetInputImage(connection.InputName, imageID)
 		})
 
 		if err != nil {
 			return fmt.Errorf(
-				"could not set node %q output image to %q: %w",
-				nodeID, imageID, err,
+				"could not propagate node %q output image to %q: %w",
+				nodeID, connection.NodeID, err,
 			)
 		}
 	}
@@ -469,8 +495,8 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	return nil
 }
 
-// UnsetNodeOutputImage unsets the image for a specific node's output and
-// propagates it to all downstream nodes that have it set as an input
+// UnsetNodeOutputImage unsets the image for a specific node's output.
+// Downstream propagation is handled by event handlers.
 func (ig *ImageGraph) UnsetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,

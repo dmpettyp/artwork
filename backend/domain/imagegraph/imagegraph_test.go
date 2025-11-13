@@ -805,12 +805,12 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
 		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
-		// Connect input → scale
-		ig.ConnectNodes(inputID, "original", resizeID, "original")
-
-		// Set an image on the connection to verify it gets unset
+		// Set an image before connecting to verify it gets unset
 		imageID := imagegraph.MustNewImageID()
 		ig.SetNodeOutputImage(inputID, "original", imageID)
+
+		// Connect input → resize (this will synchronously propagate the image)
+		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		// Remove input node
 		ig.ResetEvents()
@@ -1294,12 +1294,10 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
 		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
-		// Connect nodes
-		ig.ConnectNodes(inputID, "original", resizeID, "original")
-
-		// Set an image on the output (which propagates to input)
+		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
 		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		// Verify image was set
 		resizeNode, _ := ig.Nodes.Get(resizeID)
@@ -1447,14 +1445,14 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		}
 	})
 
-	t.Run("propagates image to connected downstream nodes", func(t *testing.T) {
+	t.Run("does not propagate image synchronously (event-driven)", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
 		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
-		// Connect input → scale
+		// Connect input → resize
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		imageID := imagegraph.MustNewImageID()
@@ -1465,18 +1463,22 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		// Verify downstream input has the image
+		// Verify output is set on the source node
+		inputNode, _ := ig.Nodes.Get(inputID)
+		outputImage, _ := inputNode.GetOutputImage("original")
+		if outputImage != imageID {
+			t.Errorf("expected output image %v, got %v", imageID, outputImage)
+		}
+
+		// Verify downstream input does NOT have the image yet (propagation is event-driven)
 		resizeNode, _ := ig.Nodes.Get(resizeID)
 		input := resizeNode.Inputs["original"]
-		if !input.HasImage() {
-			t.Fatal("expected downstream input to have image")
-		}
-		if input.ImageID != imageID {
-			t.Errorf("expected downstream input image %v, got %v", imageID, input.ImageID)
+		if input.HasImage() {
+			t.Error("expected downstream input to NOT have image (propagation is event-driven)")
 		}
 	})
 
-	t.Run("propagates to multiple downstream nodes", func(t *testing.T) {
+	t.Run("does not propagate to multiple downstream nodes synchronously", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		resize1ID := imagegraph.MustNewNodeID()
@@ -1497,15 +1499,22 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		// Verify both downstream inputs have the image
+		// Verify output is set
+		inputNode, _ := ig.Nodes.Get(inputID)
+		outputImage, _ := inputNode.GetOutputImage("original")
+		if outputImage != imageID {
+			t.Errorf("expected output image %v, got %v", imageID, outputImage)
+		}
+
+		// Verify downstream inputs do NOT have the image yet (propagation is event-driven)
 		resize1Node, _ := ig.Nodes.Get(resize1ID)
-		if resize1Node.Inputs["original"].ImageID != imageID {
-			t.Error("expected scale1 input to have image")
+		if resize1Node.Inputs["original"].HasImage() {
+			t.Error("expected scale1 input to NOT have image (propagation is event-driven)")
 		}
 
 		resize2Node, _ := ig.Nodes.Get(resize2ID)
-		if resize2Node.Inputs["original"].ImageID != imageID {
-			t.Error("expected scale2 input to have image")
+		if resize2Node.Inputs["original"].HasImage() {
+			t.Error("expected scale2 input to NOT have image (propagation is event-driven)")
 		}
 	})
 
@@ -1533,7 +1542,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		}
 	})
 
-	t.Run("emits NodeInputImageSet events for downstream nodes", func(t *testing.T) {
+	t.Run("emits only NodeOutputImageSet event (no downstream events)", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		inputID := imagegraph.MustNewNodeID()
 		resizeID := imagegraph.MustNewNodeID()
@@ -1552,21 +1561,13 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		}
 
 		events := ig.GetEvents()
-		// Should emit NodeOutputImageSetEvent, NodeInputImageSetEvent, and NodeNeedsOutputsEvent
-		if len(events) != 3 {
-			t.Fatalf("expected 3 events, got %d", len(events))
+		// Should only emit NodeOutputImageSetEvent (propagation is event-driven)
+		if len(events) != 1 {
+			t.Fatalf("expected 1 event, got %d", len(events))
 		}
 
 		if _, ok := events[0].(*imagegraph.NodeOutputImageSetEvent); !ok {
-			t.Errorf("expected first event to be NodeOutputImageSetEvent, got %T", events[0])
-		}
-
-		if _, ok := events[1].(*imagegraph.NodeInputImageSetEvent); !ok {
-			t.Errorf("expected second event to be NodeInputImageSetEvent, got %T", events[1])
-		}
-
-		if _, ok := events[2].(*imagegraph.NodeNeedsOutputsEvent); !ok {
-			t.Errorf("expected third event to be NodeNeedsOutputsEvent, got %T", events[2])
+			t.Errorf("expected NodeOutputImageSetEvent, got %T", events[0])
 		}
 	})
 
@@ -1678,10 +1679,10 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		ig.AddNode(inputID, imagegraph.NodeTypeInput, "input", imagegraph.NodeConfig{})
 		ig.AddNode(resizeID, imagegraph.NodeTypeResize, "resize", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 
-		// Connect and set image
-		ig.ConnectNodes(inputID, "original", resizeID, "original")
+		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
 		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		err := ig.UnsetNodeOutputImage(inputID, "original")
 
@@ -1711,11 +1712,11 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		ig.AddNode(resize1ID, imagegraph.NodeTypeResize, "scale1", imagegraph.NodeConfig{"width": 800.0, "interpolation": "Bilinear"})
 		ig.AddNode(resize2ID, imagegraph.NodeTypeResize, "scale2", imagegraph.NodeConfig{"height": 600.0, "interpolation": "Bilinear"})
 
-		// Connect to both nodes and set image
-		ig.ConnectNodes(inputID, "original", resize1ID, "original")
-		ig.ConnectNodes(inputID, "original", resize2ID, "original")
+		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
 		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.ConnectNodes(inputID, "original", resize1ID, "original")
+		ig.ConnectNodes(inputID, "original", resize2ID, "original")
 
 		err := ig.UnsetNodeOutputImage(inputID, "original")
 

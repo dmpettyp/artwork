@@ -6,6 +6,9 @@ to process images in a non-destructive way.
 
 ## TODO
 
+refactoring:
+change node.SetOutputImage to not return connections after?
+
 - registry lib for node application
 - node types
   - pallet matching node
@@ -56,6 +59,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - better right click menu
 - DONE hierarchy/class for node types
 - DONE lib for blur?
 - DONE fix preview for input node
@@ -84,7 +88,6 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 - implement different scaling types
   - DONE - frontend
   - DONE - backend
-
 - NewImageGraph ✅
 - AddNode ✅
 - RemoveNode ✅
