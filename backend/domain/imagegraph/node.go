@@ -149,13 +149,21 @@ func (n *Node) SetName(name string) error {
 }
 
 func (n *Node) SetPreview(imageID ImageID) error {
+	if imageID.IsNil() {
+		return fmt.Errorf("cannot set preview to nil image, use UnsetPreview instead")
+	}
+
 	n.Preview = imageID
 
-	if !imageID.IsNil() {
-		n.addEvent(NewNodePreviewSetEvent(n))
-	} else {
-		n.addEvent(NewNodePreviewUnsetEvent(n))
-	}
+	n.addEvent(NewNodePreviewSetEvent(n))
+
+	return nil
+}
+
+func (n *Node) UnsetPreview() error {
+	n.Preview = ImageID{}
+
+	n.addEvent(NewNodePreviewUnsetEvent(n))
 
 	return nil
 }
