@@ -62,32 +62,34 @@ func (nodes Nodes) WithNode(id NodeID, f func(*Node) error) error {
 // HasPathBetween checks if there's a directed path from one node to another
 func (nodes Nodes) HasPathBetween(fromID, toID NodeID) bool {
 	visited := make(map[NodeID]bool)
-	return nodes.hasPathBetweenRecursive(fromID, toID, visited)
-}
 
-func (nodes Nodes) hasPathBetweenRecursive(fromID, toID NodeID, visited map[NodeID]bool) bool {
-	if fromID == toID {
-		return true
-	}
+	var hasPath func(NodeID, NodeID) bool
+	hasPath = func(currentID, targetID NodeID) bool {
+		if currentID == targetID {
+			return true
+		}
 
-	if visited[fromID] {
-		return false
-	}
-	visited[fromID] = true
+		if visited[currentID] {
+			return false
+		}
+		visited[currentID] = true
 
-	fromNode, exists := nodes.Get(fromID)
-	if !exists {
-		return false
-	}
+		currentNode, exists := nodes.Get(currentID)
+		if !exists {
+			return false
+		}
 
-	// Check all downstream nodes
-	for _, output := range fromNode.Outputs {
-		for connection := range output.Connections {
-			if nodes.hasPathBetweenRecursive(connection.NodeID, toID, visited) {
-				return true
+		// Check all downstream nodes
+		for _, output := range currentNode.Outputs {
+			for connection := range output.Connections {
+				if hasPath(connection.NodeID, targetID) {
+					return true
+				}
 			}
 		}
+
+		return false
 	}
 
-	return false
+	return hasPath(fromID, toID)
 }
