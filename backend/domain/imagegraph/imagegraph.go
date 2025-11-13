@@ -428,26 +428,12 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	outputName OutputName,
 	imageID ImageID,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot set output image for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	node, exists := ig.Nodes.Get(nodeID)
-
-	if !exists {
-		return fmt.Errorf(
-			"couldn't set node %q output image: node doesn't exist",
-			nodeID,
-		)
-	}
-
-	err := node.SetOutputImage(outputName, imageID)
-
-	if err != nil {
-		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
-	}
-
-	return nil
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		if err := n.SetOutputImage(outputName, imageID); err != nil {
+			return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
+		}
+		return nil
+	})
 }
 
 // PropagateOutputImageToConnections propagates an output image to all
@@ -457,42 +443,28 @@ func (ig *ImageGraph) PropagateOutputImageToConnections(
 	outputName OutputName,
 	imageID ImageID,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot propagate output for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	node, exists := ig.Nodes.Get(nodeID)
-
-	if !exists {
-		return fmt.Errorf(
-			"couldn't propagate node %q output image: node doesn't exist",
-			nodeID,
-		)
-	}
-
-	connections, err := node.OutputConnections(outputName)
-
-	if err != nil {
-		return fmt.Errorf("couldn't propagate node %q output image: %w", nodeID, err)
-	}
-
-	//
-	// Set each downstream node's input to the provided ImageID
-	//
-	for _, connection := range connections {
-		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
-			return n.SetInputImage(connection.InputName, imageID)
-		})
-
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		connections, err := n.OutputConnections(outputName)
 		if err != nil {
-			return fmt.Errorf(
-				"could not propagate node %q output image to %q: %w",
-				nodeID, connection.NodeID, err,
-			)
+			return fmt.Errorf("couldn't propagate node %q output image: %w", nodeID, err)
 		}
-	}
 
-	return nil
+		//
+		// Set each downstream node's input to the provided ImageID
+		//
+		for _, connection := range connections {
+			if err := ig.Nodes.WithNode(connection.NodeID, func(downstream *Node) error {
+				return downstream.SetInputImage(connection.InputName, imageID)
+			}); err != nil {
+				return fmt.Errorf(
+					"could not propagate node %q output image to %q: %w",
+					nodeID, connection.NodeID, err,
+				)
+			}
+		}
+
+		return nil
+	})
 }
 
 // UnsetNodeOutputImage unsets the image for a specific node's output.
@@ -501,67 +473,42 @@ func (ig *ImageGraph) UnsetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot unset output image for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	node, exists := ig.Nodes.Get(nodeID)
-
-	if !exists {
-		return fmt.Errorf(
-			"couldn't unset node %q output image: node doesn't exist",
-			nodeID,
-		)
-	}
-
-	err := node.UnsetOutputImage(outputName)
-
-	if err != nil {
-		return fmt.Errorf("couldn't unset node %q output image: %w", nodeID, err)
-	}
-
-	return nil
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		if err := n.UnsetOutputImage(outputName); err != nil {
+			return fmt.Errorf("couldn't unset node %q output image: %w", nodeID, err)
+		}
+		return nil
+	})
 }
 
 func (ig *ImageGraph) UnsetNodeOutputConnections(
 	nodeID NodeID,
 	outputName OutputName,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot unset output image for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	node, exists := ig.Nodes.Get(nodeID)
-
-	if !exists {
-		return fmt.Errorf(
-			"couldn't unset node %q output image: node doesn't exist",
-			nodeID,
-		)
-	}
-
-	connections, err := node.OutputConnections(outputName)
-
-	if err != nil {
-		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)
-	}
-
-	//
-	// Unset each downstream node's input
-	//
-	for _, connection := range connections {
-		err := ig.Nodes.WithNode(connection.NodeID, func(n *Node) error {
-			return n.UnsetInputImage(connection.InputName)
-		})
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		connections, err := n.OutputConnections(outputName)
 
 		if err != nil {
-			return fmt.Errorf(
-				"could not unset node %q output image: %w", nodeID, err,
-			)
+			return fmt.Errorf("couldn't get node %q output connections: %w", nodeID, err)
 		}
-	}
 
-	return nil
+		//
+		// Unset each downstream node's input
+		//
+		for _, connection := range connections {
+			err := ig.Nodes.WithNode(connection.NodeID, func(downstream *Node) error {
+				return downstream.UnsetInputImage(connection.InputName)
+			})
+
+			if err != nil {
+				return fmt.Errorf(
+					"could not unset node %q image image: %w", connection.NodeID, err,
+				)
+			}
+		}
+
+		return nil
+	})
 }
 
 // SetNodePreview sets the preview image for a specific node
@@ -569,56 +516,29 @@ func (ig *ImageGraph) SetNodePreview(
 	nodeID NodeID,
 	imageID ImageID,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot set preview for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetPreview(imageID)
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		if err := n.SetPreview(imageID); err != nil {
+			return fmt.Errorf("couldn't set node %q preview image to %q: %w", nodeID, imageID, err)
+		}
+		return nil
 	})
-
-	if err != nil {
-		return fmt.Errorf(
-			"couldn't set node %q preview image to %q: %w",
-			nodeID, imageID, err,
-		)
-	}
-
-	return nil
 }
 
 // UnsetNodePreview unsets the preview image for a specific node
 func (ig *ImageGraph) UnsetNodePreview(
 	nodeID NodeID,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot unset preview for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
 	return ig.SetNodePreview(nodeID, ImageID{})
 }
 
 // SetNodeConfig sets the configuration for a specific node
-func (ig *ImageGraph) SetNodeConfig(
-	nodeID NodeID,
-	config NodeConfig,
-) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot set config for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetConfig(config)
+func (ig *ImageGraph) SetNodeConfig(nodeID NodeID, config NodeConfig) error {
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		if err := n.SetConfig(config); err != nil {
+			return fmt.Errorf("couldn't set node %q config: %w", nodeID, err)
+		}
+		return nil
 	})
-
-	if err != nil {
-		return fmt.Errorf(
-			"couldn't set node %q config: %w",
-			nodeID, err,
-		)
-	}
-
-	return nil
 }
 
 // SetNodeName sets the name for a specific node
@@ -626,22 +546,12 @@ func (ig *ImageGraph) SetNodeName(
 	nodeID NodeID,
 	name string,
 ) error {
-	if nodeID.IsNil() {
-		return fmt.Errorf("cannot set name for node with nil ID in ImageGraph %q", ig.ID)
-	}
-
-	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetName(name)
+	return ig.Nodes.WithNode(nodeID, func(n *Node) error {
+		if err := n.SetName(name); err != nil {
+			return fmt.Errorf("couldn't set node %q name: %w", nodeID, err)
+		}
+		return nil
 	})
-
-	if err != nil {
-		return fmt.Errorf(
-			"couldn't set node %q name: %w",
-			nodeID, err,
-		)
-	}
-
-	return nil
 }
 
 // wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
