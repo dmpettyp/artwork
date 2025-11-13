@@ -441,7 +441,7 @@ func (ig *ImageGraph) SetNodeOutputImage(
 		)
 	}
 
-	_, err := node.SetOutputImage(outputName, imageID)
+	err := node.SetOutputImage(outputName, imageID)
 
 	if err != nil {
 		return fmt.Errorf("couldn't set node %q output image: %w", nodeID, err)

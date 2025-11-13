@@ -180,12 +180,9 @@ func (n *Node) IsOutputConnectedTo(
 func (n *Node) SetOutputImage(
 	outputName OutputName,
 	imageID ImageID,
-) (
-	[]OutputConnection,
-	error,
-) {
+) error {
 	if err := n.Outputs.SetImage(outputName, imageID); err != nil {
-		return nil, fmt.Errorf(
+		return fmt.Errorf(
 			"could not set output %q for node %q: %w", outputName, n.ID, err,
 		)
 	}
@@ -196,13 +193,13 @@ func (n *Node) SetOutputImage(
 		err := n.State.Transition(Generated)
 
 		if err != nil {
-			return nil, fmt.Errorf(
+			return fmt.Errorf(
 				"could not set output %q for node %q: %w", outputName, n.ID, err,
 			)
 		}
 	}
 
-	return n.Outputs.Connections(outputName)
+	return nil
 }
 
 func (n *Node) UnsetOutputImage(outputName OutputName) error {
