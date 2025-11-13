@@ -189,9 +189,10 @@ func (ig *ImageGraph) ConnectNodes(
 
 	//
 	// Determine if the connection would create a cycle, cycles are not allowed
-	// in the imagegraph
+	// in the imagegraph. Check if there's already a path from toNode back to
+	// fromNode, which would create a cycle when we connect fromNode -> toNode.
 	//
-	if ig.wouldCreateCycle(fromNodeID, toNodeID) {
+	if ig.Nodes.HasPathBetween(toNodeID, fromNodeID) {
 		return fmt.Errorf("%s: would create cycle", baseError)
 	}
 
@@ -514,7 +515,7 @@ func (ig *ImageGraph) UnsetNodeOutputConnections(
 
 			if err != nil {
 				return fmt.Errorf(
-					"could not unset node %q image image: %w", connection.NodeID, err,
+					"could not unset node %q output image: %w", connection.NodeID, err,
 				)
 			}
 		}
@@ -589,38 +590,3 @@ func (ig *ImageGraph) SetNodeName(
 	return nil
 }
 
-// wouldCreateCycle checks if connecting fromNodeID to toNodeID would create a cycle
-func (ig *ImageGraph) wouldCreateCycle(fromNodeID, toNodeID NodeID) bool {
-	// If we connect fromNode -> toNode, check if there's already a path
-	// from toNode back to fromNode (which would create a cycle)
-	visited := make(map[NodeID]bool)
-	return ig.hasPathBetween(toNodeID, fromNodeID, visited)
-}
-
-// hasPathBetween checks if there's a path from fromID to toID in the graph
-func (ig *ImageGraph) hasPathBetween(fromID, toID NodeID, visited map[NodeID]bool) bool {
-	if fromID == toID {
-		return true
-	}
-
-	if visited[fromID] {
-		return false
-	}
-	visited[fromID] = true
-
-	fromNode, exists := ig.Nodes.Get(fromID)
-	if !exists {
-		return false
-	}
-
-	// Check all downstream nodes
-	for _, output := range fromNode.Outputs {
-		for connection := range output.Connections {
-			if ig.hasPathBetween(connection.NodeID, toID, visited) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
