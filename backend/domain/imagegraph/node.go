@@ -224,11 +224,57 @@ func (n *Node) UnsetOutputImage(outputName OutputName) error {
 	return nil
 }
 
-func (n *Node) OutputConnections(outputName OutputName) (
-	[]OutputConnection,
-	error,
-) {
-	return n.Outputs.Connections(outputName)
+type withNode func(id NodeID, f func(*Node) error) error
+
+func (n *Node) UnsetOutputConnections(
+	outputName OutputName,
+	withNode withNode,
+) error {
+	connections, err := n.Outputs.Connections(outputName)
+
+	if err != nil {
+		return fmt.Errorf("could not unset node %q output connections: %w", n.ID, err)
+	}
+
+	for _, connection := range connections {
+		err := withNode(connection.NodeID, func(downstream *Node) error {
+			return downstream.UnsetInputImage(connection.InputName)
+		})
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not unset node %q output connections: %w", n.ID, err,
+			)
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) PropagateOutputImageToConnections(
+	outputName OutputName,
+	imageID ImageID,
+	withNode withNode,
+) error {
+	connections, err := n.Outputs.Connections(outputName)
+
+	if err != nil {
+		return fmt.Errorf("could not propagate node %q output image to connection: %w", n.ID, err)
+	}
+
+	for _, connection := range connections {
+		err := withNode(connection.NodeID, func(downstream *Node) error {
+			return downstream.SetInputImage(connection.InputName, imageID)
+		})
+
+		if err != nil {
+			return fmt.Errorf(
+				"could not unset node %q output connections: %w", n.ID, err,
+			)
+		}
+	}
+
+	return nil
 }
 
 func (n *Node) ConnectOutputTo(

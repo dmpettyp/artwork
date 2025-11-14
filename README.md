@@ -7,7 +7,8 @@ to process images in a non-destructive way.
 ## TODO
 
 refactoring:
-change node.SetOutputImage to not return connections after?
+- propagate output to other nodes directly: with WithNode function? event
+  driven here is weird. also weird to do at ImageGraph level
 
 - registry lib for node application
 - node types

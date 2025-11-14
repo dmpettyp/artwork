@@ -448,30 +448,14 @@ func (ig *ImageGraph) PropagateOutputImageToConnections(
 	imageID ImageID,
 ) error {
 	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		connections, err := n.OutputConnections(outputName)
-		if err != nil {
-			return err
-		}
-
-		//
-		// Set each downstream node's input to the provided ImageID
-		//
-		for _, connection := range connections {
-			if err := ig.Nodes.WithNode(connection.NodeID, func(downstream *Node) error {
-				return downstream.SetInputImage(connection.InputName, imageID)
-			}); err != nil {
-				return fmt.Errorf(
-					"could not propagate to node %q: %w",
-					connection.NodeID, err,
-				)
-			}
-		}
-
-		return nil
+		return n.PropagateOutputImageToConnections(outputName, imageID, ig.Nodes.WithNode)
 	})
 
 	if err != nil {
-		return fmt.Errorf("couldn't propagate output image for node %q: %w", nodeID, err)
+		return fmt.Errorf(
+			"couldn't output %q image to connections for node %q: %w",
+			outputName, nodeID, err,
+		)
 	}
 
 	return nil
@@ -499,32 +483,14 @@ func (ig *ImageGraph) UnsetNodeOutputConnections(
 	outputName OutputName,
 ) error {
 	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		connections, err := n.OutputConnections(outputName)
-
-		if err != nil {
-			return fmt.Errorf("couldn't get node %q output connections: %w", nodeID, err)
-		}
-
-		//
-		// Unset each downstream node's input
-		//
-		for _, connection := range connections {
-			err := ig.Nodes.WithNode(connection.NodeID, func(downstream *Node) error {
-				return downstream.UnsetInputImage(connection.InputName)
-			})
-
-			if err != nil {
-				return fmt.Errorf(
-					"could not unset node %q output image: %w", connection.NodeID, err,
-				)
-			}
-		}
-
-		return nil
+		return n.UnsetOutputConnections(outputName, ig.Nodes.WithNode)
 	})
 
 	if err != nil {
-		return fmt.Errorf("couldn't unset node %q output connections: %w", nodeID, err)
+		return fmt.Errorf(
+			"couldn't unset output %q connections for node %q: %w",
+			outputName, nodeID, err,
+		)
 	}
 
 	return nil
@@ -589,4 +555,3 @@ func (ig *ImageGraph) SetNodeName(
 
 	return nil
 }
-
