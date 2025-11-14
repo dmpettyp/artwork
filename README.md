@@ -7,10 +7,6 @@ to process images in a non-destructive way.
 ## TODO
 
 refactoring:
-- propagate output to other nodes directly: with WithNode function? event
-  driven here is weird. also weird to do at ImageGraph level
-
-- registry lib for node application
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
@@ -60,6 +56,8 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - registry lib for node application
+- DONE - lots of domain refactoring/cleanup
 - DONE - better right click menu
 - DONE hierarchy/class for node types
 - DONE lib for blur?
