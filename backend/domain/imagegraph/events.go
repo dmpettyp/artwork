@@ -1,5 +1,7 @@
 package imagegraph
 
+import "fmt"
+
 type CreatedEvent struct {
 	ImageGraphEvent
 	Name string
@@ -305,4 +307,17 @@ func NewNodeNeedsOutputsEvent(n *Node) *NodeNeedsOutputsEvent {
 		)
 	}
 	return e
+}
+
+// GetInput retrieves an input image by name, returning an error if not found or nil
+func (e *NodeNeedsOutputsEvent) GetInput(name InputName) (ImageID, error) {
+	for _, input := range e.Inputs {
+		if input.Name == name {
+			if input.ImageID.IsNil() {
+				return ImageID{}, fmt.Errorf("input %q has nil image", name)
+			}
+			return input.ImageID, nil
+		}
+	}
+	return ImageID{}, fmt.Errorf("input %q not found", name)
 }

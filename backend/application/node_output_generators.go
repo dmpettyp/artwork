@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
@@ -37,16 +36,9 @@ func generateBlurNodeOutputs(
 		return err
 	}
 
-	var inputImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "original" {
-			inputImageID = input.ImageID
-			break
-		}
-	}
-
-	if inputImageID.IsNil() {
-		return fmt.Errorf("missing 'original' input")
+	inputImageID, err := event.GetInput("original")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForBlurNode(
@@ -83,16 +75,9 @@ func generateCropNodeOutputs(
 		return err
 	}
 
-	var inputImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "original" {
-			inputImageID = input.ImageID
-			break
-		}
-	}
-
-	if inputImageID.IsNil() {
-		return fmt.Errorf("missing 'original' input")
+	inputImageID, err := event.GetInput("original")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForCropNode(
@@ -127,16 +112,9 @@ func generateResizeNodeOutputs(
 		return err
 	}
 
-	var inputImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "original" {
-			inputImageID = input.ImageID
-			break
-		}
-	}
-
-	if inputImageID.IsNil() {
-		return fmt.Errorf("missing 'original' input")
+	inputImageID, err := event.GetInput("original")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForResizeNode(
@@ -155,33 +133,19 @@ func generateResizeMatchNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	var originalImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "original" {
-			originalImageID = input.ImageID
-			break
-		}
+	originalImageID, err := event.GetInput("original")
+	if err != nil {
+		return err
 	}
 
-	var sizeMatchImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "size_match" {
-			sizeMatchImageID = input.ImageID
-			break
-		}
+	sizeMatchImageID, err := event.GetInput("size_match")
+	if err != nil {
+		return err
 	}
 
 	interpolation, err := event.NodeConfig.GetString("interpolation")
 	if err != nil {
 		return err
-	}
-
-	if originalImageID.IsNil() {
-		return fmt.Errorf("missing 'original' input")
-	}
-
-	if sizeMatchImageID.IsNil() {
-		return fmt.Errorf("missing 'size_match' input")
 	}
 
 	return imageGen.GenerateOutputsForResizeMatchNode(
@@ -214,16 +178,9 @@ func generatePixelInflateNodeOutputs(
 		return err
 	}
 
-	var inputImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "original" {
-			inputImageID = input.ImageID
-			break
-		}
-	}
-
-	if inputImageID.IsNil() {
-		return fmt.Errorf("missing 'original' input")
+	inputImageID, err := event.GetInput("original")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForPixelInflateNode(
@@ -252,16 +209,9 @@ func generatePaletteExtractNodeOutputs(
 		return err
 	}
 
-	var sourceImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "source" {
-			sourceImageID = input.ImageID
-			break
-		}
-	}
-
-	if sourceImageID.IsNil() {
-		return fmt.Errorf("missing 'source' input")
+	sourceImageID, err := event.GetInput("source")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForPaletteExtractNode(
@@ -279,21 +229,14 @@ func generatePaletteApplyNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	var sourceImageID, paletteImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "source" {
-			sourceImageID = input.ImageID
-		} else if input.Name == "palette" {
-			paletteImageID = input.ImageID
-		}
+	sourceImageID, err := event.GetInput("source")
+	if err != nil {
+		return err
 	}
 
-	if sourceImageID.IsNil() {
-		return fmt.Errorf("missing 'source' input")
-	}
-
-	if paletteImageID.IsNil() {
-		return fmt.Errorf("missing 'palette' input")
+	paletteImageID, err := event.GetInput("palette")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForPaletteApplyNode(
@@ -310,16 +253,9 @@ func generateOutputNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	var inputImageID imagegraph.ImageID
-	for _, input := range event.Inputs {
-		if input.Name == "input" {
-			inputImageID = input.ImageID
-			break
-		}
-	}
-
-	if inputImageID.IsNil() {
-		return fmt.Errorf("missing 'input' input")
+	inputImageID, err := event.GetInput("input")
+	if err != nil {
+		return err
 	}
 
 	return imageGen.GenerateOutputsForOutputNode(
