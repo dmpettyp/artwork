@@ -7,7 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/jpeg"
+	_ "image/jpeg"
 	"image/png"
 	"math"
 
@@ -53,19 +53,10 @@ func NewImageGen(
 	}
 }
 
-// encodeImage encodes an image to bytes based on the format
-func (ig *ImageGen) encodeImage(img image.Image, format string) ([]byte, error) {
+func (ig *ImageGen) encodeImage(img image.Image) ([]byte, error) {
 	var buf bytes.Buffer
-	var err error
 
-	switch format {
-	case "png":
-		err = png.Encode(&buf, img)
-	case "jpeg", "jpg":
-		err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90})
-	default:
-		return nil, fmt.Errorf("unsupported image format: %s", format)
-	}
+	err := png.Encode(&buf, img)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not encode image: %w", err)
@@ -74,21 +65,20 @@ func (ig *ImageGen) encodeImage(img image.Image, format string) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-// loadImage fetches an image from storage and decodes it
-func (ig *ImageGen) loadImage(imageID imagegraph.ImageID) (image.Image, string, error) {
-	// Get the image data from storage
+func (ig *ImageGen) loadImage(imageID imagegraph.ImageID) (image.Image, error) {
 	imageData, err := ig.imageStorage.Get(imageID)
+
 	if err != nil {
-		return nil, "", fmt.Errorf("could not get image: %w", err)
+		return nil, fmt.Errorf("could not get image: %w", err)
 	}
 
-	// Decode the image
-	img, format, err := image.Decode(bytes.NewReader(imageData))
+	img, _, err := image.Decode(bytes.NewReader(imageData))
+
 	if err != nil {
-		return nil, "", fmt.Errorf("could not decode image: %w", err)
+		return nil, fmt.Errorf("could not decode image: %w", err)
 	}
 
-	return img, format, nil
+	return img, nil
 }
 
 // saveAndSetOutput encodes an image, saves it to storage, and sets it as a node output
@@ -98,10 +88,9 @@ func (ig *ImageGen) saveAndSetOutput(
 	nodeID imagegraph.NodeID,
 	outputName imagegraph.OutputName,
 	img image.Image,
-	format string,
 ) error {
 	// Encode the image
-	imageData, err := ig.encodeImage(img, format)
+	imageData, err := ig.encodeImage(img)
 	if err != nil {
 		return err
 	}
@@ -132,7 +121,6 @@ func (ig *ImageGen) saveAndSetPreview(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	img image.Image,
-	format string,
 ) error {
 	bounds := img.Bounds()
 	width := uint(bounds.Dx())
@@ -154,7 +142,7 @@ func (ig *ImageGen) saveAndSetPreview(
 
 	previewImg := resize.Resize(width, height, img, interpolationFunction)
 
-	imageData, err := ig.encodeImage(previewImg, format)
+	imageData, err := ig.encodeImage(previewImg)
 
 	if err != nil {
 		return err
@@ -188,12 +176,12 @@ func (ig *ImageGen) GeneratePreviewForInputNode(
 	outputImageID imagegraph.ImageID,
 ) error {
 	// Load the input image
-	outputImage, format, err := ig.loadImage(outputImageID)
+	outputImage, err := ig.loadImage(outputImageID)
 	if err != nil {
 		return err
 	}
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImage, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImage)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
@@ -210,20 +198,20 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	radius int,
 ) error {
 	// Load the input image
-	img, format, err := ig.loadImage(inputImageID)
+	img, err := ig.loadImage(inputImageID)
 	if err != nil {
 		return err
 	}
 
 	blurredImg := blur.Gaussian(img, float64(radius))
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, blurredImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "blurred", blurredImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "blurred", blurredImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
@@ -242,7 +230,7 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	interpolation string,
 ) error {
 	// Load the input image
-	img, format, err := ig.loadImage(inputImageID)
+	img, err := ig.loadImage(inputImageID)
 	if err != nil {
 		return err
 	}
@@ -274,13 +262,13 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 
 	resizedImg := resize.Resize(targetWidth, targetHeight, img, interpolationFunction)
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", resizedImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", resizedImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize node: %w", err)
@@ -307,13 +295,13 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	interpolation string,
 ) error {
 	// Load the original image
-	originalImg, format, err := ig.loadImage(originalImageID)
+	originalImg, err := ig.loadImage(originalImageID)
 	if err != nil {
 		return err
 	}
 
 	// Load the size_match image to get dimensions
-	sizeMatchImg, _, err := ig.loadImage(sizeMatchImageID)
+	sizeMatchImg, err := ig.loadImage(sizeMatchImageID)
 	if err != nil {
 		return err
 	}
@@ -336,13 +324,13 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 		interpolationFunction,
 	)
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, resizedImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", resizedImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", resizedImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
@@ -438,7 +426,7 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	imageID imagegraph.ImageID,
 	left, right, top, bottom *int,
 ) error {
-	originalImage, format, err := ig.loadImage(imageID)
+	originalImage, err := ig.loadImage(imageID)
 
 	if err != nil {
 		return err
@@ -448,13 +436,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 
 	// If no crop bounds are provided, pass through the original image
 	if left == nil && right == nil && top == nil && bottom == nil {
-		err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage, format)
+		err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage)
 
 		if err != nil {
 			return fmt.Errorf("could not generate outputs for crop node: %w", err)
 		}
 
-		err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", originalImage, format)
+		err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", originalImage)
 
 		if err != nil {
 			return fmt.Errorf("could not generate outputs for crop node: %w", err)
@@ -517,13 +505,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	// Generate preview with crop overlay visualization
 	previewImg := ig.createCropPreviewImage(originalImage, actualLeft, actualTop, actualRight, actualBottom)
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, previewImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, previewImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for crop node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", croppedImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", croppedImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for crop node: %w", err)
@@ -538,19 +526,19 @@ func (ig *ImageGen) GenerateOutputsForOutputNode(
 	nodeID imagegraph.NodeID,
 	imageID imagegraph.ImageID,
 ) error {
-	originalImage, format, err := ig.loadImage(imageID)
+	originalImage, err := ig.loadImage(imageID)
 
 	if err != nil {
 		return err
 	}
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, originalImage)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for output node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "final", originalImage, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "final", originalImage)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for output node: %w", err)
@@ -569,7 +557,7 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	lineColor string,
 ) error {
 	// Load the input image
-	img, format, err := ig.loadImage(inputImageID)
+	img, err := ig.loadImage(inputImageID)
 	if err != nil {
 		return err
 	}
@@ -630,13 +618,13 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 		}
 	}
 
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
 	}
 
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "inflated", outputImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "inflated", outputImg)
 
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
@@ -654,7 +642,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	clusterBy string,
 ) error {
 	// Load source image
-	sourceImg, format, err := ig.loadImage(sourceImageID)
+	sourceImg, err := ig.loadImage(sourceImageID)
 	if err != nil {
 		return err
 	}
@@ -673,17 +661,14 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 
 	// No sorting - use colors as returned by clustering
 
-	// Create output image with near-square dimensions
-	outputImg := createPaletteImage(palette)
+	paletteImg := createPaletteImage(palette)
 
-	// Save preview
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, paletteImg)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
 	}
 
-	// Save output
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", outputImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", paletteImg)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
 	}
@@ -699,13 +684,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	paletteImageID imagegraph.ImageID,
 ) error {
 	// Load source image
-	sourceImg, format, err := ig.loadImage(sourceImageID)
+	sourceImg, err := ig.loadImage(sourceImageID)
 	if err != nil {
 		return err
 	}
 
 	// Load palette image
-	paletteImg, _, err := ig.loadImage(paletteImageID)
+	paletteImg, err := ig.loadImage(paletteImageID)
 	if err != nil {
 		return err
 	}
@@ -721,13 +706,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	outputImg := mapImageToPalette(sourceImg, paletteColors)
 
 	// Save preview
-	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg, format)
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, outputImg)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
 	}
 
 	// Save output
-	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "mapped", outputImg, format)
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "mapped", outputImg)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
 	}

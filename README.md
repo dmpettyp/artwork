@@ -7,6 +7,9 @@ to process images in a non-destructive way.
 ## TODO
 
 refactoring:
+- NodeNeedsOutputEvent shouldn't have NodeConfig embedded in it, should just
+  be data
+
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
