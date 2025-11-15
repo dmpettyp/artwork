@@ -125,7 +125,7 @@ func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 	}
 
 	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO events (aggregate_id, aggregate_type, event_type, event_data, aggregate_version, metadata)
+		INSERT INTO events (aggregate_id, aggregate_type, event_type, event_data, aggregate_version, timestamp)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`)
 	if err != nil {
@@ -139,15 +139,14 @@ func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 			return fmt.Errorf("failed to marshal event data: %w", err)
 		}
 
-		// Extract metadata from event if available
 		aggregateID := event.GetEntityID()
 		aggregateType := event.GetEntityType()
 		eventType := event.GetType()
+		timestamp := event.GetTimestamp()
 
-		// For now, we'll use nil for aggregate_version and metadata
-		// These can be extracted from specific event types if needed
+		// For now, we'll use nil for aggregate_version
+		// This can be extracted from specific event types if needed
 		var aggregateVersion *int64
-		var metadata []byte
 
 		_, err = stmt.ExecContext(ctx,
 			aggregateID,
@@ -155,7 +154,7 @@ func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 			eventType,
 			eventData,
 			aggregateVersion,
-			metadata,
+			timestamp,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert event: %w", err)
