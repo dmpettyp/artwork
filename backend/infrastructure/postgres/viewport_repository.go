@@ -12,11 +12,24 @@ import (
 // ViewportRepository implements application.ViewportRepository using PostgreSQL
 type ViewportRepository struct {
 	tx       *sql.Tx
-	modified []*ui.Viewport // Track modified aggregates for event collection
+	modified map[imagegraph.ImageGraphID]*ui.Viewport // Track modified aggregates for event collection
+}
+
+// newViewportRepository creates a new repository with initialized maps
+func newViewportRepository(tx *sql.Tx) *ViewportRepository {
+	return &ViewportRepository{
+		tx:       tx,
+		modified: make(map[imagegraph.ImageGraphID]*ui.Viewport),
+	}
 }
 
 // Get retrieves a Viewport by graph ID with SELECT FOR UPDATE row locking
 func (r *ViewportRepository) Get(graphID imagegraph.ImageGraphID) (*ui.Viewport, error) {
+	// Check if already loaded in this transaction (identity map pattern)
+	if viewport, ok := r.modified[graphID]; ok {
+		return viewport, nil
+	}
+
 	ctx := context.Background()
 
 	var row viewportRow
@@ -41,7 +54,7 @@ func (r *ViewportRepository) Get(graphID imagegraph.ImageGraphID) (*ui.Viewport,
 	}
 
 	// Track for event collection
-	r.modified = append(r.modified, viewport)
+	r.modified[viewport.GraphID] = viewport
 
 	return viewport, nil
 }
@@ -67,7 +80,30 @@ func (r *ViewportRepository) Add(viewport *ui.Viewport) error {
 	}
 
 	// Track for event collection
-	r.modified = append(r.modified, viewport)
+	r.modified[viewport.GraphID] = viewport
+
+	return nil
+}
+
+// save persists a Viewport using UPSERT (called by UnitOfWork on commit)
+func (r *ViewportRepository) save(viewport *ui.Viewport) error {
+	ctx := context.Background()
+
+	row, err := serializeViewport(viewport)
+	if err != nil {
+		return fmt.Errorf("failed to serialize viewport: %w", err)
+	}
+
+	_, err = r.tx.ExecContext(ctx, `
+		INSERT INTO viewports (graph_id, data)
+		VALUES ($1, $2)
+		ON CONFLICT (graph_id) DO UPDATE
+		SET data = EXCLUDED.data, updated_at = NOW()
+	`, row.GraphID, row.Data)
+
+	if err != nil {
+		return fmt.Errorf("failed to save viewport: %w", err)
+	}
 
 	return nil
 }

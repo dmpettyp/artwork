@@ -43,9 +43,9 @@ func (uow *UnitOfWork) Run(
 	err := withTx(ctx, uow.db, func(tx *sql.Tx) error {
 		// Create repositories with the transaction
 		repos := &application.Repos{
-			ImageGraphRepository: &ImageGraphRepository{tx: tx},
-			LayoutRepository:     &LayoutRepository{tx: tx},
-			ViewportRepository:   &ViewportRepository{tx: tx},
+			ImageGraphRepository: newImageGraphRepository(tx),
+			LayoutRepository:     newLayoutRepository(tx),
+			ViewportRepository:   newViewportRepository(tx),
 		}
 
 		// Execute the provided function
@@ -78,17 +78,32 @@ func (uow *UnitOfWork) Run(
 
 // saveModifiedAggregates persists all modified aggregates back to the database
 func saveModifiedAggregates(ctx context.Context, repos *application.Repos) error {
-	// Save modified ImageGraphs
+	// Save all modified ImageGraphs
 	if igRepo, ok := repos.ImageGraphRepository.(*ImageGraphRepository); ok {
-		for _, ig := range igRepo.loadedForUpdate {
+		for _, ig := range igRepo.modified {
 			if err := igRepo.save(ig); err != nil {
 				return fmt.Errorf("failed to save image graph: %w", err)
 			}
 		}
 	}
 
-	// Layout and Viewport use UPSERT in Add(), so they're already saved
-	// No need to save them again
+	// Save all modified Layouts
+	if layoutRepo, ok := repos.LayoutRepository.(*LayoutRepository); ok {
+		for _, layout := range layoutRepo.modified {
+			if err := layoutRepo.save(layout); err != nil {
+				return fmt.Errorf("failed to save layout: %w", err)
+			}
+		}
+	}
+
+	// Save all modified Viewports
+	if vpRepo, ok := repos.ViewportRepository.(*ViewportRepository); ok {
+		for _, viewport := range vpRepo.modified {
+			if err := vpRepo.save(viewport); err != nil {
+				return fmt.Errorf("failed to save viewport: %w", err)
+			}
+		}
+	}
 
 	return nil
 }

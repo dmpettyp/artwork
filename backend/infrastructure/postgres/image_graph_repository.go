@@ -10,13 +10,25 @@ import (
 
 // ImageGraphRepository implements application.ImageGraphRepository using PostgreSQL
 type ImageGraphRepository struct {
-	tx              *sql.Tx
-	modified        []*imagegraph.ImageGraph // Track all modified aggregates for event collection
-	loadedForUpdate []*imagegraph.ImageGraph // Track aggregates loaded via Get() that need UPDATE
+	tx       *sql.Tx
+	modified map[imagegraph.ImageGraphID]*imagegraph.ImageGraph // Track all modified aggregates
+}
+
+// newImageGraphRepository creates a new repository with initialized maps
+func newImageGraphRepository(tx *sql.Tx) *ImageGraphRepository {
+	return &ImageGraphRepository{
+		tx:       tx,
+		modified: make(map[imagegraph.ImageGraphID]*imagegraph.ImageGraph),
+	}
 }
 
 // Get retrieves an ImageGraph by ID with SELECT FOR UPDATE row locking
 func (r *ImageGraphRepository) Get(id imagegraph.ImageGraphID) (*imagegraph.ImageGraph, error) {
+	// Check if already loaded in this transaction (identity map pattern)
+	if ig, ok := r.modified[id]; ok {
+		return ig, nil
+	}
+
 	ctx := context.Background()
 
 	var row imageGraphRow
@@ -43,9 +55,8 @@ func (r *ImageGraphRepository) Get(id imagegraph.ImageGraphID) (*imagegraph.Imag
 		return nil, fmt.Errorf("failed to deserialize image graph: %w", err)
 	}
 
-	// Track for event collection and for saving
-	r.modified = append(r.modified, ig)
-	r.loadedForUpdate = append(r.loadedForUpdate, ig)
+	// Track for event collection and saving
+	r.modified[ig.ID] = ig
 
 	return ig, nil
 }
@@ -68,8 +79,8 @@ func (r *ImageGraphRepository) Add(ig *imagegraph.ImageGraph) error {
 		return fmt.Errorf("failed to insert image graph: %w", err)
 	}
 
-	// Track for event collection
-	r.modified = append(r.modified, ig)
+	// Track for event collection (already inserted, don't need to update)
+	r.modified[ig.ID] = ig
 
 	return nil
 }
