@@ -78,30 +78,21 @@ func (uow *UnitOfWork) Run(
 
 // saveModifiedAggregates persists all modified aggregates back to the database
 func saveModifiedAggregates(ctx context.Context, repos *application.Repos) error {
-	// Save all modified ImageGraphs
 	if igRepo, ok := repos.ImageGraphRepository.(*ImageGraphRepository); ok {
-		for _, ig := range igRepo.modified {
-			if err := igRepo.save(ig); err != nil {
-				return fmt.Errorf("failed to save image graph: %w", err)
-			}
+		if err := igRepo.SaveAll(); err != nil {
+			return fmt.Errorf("failed to save image graphs: %w", err)
 		}
 	}
 
-	// Save all modified Layouts
 	if layoutRepo, ok := repos.LayoutRepository.(*LayoutRepository); ok {
-		for _, layout := range layoutRepo.modified {
-			if err := layoutRepo.save(layout); err != nil {
-				return fmt.Errorf("failed to save layout: %w", err)
-			}
+		if err := layoutRepo.SaveAll(); err != nil {
+			return fmt.Errorf("failed to save layouts: %w", err)
 		}
 	}
 
-	// Save all modified Viewports
 	if vpRepo, ok := repos.ViewportRepository.(*ViewportRepository); ok {
-		for _, viewport := range vpRepo.modified {
-			if err := vpRepo.save(viewport); err != nil {
-				return fmt.Errorf("failed to save viewport: %w", err)
-			}
+		if err := vpRepo.SaveAll(); err != nil {
+			return fmt.Errorf("failed to save viewports: %w", err)
 		}
 	}
 
@@ -112,31 +103,16 @@ func saveModifiedAggregates(ctx context.Context, repos *application.Repos) error
 func collectEvents(repos *application.Repos) []dorky.Event {
 	var allEvents []dorky.Event
 
-	// Collect from ImageGraphRepository
 	if igRepo, ok := repos.ImageGraphRepository.(*ImageGraphRepository); ok {
-		for _, ig := range igRepo.modified {
-			events := ig.GetEvents()
-			allEvents = append(allEvents, events...)
-			ig.ClearEvents()
-		}
+		allEvents = append(allEvents, igRepo.CollectEvents()...)
 	}
 
-	// Collect from LayoutRepository
 	if layoutRepo, ok := repos.LayoutRepository.(*LayoutRepository); ok {
-		for _, layout := range layoutRepo.modified {
-			events := layout.GetEvents()
-			allEvents = append(allEvents, events...)
-			layout.ClearEvents()
-		}
+		allEvents = append(allEvents, layoutRepo.CollectEvents()...)
 	}
 
-	// Collect from ViewportRepository
 	if vpRepo, ok := repos.ViewportRepository.(*ViewportRepository); ok {
-		for _, viewport := range vpRepo.modified {
-			events := viewport.GetEvents()
-			allEvents = append(allEvents, events...)
-			viewport.ClearEvents()
-		}
+		allEvents = append(allEvents, vpRepo.CollectEvents()...)
 	}
 
 	return allEvents
@@ -166,7 +142,7 @@ func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 		// Extract metadata from event if available
 		aggregateID := event.GetEntityID()
 		aggregateType := event.GetEntityType()
-		eventType := event.GetEventType()
+		eventType := event.GetType()
 
 		// For now, we'll use nil for aggregate_version and metadata
 		// These can be extracted from specific event types if needed

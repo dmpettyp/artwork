@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dmpettyp/dorky"
+
 	"github.com/dmpettyp/artwork/backend/domain/imagegraph"
 	"github.com/dmpettyp/artwork/backend/domain/ui"
 )
@@ -85,25 +87,39 @@ func (r *ViewportRepository) Add(viewport *ui.Viewport) error {
 	return nil
 }
 
-// save persists a Viewport using UPSERT (called by UnitOfWork on commit)
-func (r *ViewportRepository) save(viewport *ui.Viewport) error {
+// SaveAll persists all modified Viewports back to the database
+func (r *ViewportRepository) SaveAll() error {
 	ctx := context.Background()
 
-	row, err := serializeViewport(viewport)
-	if err != nil {
-		return fmt.Errorf("failed to serialize viewport: %w", err)
-	}
+	for _, viewport := range r.modified {
+		row, err := serializeViewport(viewport)
+		if err != nil {
+			return fmt.Errorf("failed to serialize viewport: %w", err)
+		}
 
-	_, err = r.tx.ExecContext(ctx, `
-		INSERT INTO viewports (graph_id, data)
-		VALUES ($1, $2)
-		ON CONFLICT (graph_id) DO UPDATE
-		SET data = EXCLUDED.data, updated_at = NOW()
-	`, row.GraphID, row.Data)
+		_, err = r.tx.ExecContext(ctx, `
+			INSERT INTO viewports (graph_id, data)
+			VALUES ($1, $2)
+			ON CONFLICT (graph_id) DO UPDATE
+			SET data = EXCLUDED.data, updated_at = NOW()
+		`, row.GraphID, row.Data)
 
-	if err != nil {
-		return fmt.Errorf("failed to save viewport: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to save viewport: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// CollectEvents retrieves and clears events from all modified Viewports
+func (r *ViewportRepository) CollectEvents() []dorky.Event {
+	var events []dorky.Event
+
+	for _, viewport := range r.modified {
+		events = append(events, viewport.GetEvents()...)
+		viewport.ResetEvents()
+	}
+
+	return events
 }

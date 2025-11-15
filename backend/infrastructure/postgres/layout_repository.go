@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dmpettyp/dorky"
+
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
 )
@@ -85,25 +87,39 @@ func (r *LayoutRepository) Add(layout *ui.Layout) error {
 	return nil
 }
 
-// save persists a Layout using UPSERT (called by UnitOfWork on commit)
-func (r *LayoutRepository) save(layout *ui.Layout) error {
+// SaveAll persists all modified Layouts back to the database
+func (r *LayoutRepository) SaveAll() error {
 	ctx := context.Background()
 
-	row, err := serializeLayout(layout)
-	if err != nil {
-		return fmt.Errorf("failed to serialize layout: %w", err)
-	}
+	for _, layout := range r.modified {
+		row, err := serializeLayout(layout)
+		if err != nil {
+			return fmt.Errorf("failed to serialize layout: %w", err)
+		}
 
-	_, err = r.tx.ExecContext(ctx, `
-		INSERT INTO layouts (graph_id, data)
-		VALUES ($1, $2)
-		ON CONFLICT (graph_id) DO UPDATE
-		SET data = EXCLUDED.data, updated_at = NOW()
-	`, row.GraphID, row.Data)
+		_, err = r.tx.ExecContext(ctx, `
+			INSERT INTO layouts (graph_id, data)
+			VALUES ($1, $2)
+			ON CONFLICT (graph_id) DO UPDATE
+			SET data = EXCLUDED.data, updated_at = NOW()
+		`, row.GraphID, row.Data)
 
-	if err != nil {
-		return fmt.Errorf("failed to save layout: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to save layout: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// CollectEvents retrieves and clears events from all modified Layouts
+func (r *LayoutRepository) CollectEvents() []dorky.Event {
+	var events []dorky.Event
+
+	for _, layout := range r.modified {
+		events = append(events, layout.GetEvents()...)
+		layout.ResetEvents()
+	}
+
+	return events
 }

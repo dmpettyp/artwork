@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/dmpettyp/dorky"
+
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 )
 
@@ -85,33 +87,47 @@ func (r *ImageGraphRepository) Add(ig *imagegraph.ImageGraph) error {
 	return nil
 }
 
-// save updates an existing ImageGraph (called by UnitOfWork on commit)
-func (r *ImageGraphRepository) save(ig *imagegraph.ImageGraph) error {
+// SaveAll persists all modified ImageGraphs back to the database
+func (r *ImageGraphRepository) SaveAll() error {
 	ctx := context.Background()
 
-	row, err := serializeImageGraph(ig)
-	if err != nil {
-		return fmt.Errorf("failed to serialize image graph: %w", err)
-	}
+	for _, ig := range r.modified {
+		row, err := serializeImageGraph(ig)
+		if err != nil {
+			return fmt.Errorf("failed to serialize image graph: %w", err)
+		}
 
-	result, err := r.tx.ExecContext(ctx, `
-		UPDATE image_graphs
-		SET name = $2, version = $3, data = $4, updated_at = NOW()
-		WHERE id = $1
-	`, row.ID, row.Name, row.Version, row.Data)
+		result, err := r.tx.ExecContext(ctx, `
+			UPDATE image_graphs
+			SET name = $2, version = $3, data = $4, updated_at = NOW()
+			WHERE id = $1
+		`, row.ID, row.Name, row.Version, row.Data)
 
-	if err != nil {
-		return fmt.Errorf("failed to update image graph: %w", err)
-	}
+		if err != nil {
+			return fmt.Errorf("failed to update image graph: %w", err)
+		}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("image graph not found for update: %s", ig.ID.ID)
+		if rowsAffected == 0 {
+			return fmt.Errorf("image graph not found for update: %s", ig.ID.ID)
+		}
 	}
 
 	return nil
+}
+
+// CollectEvents retrieves and clears events from all modified ImageGraphs
+func (r *ImageGraphRepository) CollectEvents() []dorky.Event {
+	var events []dorky.Event
+
+	for _, ig := range r.modified {
+		events = append(events, ig.GetEvents()...)
+		ig.ResetEvents()
+	}
+
+	return events
 }
