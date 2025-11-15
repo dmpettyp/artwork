@@ -291,9 +291,10 @@ function populateAddNodeContextMenu(schemas) {
     // Clear existing items
     submenu.innerHTML = '';
 
-    // Group node types by category
+    // Group node types by category, preserving order of first appearance
     const orderedTypes = schemas._orderedTypes || Object.keys(schemas);
     const categorized = {};
+    const categoryOrder = []; // Track category order based on first appearance
 
     orderedTypes.forEach((nodeType) => {
         const config = schemas[nodeType];
@@ -302,14 +303,12 @@ function populateAddNodeContextMenu(schemas) {
         const category = config.category || 'Other';
         if (!categorized[category]) {
             categorized[category] = [];
+            categoryOrder.push(category); // Add to order list on first appearance
         }
         categorized[category].push({ nodeType, config });
     });
 
-    // Define category order
-    const categoryOrder = ['Input/Output', 'Transform', 'Composite', 'Other'];
-
-    // Create nested menu items for each category
+    // Create nested menu items for each category in the order they were received
     categoryOrder.forEach((category) => {
         const nodes = categorized[category];
         if (!nodes || nodes.length === 0) return;

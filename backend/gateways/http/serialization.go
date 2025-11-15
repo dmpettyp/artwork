@@ -211,13 +211,13 @@ type nodeTypeInfo struct {
 var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
 	imagegraph.NodeTypeInput:          {"input", "Input", "Input/Output"},
 	imagegraph.NodeTypeOutput:         {"output", "Output", "Input/Output"},
-	imagegraph.NodeTypeCrop:           {"crop", "Crop", "Transform"},
 	imagegraph.NodeTypeBlur:           {"blur", "Blur", "Transform"},
-	imagegraph.NodeTypeResize:         {"resize", "Resize", "Transform"},
-	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Resize Match", "Transform"},
-	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Pixel Inflate", "Transform"},
-	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract", "Composite"},
-	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply", "Composite"},
+	imagegraph.NodeTypeCrop:           {"crop", "Crop", "Resize"},
+	imagegraph.NodeTypeResize:         {"resize", "Resize", "Resize"},
+	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Match To Size", "Resize"},
+	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Inflate Pixels", "Resize"},
+	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract", "Palette"},
+	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply", "Palette"},
 }
 
 // Conversion functions
