@@ -6,6 +6,7 @@ to process images in a non-destructive way.
 
 ## TODO
 
+
 - finish db integration
 
 - more retro style
@@ -64,6 +65,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - better json representation for commands and events
 - DONE - expose Version from ImageGraph events to be written to the DB
 - DONE - input node should take filename for node name
 - DONE - registry lib for node application

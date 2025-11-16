@@ -8,8 +8,8 @@ import (
 
 type CreateImageGraphCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	Name         string
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	Name         string                  `json:"name"`
 }
 
 func NewCreateImageGraphCommand(
@@ -26,11 +26,11 @@ func NewCreateImageGraphCommand(
 
 type AddImageGraphNodeCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	NodeType     imagegraph.NodeType
-	Name         string
-	Config       imagegraph.NodeConfig
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	NodeType     imagegraph.NodeType     `json:"node_type"`
+	Name         string                  `json:"name"`
+	Config       imagegraph.NodeConfig   `json:"config"`
 }
 
 func NewAddImageGraphNodeCommand(
@@ -53,8 +53,8 @@ func NewAddImageGraphNodeCommand(
 
 type RemoveImageGraphNodeCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
 }
 
 func NewRemoveImageGraphNodeCommand(
@@ -71,11 +71,11 @@ func NewRemoveImageGraphNodeCommand(
 
 type ConnectImageGraphNodesCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	FromNodeID   imagegraph.NodeID
-	OutputName   imagegraph.OutputName
-	ToNodeID     imagegraph.NodeID
-	InputName    imagegraph.InputName
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	FromNodeID   imagegraph.NodeID       `json:"from_node_id"`
+	OutputName   imagegraph.OutputName   `json:"output_name"`
+	ToNodeID     imagegraph.NodeID       `json:"to_node_id"`
+	InputName    imagegraph.InputName    `json:"input_name"`
 }
 
 func NewConnectImageGraphNodesCommand(
@@ -98,11 +98,11 @@ func NewConnectImageGraphNodesCommand(
 
 type DisconnectImageGraphNodesCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	FromNodeID   imagegraph.NodeID
-	OutputName   imagegraph.OutputName
-	ToNodeID     imagegraph.NodeID
-	InputName    imagegraph.InputName
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	FromNodeID   imagegraph.NodeID       `json:"from_node_id"`
+	OutputName   imagegraph.OutputName   `json:"output_name"`
+	ToNodeID     imagegraph.NodeID       `json:"to_node_id"`
+	InputName    imagegraph.InputName    `json:"input_name"`
 }
 
 func NewDisconnectImageGraphNodesCommand(
@@ -125,10 +125,10 @@ func NewDisconnectImageGraphNodesCommand(
 
 type SetImageGraphNodeOutputImageCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	OutputName   imagegraph.OutputName
-	ImageID      imagegraph.ImageID
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	OutputName   imagegraph.OutputName   `json:"output_name"`
+	ImageID      imagegraph.ImageID      `json:"image_id"`
 }
 
 func NewSetImageGraphNodeOutputImageCommand(
@@ -149,9 +149,9 @@ func NewSetImageGraphNodeOutputImageCommand(
 
 type UnsetImageGraphNodeOutputImageCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	OutputName   imagegraph.OutputName
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	OutputName   imagegraph.OutputName   `json:"output_name"`
 }
 
 func NewUnsetImageGraphNodeOutputImageCommand(
@@ -170,9 +170,9 @@ func NewUnsetImageGraphNodeOutputImageCommand(
 
 type SetImageGraphNodePreviewCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	ImageID      imagegraph.ImageID
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	ImageID      imagegraph.ImageID      `json:"image_id"`
 }
 
 func NewSetImageGraphNodePreviewCommand(
@@ -191,8 +191,8 @@ func NewSetImageGraphNodePreviewCommand(
 
 type UnsetImageGraphNodePreviewCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
 }
 
 func NewUnsetImageGraphNodePreviewCommand(
@@ -209,9 +209,9 @@ func NewUnsetImageGraphNodePreviewCommand(
 
 type SetImageGraphNodeConfigCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	Config       imagegraph.NodeConfig
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	Config       imagegraph.NodeConfig   `json:"config"`
 }
 
 func NewSetImageGraphNodeConfigCommand(
@@ -230,9 +230,9 @@ func NewSetImageGraphNodeConfigCommand(
 
 type SetImageGraphNodeNameCommand struct {
 	dorky.BaseCommand
-	ImageGraphID imagegraph.ImageGraphID
-	NodeID       imagegraph.NodeID
-	Name         string
+	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
+	NodeID       imagegraph.NodeID       `json:"node_id"`
+	Name         string                  `json:"name"`
 }
 
 func NewSetImageGraphNodeNameCommand(
@@ -253,8 +253,8 @@ func NewSetImageGraphNodeNameCommand(
 
 type UpdateLayoutCommand struct {
 	dorky.BaseCommand
-	GraphID       imagegraph.ImageGraphID
-	NodePositions []ui.NodePosition
+	GraphID       imagegraph.ImageGraphID `json:"graph_id"`
+	NodePositions []ui.NodePosition       `json:"node_positions"`
 }
 
 func NewUpdateLayoutCommand(
@@ -273,10 +273,10 @@ func NewUpdateLayoutCommand(
 
 type UpdateViewportCommand struct {
 	dorky.BaseCommand
-	GraphID imagegraph.ImageGraphID
-	Zoom    float64
-	PanX    float64
-	PanY    float64
+	GraphID imagegraph.ImageGraphID `json:"graph_id"`
+	Zoom    float64                 `json:"zoom"`
+	PanX    float64                 `json:"pan_x"`
+	PanY    float64                 `json:"pan_y"`
 }
 
 func NewUpdateViewportCommand(
