@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dmpettyp/artwork/backend/domain/imagegraph"
-	"github.com/dmpettyp/artwork/backend/domain/ui"
+	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/ui"
 )
 
 // LayoutViews provides read-only queries for Layouts

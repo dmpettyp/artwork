@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmpettyp/artwork/backend/application"
+	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/dorky"
 )
 

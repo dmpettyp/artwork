@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dmpettyp/artwork/backend/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/imagegraph"
 )
 
 // ImageGraphViews provides read-only queries for ImageGraphs

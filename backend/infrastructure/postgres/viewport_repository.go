@@ -7,8 +7,8 @@ import (
 
 	"github.com/dmpettyp/dorky"
 
-	"github.com/dmpettyp/artwork/backend/domain/imagegraph"
-	"github.com/dmpettyp/artwork/backend/domain/ui"
+	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/ui"
 )
 
 // ViewportRepository implements application.ViewportRepository using PostgreSQL

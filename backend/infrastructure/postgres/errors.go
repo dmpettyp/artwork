@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/dmpettyp/artwork/backend/application"
+	"github.com/dmpettyp/artwork/application"
 )
 
 // isNotFoundError checks if the error is a sql.ErrNoRows and converts it

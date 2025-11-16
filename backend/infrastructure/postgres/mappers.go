@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dmpettyp/artwork/backend/domain/imagegraph"
-	"github.com/dmpettyp/artwork/backend/domain/ui"
+	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/domain/ui"
 	"github.com/dmpettyp/mapper"
+	"github.com/dmpettyp/state"
 )
 
 var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
@@ -177,7 +178,7 @@ func serializeImageGraph(ig *imagegraph.ImageGraph) (imageGraphRow, error) {
 	}
 
 	return imageGraphRow{
-		ID:      ig.ID.ID,
+		ID:      ig.ID.String(),
 		Name:    ig.Name,
 		Version: int64(ig.Version),
 		Data:    dataJSON,
@@ -276,12 +277,17 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 			outputs[outputName] = output
 		}
 
+		nodeStateObj, err := state.NewState(nodeState)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create node state: %w", err)
+		}
+
 		node := &imagegraph.Node{
 			ID:      nodeID,
 			Version: imagegraph.NodeVersion(nodeDTO.Version),
 			Type:    nodeType,
 			Name:    nodeDTO.Name,
-			State:   imagegraph.NewNodeState(nodeState),
+			State:   nodeStateObj,
 			Config:  nodeDTO.Config,
 			Inputs:  inputs,
 			Outputs: outputs,
@@ -328,7 +334,7 @@ func serializeLayout(layout *ui.Layout) (layoutRow, error) {
 	}
 
 	return layoutRow{
-		GraphID: layout.GraphID.ID,
+		GraphID: layout.GraphID.String(),
 		Data:    dataJSON,
 	}, nil
 }
@@ -378,7 +384,7 @@ func serializeViewport(viewport *ui.Viewport) (viewportRow, error) {
 	}
 
 	return viewportRow{
-		GraphID: viewport.GraphID.ID,
+		GraphID: viewport.GraphID.String(),
 		Data:    dataJSON,
 	}, nil
 }
