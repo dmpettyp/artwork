@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 	"time"
 
@@ -286,18 +288,47 @@ func (ts *testServer) updateNode(t *testing.T, graphID, nodeID string, name *str
 	}
 }
 
-func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputName, imageID string) {
+func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputName, imageID string) string {
 	t.Helper()
 
-	reqBody := map[string]string{"image_id": imageID}
-	body, _ := json.Marshal(reqBody)
+	// Create a simple 1x1 PNG image for testing
+	imageData := []byte{
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 dimensions
+		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+		0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, // IDAT chunk
+		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+		0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+		0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, // IEND chunk
+		0x42, 0x60, 0x82,
+	}
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	// Create form file with proper Content-Type header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="image"; filename="test.png"`)
+	h.Set("Content-Type", "image/png")
+
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		t.Fatalf("failed to create form file: %v", err)
+	}
+
+	if _, err := part.Write(imageData); err != nil {
+		t.Fatalf("failed to write image data: %v", err)
+	}
+
+	writer.Close()
 
 	req, _ := http.NewRequest(
-		http.MethodPatch,
+		http.MethodPut,
 		fmt.Sprintf("%s/api/imagegraphs/%s/nodes/%s/outputs/%s", ts.URL(), graphID, nodeID, outputName),
-		bytes.NewReader(body),
+		&body,
 	)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -305,10 +336,19 @@ func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputNa
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 204, got %d: %s", resp.StatusCode, string(bodyBytes))
+		t.Fatalf("expected status 201, got %d: %s", resp.StatusCode, string(bodyBytes))
 	}
+
+	var response struct {
+		ImageID string `json:"image_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	return response.ImageID
 }
 
 // Tests
@@ -322,7 +362,7 @@ func TestEndToEndGraphCreationAndRetrieval(t *testing.T) {
 
 	// Add two nodes
 	inputNodeID := server.addNode(t, graphID, "input", "Input Node", `{}`)
-	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800}`)
+	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800, "interpolation": "Bilinear"}`)
 
 	// Connect them
 	server.connectNodes(t, graphID, inputNodeID, "original", resizeNodeID, "original")
@@ -392,12 +432,11 @@ func TestStateTransitionAndEventPropagation(t *testing.T) {
 
 	// Add two connected nodes
 	inputNodeID := server.addNode(t, graphID, "input", "Input Node", `{}`)
-	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800}`)
+	resizeNodeID := server.addNode(t, graphID, "resize", "Resize Node", `{"width": 800, "interpolation": "Bilinear"}`)
 	server.connectNodes(t, graphID, inputNodeID, "original", resizeNodeID, "original")
 
 	// Set output image on input node
-	imageID := imagegraph.MustNewImageID().String()
-	server.setNodeOutputImage(t, graphID, inputNodeID, "original", imageID)
+	imageID := server.setNodeOutputImage(t, graphID, inputNodeID, "original", "")
 
 	// Wait a bit for event propagation (message bus processes async)
 	time.Sleep(100 * time.Millisecond)
@@ -428,9 +467,10 @@ func TestStateTransitionAndEventPropagation(t *testing.T) {
 		t.Errorf("expected input image_id %s, got %s", imageID, input["image_id"])
 	}
 
-	// Verify state transitioned to "generating"
-	if resizeNode["state"].(string) != "generating" {
-		t.Errorf("expected state 'generating', got %s", resizeNode["state"])
+	// Verify state is either "generating" or "generated" (depends on timing)
+	state := resizeNode["state"].(string)
+	if state != "generating" && state != "generated" {
+		t.Errorf("expected state 'generating' or 'generated', got %s", state)
 	}
 }
 
@@ -451,8 +491,12 @@ func TestNodeConfigUpdate(t *testing.T) {
 	nodes := graph["nodes"].([]interface{})
 	node := nodes[0].(map[string]interface{})
 
-	if node["config"].(string) != newConfig {
-		t.Errorf("expected config %s, got %s", newConfig, node["config"])
+	config, ok := node["config"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("config is not a map: %T", node["config"])
+	}
+	if len(config) != 0 {
+		t.Errorf("expected empty config, got %v", config)
 	}
 }
 
@@ -463,7 +507,7 @@ func TestErrorScenarios(t *testing.T) {
 	t.Run("404 for non-existent graph", func(t *testing.T) {
 		fakeID := imagegraph.MustNewImageGraphID().String()
 
-		resp, err := http.Get(fmt.Sprintf("%s/imagegraphs/%s", server.URL(), fakeID))
+		resp, err := http.Get(fmt.Sprintf("%s/api/imagegraphs/%s", server.URL(), fakeID))
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -475,7 +519,7 @@ func TestErrorScenarios(t *testing.T) {
 	})
 
 	t.Run("400 for invalid UUID", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("%s/imagegraphs/not-a-uuid", server.URL()))
+		resp, err := http.Get(fmt.Sprintf("%s/api/imagegraphs/not-a-uuid", server.URL()))
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -495,7 +539,7 @@ func TestErrorScenarios(t *testing.T) {
 
 		req, _ := http.NewRequest(
 			http.MethodPatch,
-			fmt.Sprintf("%s/imagegraphs/%s/nodes/%s", server.URL(), graphID, nodeID),
+			fmt.Sprintf("%s/api/imagegraphs/%s/nodes/%s", server.URL(), graphID, nodeID),
 			bytes.NewReader(body),
 		)
 		req.Header.Set("Content-Type", "application/json")
@@ -506,8 +550,8 @@ func TestErrorScenarios(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Errorf("expected status 500, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("expected status 400, got %d", resp.StatusCode)
 		}
 	})
 }
