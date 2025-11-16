@@ -132,7 +132,7 @@ func (ts *testServer) createImageGraph(t *testing.T, name string) string {
 	body, _ := json.Marshal(reqBody)
 
 	resp, err := http.Post(
-		ts.URL()+"/imagegraphs",
+		ts.URL()+"/api/imagegraphs",
 		"application/json",
 		bytes.NewReader(body),
 	)
@@ -159,15 +159,23 @@ func (ts *testServer) createImageGraph(t *testing.T, name string) string {
 func (ts *testServer) addNode(t *testing.T, graphID, nodeType, name, config string) string {
 	t.Helper()
 
-	reqBody := map[string]string{
-		"name":   name,
-		"type":   nodeType,
-		"config": config,
+	reqBody := map[string]interface{}{
+		"name": name,
+		"type": nodeType,
 	}
+
+	if config != "" {
+		var configObj map[string]interface{}
+		if err := json.Unmarshal([]byte(config), &configObj); err != nil {
+			t.Fatalf("failed to unmarshal config: %v", err)
+		}
+		reqBody["config"] = configObj
+	}
+
 	body, _ := json.Marshal(reqBody)
 
 	resp, err := http.Post(
-		fmt.Sprintf("%s/imagegraphs/%s/nodes", ts.URL(), graphID),
+		fmt.Sprintf("%s/api/imagegraphs/%s/nodes", ts.URL(), graphID),
 		"application/json",
 		bytes.NewReader(body),
 	)
@@ -204,7 +212,7 @@ func (ts *testServer) connectNodes(t *testing.T, graphID, fromNodeID, outputName
 
 	req, _ := http.NewRequest(
 		http.MethodPut,
-		fmt.Sprintf("%s/imagegraphs/%s/connectNodes", ts.URL(), graphID),
+		fmt.Sprintf("%s/api/imagegraphs/%s/connectNodes", ts.URL(), graphID),
 		bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -224,7 +232,7 @@ func (ts *testServer) connectNodes(t *testing.T, graphID, fromNodeID, outputName
 func (ts *testServer) getImageGraph(t *testing.T, graphID string) map[string]interface{} {
 	t.Helper()
 
-	resp, err := http.Get(fmt.Sprintf("%s/imagegraphs/%s", ts.URL(), graphID))
+	resp, err := http.Get(fmt.Sprintf("%s/api/imagegraphs/%s", ts.URL(), graphID))
 	if err != nil {
 		t.Fatalf("failed to get image graph: %v", err)
 	}
@@ -251,13 +259,17 @@ func (ts *testServer) updateNode(t *testing.T, graphID, nodeID string, name *str
 		reqBody["name"] = *name
 	}
 	if config != nil {
-		reqBody["config"] = *config
+		var configObj map[string]interface{}
+		if err := json.Unmarshal([]byte(*config), &configObj); err != nil {
+			t.Fatalf("failed to unmarshal config: %v", err)
+		}
+		reqBody["config"] = configObj
 	}
 	body, _ := json.Marshal(reqBody)
 
 	req, _ := http.NewRequest(
 		http.MethodPatch,
-		fmt.Sprintf("%s/imagegraphs/%s/nodes/%s", ts.URL(), graphID, nodeID),
+		fmt.Sprintf("%s/api/imagegraphs/%s/nodes/%s", ts.URL(), graphID, nodeID),
 		bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
@@ -282,7 +294,7 @@ func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputNa
 
 	req, _ := http.NewRequest(
 		http.MethodPatch,
-		fmt.Sprintf("%s/imagegraphs/%s/nodes/%s/outputs/%s", ts.URL(), graphID, nodeID, outputName),
+		fmt.Sprintf("%s/api/imagegraphs/%s/nodes/%s/outputs/%s", ts.URL(), graphID, nodeID, outputName),
 		bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
