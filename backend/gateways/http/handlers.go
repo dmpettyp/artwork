@@ -103,7 +103,7 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nodeType, err := nodeTypeMapper.To(req.Type)
+	nodeType, err := imagegraph.NodeTypeMapper.To(req.Type)
 
 	if err != nil {
 		s.logger.Error("failed to parse request body", "error", err)

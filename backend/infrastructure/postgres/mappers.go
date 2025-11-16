@@ -6,26 +6,7 @@ import (
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/mapper"
 	"github.com/dmpettyp/state"
-)
-
-var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
-	"input", imagegraph.NodeTypeInput,
-	"output", imagegraph.NodeTypeOutput,
-	"crop", imagegraph.NodeTypeCrop,
-	"blur", imagegraph.NodeTypeBlur,
-	"resize", imagegraph.NodeTypeResize,
-	"resize_match", imagegraph.NodeTypeResizeMatch,
-	"pixel_inflate", imagegraph.NodeTypePixelInflate,
-	"palette_extract", imagegraph.NodeTypePaletteExtract,
-	"palette_apply", imagegraph.NodeTypePaletteApply,
-)
-
-var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
-	"waiting", imagegraph.Waiting,
-	"generating", imagegraph.Generating,
-	"generated", imagegraph.Generated,
 )
 
 type imageGraphRow struct {
@@ -153,9 +134,9 @@ func serializeImageGraph(ig *imagegraph.ImageGraph) (imageGraphRow, error) {
 		nodeDTO := nodeDTO{
 			ID:      node.ID.String(),
 			Version: int64(node.Version),
-			Type:    nodeTypeMapper.FromWithDefault(node.Type, "unknown"),
+			Type:    imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Name:    node.Name,
-			State:   nodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
+			State:   imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
 			Config:  node.Config,
 			Inputs:  inputsDTO,
 			Outputs: outputsDTO,
@@ -204,12 +185,12 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 			return nil, fmt.Errorf("failed to parse node ID %s: %w", nodeIDStr, err)
 		}
 
-		nodeType, err := nodeTypeMapper.To(nodeDTO.Type)
+		nodeType, err := imagegraph.NodeTypeMapper.To(nodeDTO.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse node type %s: %w", nodeDTO.Type, err)
 		}
 
-		nodeState, err := nodeStateMapper.To(nodeDTO.State)
+		nodeState, err := imagegraph.NodeStateMapper.To(nodeDTO.State)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse node state %s: %w", nodeDTO.State, err)
 		}

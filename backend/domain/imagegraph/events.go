@@ -4,7 +4,7 @@ import "fmt"
 
 type CreatedEvent struct {
 	ImageGraphEvent
-	Name string
+	Name string `json:"name"`
 }
 
 func NewCreatedEvent(ig *ImageGraph) *CreatedEvent {
@@ -17,7 +17,7 @@ func NewCreatedEvent(ig *ImageGraph) *CreatedEvent {
 
 type NodeAddedEvent struct {
 	ImageGraphEvent
-	NodeID NodeID
+	NodeID NodeID `json:"node_id"`
 }
 
 func NewNodeAddedEvent(ig *ImageGraph, n *Node) *NodeAddedEvent {
@@ -30,7 +30,7 @@ func NewNodeAddedEvent(ig *ImageGraph, n *Node) *NodeAddedEvent {
 
 type NodeRemovedEvent struct {
 	ImageGraphEvent
-	NodeID NodeID
+	NodeID NodeID `json:"node_id"`
 }
 
 func NewNodeRemovedEvent(ig *ImageGraph, n *Node) *NodeRemovedEvent {
@@ -43,8 +43,8 @@ func NewNodeRemovedEvent(ig *ImageGraph, n *Node) *NodeRemovedEvent {
 
 type NodeCreatedEvent struct {
 	NodeEvent
-	NodeType NodeType
-	NodeName string
+	NodeType NodeType `json:"node_type"`
+	NodeName string   `json:"node_name"`
 }
 
 func NewNodeCreatedEvent(n *Node) *NodeCreatedEvent {
@@ -59,9 +59,9 @@ func NewNodeCreatedEvent(n *Node) *NodeCreatedEvent {
 
 type NodeInputConnectedEvent struct {
 	NodeEvent
-	InputName      InputName
-	FromNodeID     NodeID
-	FromOutputName OutputName
+	InputName      InputName  `json:"input_name"`
+	FromNodeID     NodeID     `json:"from_node_id"`
+	FromOutputName OutputName `json:"from_output_name"`
 }
 
 func NewInputConnectedEvent(
@@ -82,9 +82,9 @@ func NewInputConnectedEvent(
 
 type NodeInputDisconnectedEvent struct {
 	NodeEvent
-	InputName      InputName
-	FromNodeID     NodeID
-	FromOutputName OutputName
+	InputName      InputName  `json:"input_name"`
+	FromNodeID     NodeID     `json:"from_node_id"`
+	FromOutputName OutputName `json:"from_output_name"`
 }
 
 func NewInputDisconnectedEvent(
@@ -105,9 +105,9 @@ func NewInputDisconnectedEvent(
 
 type NodeOutputConnectedEvent struct {
 	NodeEvent
-	OutputName  OutputName
-	ToNodeID    NodeID
-	ToInputName InputName
+	OutputName  OutputName `json:"output_name"`
+	ToNodeID    NodeID     `json:"to_node_id"`
+	ToInputName InputName  `json:"to_input_name"`
 }
 
 func NewOutputConnectedEvent(
@@ -128,9 +128,9 @@ func NewOutputConnectedEvent(
 
 type NodeOutputDisconnectedEvent struct {
 	NodeEvent
-	OutputName  OutputName
-	ToNodeID    NodeID
-	ToInputName InputName
+	OutputName  OutputName `json:"output_name"`
+	ToNodeID    NodeID     `json:"to_node_id"`
+	ToInputName InputName  `json:"to_input_name"`
 }
 
 func NewOutputDisconnectedEvent(
@@ -151,8 +151,8 @@ func NewOutputDisconnectedEvent(
 
 type NodeOutputImageSetEvent struct {
 	NodeEvent
-	OutputName OutputName
-	ImageID    ImageID
+	OutputName OutputName `json:"output_name"`
+	ImageID    ImageID    `json:"image_id"`
 }
 
 func NewOutputImageSetEvent(
@@ -171,8 +171,8 @@ func NewOutputImageSetEvent(
 
 type NodeOutputImageUnsetEvent struct {
 	NodeEvent
-	OutputName OutputName
-	ImageID    ImageID
+	OutputName OutputName `json:"output_name"`
+	ImageID    ImageID    `json:"image_id"`
 }
 
 func NewOutputImageUnsetEvent(
@@ -191,8 +191,8 @@ func NewOutputImageUnsetEvent(
 
 type NodeInputImageSetEvent struct {
 	NodeEvent
-	InputName InputName
-	ImageID   ImageID
+	InputName InputName `json:"input_name"`
+	ImageID   ImageID   `json:"image_id"`
 }
 
 func NewInputImageSetEvent(
@@ -211,7 +211,7 @@ func NewInputImageSetEvent(
 
 type NodeInputImageUnsetEvent struct {
 	NodeEvent
-	InputName InputName
+	InputName InputName `json:"input_name"`
 }
 
 func NewInputImageUnsetEvent(
@@ -228,7 +228,7 @@ func NewInputImageUnsetEvent(
 
 type NodeConfigSetEvent struct {
 	NodeEvent
-	Config NodeConfig
+	Config NodeConfig `json:"config"`
 }
 
 func NewNodeConfigSetEvent(n *Node) *NodeConfigSetEvent {
@@ -242,7 +242,7 @@ func NewNodeConfigSetEvent(n *Node) *NodeConfigSetEvent {
 
 type NodeNameSetEvent struct {
 	NodeEvent
-	Name string
+	Name string `json:"name"`
 }
 
 func NewNodeNameSetEvent(n *Node) *NodeNameSetEvent {
@@ -256,7 +256,7 @@ func NewNodeNameSetEvent(n *Node) *NodeNameSetEvent {
 
 type NodePreviewSetEvent struct {
 	NodeEvent
-	ImageID ImageID
+	ImageID ImageID `json:"image_id"`
 }
 
 func NewNodePreviewSetEvent(n *Node) *NodePreviewSetEvent {
@@ -280,14 +280,14 @@ func NewNodePreviewUnsetEvent(n *Node) *NodePreviewUnsetEvent {
 }
 
 type nodeInput struct {
-	Name    InputName
-	ImageID ImageID
+	Name    InputName `json:"name"`
+	ImageID ImageID   `json:"image_id"`
 }
 
 type NodeNeedsOutputsEvent struct {
 	NodeEvent
-	NodeConfig NodeConfig
-	Inputs     []nodeInput
+	NodeConfig NodeConfig  `json:"node_config"`
+	Inputs     []nodeInput `json:"inputs"`
 }
 
 func NewNodeNeedsOutputsEvent(n *Node) *NodeNeedsOutputsEvent {

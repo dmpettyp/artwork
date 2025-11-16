@@ -7,8 +7,8 @@ import (
 // Base event type that all ImageGraph domain events extend
 type ImageGraphEvent struct {
 	dorky.BaseEvent
-	ImageGraphID      ImageGraphID
-	ImageGraphVersion ImageGraphVersion
+	ImageGraphID      ImageGraphID      `json:"image_graph_id"`
+	ImageGraphVersion ImageGraphVersion `json:"image_graph_version"`
 }
 
 func (e *ImageGraphEvent) applyImageGraph(ig *ImageGraph) {
@@ -28,10 +28,10 @@ type Event interface {
 // Base event type that all Node-specific ImageGraph domain events extend
 type NodeEvent struct {
 	ImageGraphEvent
-	NodeID      NodeID
-	NodeState   NodeState
-	NodeVersion NodeVersion
-	NodeType    NodeType
+	NodeID      NodeID      `json:"node_id"`
+	NodeState   NodeState   `json:"node_state"`
+	NodeVersion NodeVersion `json:"node_version"`
+	NodeType    NodeType    `json:"node_type"`
 }
 
 func (e *NodeEvent) applyNode(n *Node) {

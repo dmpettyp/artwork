@@ -1,6 +1,9 @@
 package imagegraph
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type NodeType int
 
@@ -16,6 +19,11 @@ const (
 	NodeTypePaletteExtract
 	NodeTypePaletteApply
 )
+
+func (nt NodeType) MarshalJSON() ([]byte, error) {
+	str := NodeTypeMapper.FromWithDefault(nt, "unknown")
+	return json.Marshal(str)
+}
 
 type NodeConfigFieldType int
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/mapper"
 )
 
 // Request types
@@ -174,31 +173,13 @@ type errorResponse struct {
 
 // Mappers
 
-var nodeTypeMapper = mapper.MustNew[string, imagegraph.NodeType](
-	"input", imagegraph.NodeTypeInput,
-	"output", imagegraph.NodeTypeOutput,
-	"crop", imagegraph.NodeTypeCrop,
-	"blur", imagegraph.NodeTypeBlur,
-	"resize", imagegraph.NodeTypeResize,
-	"resize_match", imagegraph.NodeTypeResizeMatch,
-	"pixel_inflate", imagegraph.NodeTypePixelInflate,
-	"palette_extract", imagegraph.NodeTypePaletteExtract,
-	"palette_apply", imagegraph.NodeTypePaletteApply,
-)
-
-var nodeStateMapper = mapper.MustNew[string, imagegraph.NodeState](
-	"waiting", imagegraph.Waiting,
-	"generating", imagegraph.Generating,
-	"generated", imagegraph.Generated,
-)
-
-var fieldTypeMapper = mapper.MustNew[imagegraph.NodeConfigFieldType, string](
-	imagegraph.NodeConfigTypeString, "string",
-	imagegraph.NodeConfigTypeInt, "int",
-	imagegraph.NodeConfigTypeFloat, "float",
-	imagegraph.NodeConfigTypeBool, "bool",
-	imagegraph.NodeConfigTypeOption, "option",
-)
+var fieldTypeMapper = map[imagegraph.NodeConfigFieldType]string{
+	imagegraph.NodeConfigTypeString: "string",
+	imagegraph.NodeConfigTypeInt:    "int",
+	imagegraph.NodeConfigTypeFloat:  "float",
+	imagegraph.NodeConfigTypeBool:   "bool",
+	imagegraph.NodeConfigTypeOption: "option",
+}
 
 // nodeTypeInfo holds both the API name and display name for a node type
 type nodeTypeInfo struct {
@@ -286,10 +267,10 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 		nodeResp := nodeResponse{
 			ID:      node.ID.String(),
 			Name:    node.Name,
-			Type:    nodeTypeMapper.FromWithDefault(node.Type, "unknown"),
+			Type:    imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Version: int(node.Version),
 			Config:  node.Config,
-			State:   nodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
+			State:   imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
 			Inputs:  inputs,
 			Outputs: outputs,
 		}
@@ -336,9 +317,13 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 		// Convert fields (preserve order from domain)
 		fields := make([]nodeTypeSchemaField, len(cfg.Fields))
 		for i, field := range cfg.Fields {
+			fieldType := fieldTypeMapper[field.FieldType]
+			if fieldType == "" {
+				fieldType = "unknown"
+			}
 			fields[i] = nodeTypeSchemaField{
 				Name:     field.Name,
-				Type:     fieldTypeMapper.ToWithDefault(field.FieldType, "unknown"),
+				Type:     fieldType,
 				Required: field.Required,
 				Options:  field.Options,
 				Default:  field.Default,

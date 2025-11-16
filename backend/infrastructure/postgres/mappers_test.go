@@ -299,12 +299,12 @@ func TestNodeTypeMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
-			got := nodeTypeMapper.FromWithDefault(tt.nodeType, "unknown")
+			got := imagegraph.NodeTypeMapper.FromWithDefault(tt.nodeType, "unknown")
 			if got != tt.want {
 				t.Errorf("nodeTypeMapper.From(%v) = %v, want %v", tt.nodeType, got, tt.want)
 			}
 
-			roundtrip, err := nodeTypeMapper.To(got)
+			roundtrip, err := imagegraph.NodeTypeMapper.To(got)
 			if err != nil {
 				t.Fatalf("nodeTypeMapper.To(%v) failed: %v", got, err)
 			}
@@ -327,12 +327,12 @@ func TestNodeStateMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
-			got := nodeStateMapper.FromWithDefault(tt.state, "unknown")
+			got := imagegraph.NodeStateMapper.FromWithDefault(tt.state, "unknown")
 			if got != tt.want {
 				t.Errorf("nodeStateMapper.From(%v) = %v, want %v", tt.state, got, tt.want)
 			}
 
-			roundtrip, err := nodeStateMapper.To(got)
+			roundtrip, err := imagegraph.NodeStateMapper.To(got)
 			if err != nil {
 				t.Fatalf("nodeStateMapper.To(%v) failed: %v", got, err)
 			}
@@ -345,13 +345,13 @@ func TestNodeStateMapping(t *testing.T) {
 
 func TestNodeTypeMapperIsComplete(t *testing.T) {
 	for _, nodeType := range imagegraph.AllNodeTypes() {
-		str := nodeTypeMapper.FromWithDefault(nodeType, "MISSING")
+		str := imagegraph.NodeTypeMapper.FromWithDefault(nodeType, "MISSING")
 		if str == "MISSING" {
 			t.Fatalf("NodeType %v not in mapper", nodeType)
 		}
 
 		t.Run(str, func(t *testing.T) {
-			roundtrip, err := nodeTypeMapper.To(str)
+			roundtrip, err := imagegraph.NodeTypeMapper.To(str)
 			if err != nil {
 				t.Fatalf("Failed to round-trip %v: %v", nodeType, err)
 			}
@@ -364,12 +364,12 @@ func TestNodeTypeMapperIsComplete(t *testing.T) {
 
 func TestNodeStateMapperIsComplete(t *testing.T) {
 	for _, nodeState := range imagegraph.AllNodeStates() {
-		str := nodeStateMapper.FromWithDefault(nodeState, "MISSING")
+		str := imagegraph.NodeStateMapper.FromWithDefault(nodeState, "MISSING")
 		if str == "MISSING" {
 			t.Fatalf("NodeState %v not in mapper", nodeState)
 		}
 
-		roundtrip, err := nodeStateMapper.To(str)
+		roundtrip, err := imagegraph.NodeStateMapper.To(str)
 		if err != nil {
 			t.Fatalf("Failed to round-trip %v: %v", nodeState, err)
 		}

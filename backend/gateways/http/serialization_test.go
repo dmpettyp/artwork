@@ -8,13 +8,13 @@ import (
 
 func TestNodeTypeMapperIsComplete(t *testing.T) {
 	for _, nodeType := range imagegraph.AllNodeTypes() {
-		str := nodeTypeMapper.FromWithDefault(nodeType, "MISSING")
+		str := imagegraph.NodeTypeMapper.FromWithDefault(nodeType, "MISSING")
 		if str == "MISSING" {
 			t.Fatalf("NodeType %v not in mapper", nodeType)
 		}
 
 		t.Run(str, func(t *testing.T) {
-			roundtrip, err := nodeTypeMapper.To(str)
+			roundtrip, err := imagegraph.NodeTypeMapper.To(str)
 			if err != nil {
 				t.Fatalf("Failed to round-trip %v: %v", nodeType, err)
 			}
@@ -27,12 +27,12 @@ func TestNodeTypeMapperIsComplete(t *testing.T) {
 
 func TestNodeStateMapperIsComplete(t *testing.T) {
 	for _, nodeState := range imagegraph.AllNodeStates() {
-		str := nodeStateMapper.FromWithDefault(nodeState, "MISSING")
+		str := imagegraph.NodeStateMapper.FromWithDefault(nodeState, "MISSING")
 		if str == "MISSING" {
 			t.Fatalf("NodeState %v not in mapper", nodeState)
 		}
 
-		roundtrip, err := nodeStateMapper.To(str)
+		roundtrip, err := imagegraph.NodeStateMapper.To(str)
 		if err != nil {
 			t.Fatalf("Failed to round-trip %v: %v", nodeState, err)
 		}
