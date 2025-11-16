@@ -8,6 +8,8 @@ to process images in a non-destructive way.
 
 - move aggregate version to library? then it can be part of events
 
+- finish db integration
+
 - more retro style
 
 - node types

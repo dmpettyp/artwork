@@ -14,6 +14,7 @@ export class AddNodeModalController {
         // DOM elements
         this.modalElement = document.getElementById('add-node-modal');
         this.titleElement = document.getElementById('add-node-modal-title');
+        this.nameField = document.getElementById('node-name-field');
         this.nameInput = document.getElementById('node-name-input');
         this.imageUpload = document.getElementById('node-image-upload');
         this.imageInput = document.getElementById('node-image-input');
@@ -63,10 +64,16 @@ export class AddNodeModalController {
         this.imageInput.value = '';
         this.configFields.innerHTML = '';
 
-        // Update name field based on whether it's required
-        const nameRequired = configs[nodeType]?.nameRequired !== false;
-        this.nameInput.required = nameRequired;
-        this.nameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
+        // Show/hide name field based on node type
+        if (nodeType === 'input') {
+            this.nameField.style.display = 'none';
+        } else {
+            this.nameField.style.display = 'block';
+            // Update name field based on whether it's required
+            const nameRequired = configs[nodeType]?.nameRequired !== false;
+            this.nameInput.required = nameRequired;
+            this.nameInput.placeholder = nameRequired ? 'Enter node name' : 'Enter node name (optional)';
+        }
 
         // Show/hide image upload based on node type
         if (nodeType === 'input') {
@@ -82,7 +89,13 @@ export class AddNodeModalController {
         }
 
         this.modal.open();
-        this.nameInput.focus();
+
+        // Focus on appropriate input based on node type
+        if (nodeType === 'input') {
+            this.imageInput.focus();
+        } else {
+            this.nameInput.focus();
+        }
     }
 
     close() {
@@ -104,12 +117,15 @@ export class AddNodeModalController {
             return;
         }
 
-        // Check if name is required for this node type
         const configs = this.getNodeTypeConfigs();
-        const nameRequired = configs[nodeType]?.nameRequired !== false;
-        if (nameRequired && !nodeName) {
-            this.toastManager.warning('Please enter a node name');
-            return;
+
+        // Check if name is required for this node type (only if name field is visible)
+        if (this.nameField.style.display !== 'none') {
+            const nameRequired = configs[nodeType]?.nameRequired !== false;
+            if (nameRequired && !nodeName) {
+                this.toastManager.warning('Please enter a node name');
+                return;
+            }
         }
 
         // For input nodes, check if an image file is selected
