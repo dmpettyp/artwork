@@ -28,6 +28,20 @@ const (
 	NodeConfigTypeOption
 )
 
+func AllNodeTypes() []NodeType {
+	return []NodeType{
+		NodeTypeInput,
+		NodeTypeOutput,
+		NodeTypeBlur,
+		NodeTypeCrop,
+		NodeTypeResize,
+		NodeTypeResizeMatch,
+		NodeTypePixelInflate,
+		NodeTypePaletteExtract,
+		NodeTypePaletteApply,
+	}
+}
+
 // NodeConfigField represents a single configuration field for a node type
 type NodeConfigField struct {
 	Name      string

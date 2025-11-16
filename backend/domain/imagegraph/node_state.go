@@ -15,3 +15,11 @@ func (s NodeState) Transitions() map[NodeState][]NodeState {
 		Generated:  {Waiting, Generating, Generated},
 	}
 }
+
+func AllNodeStates() []NodeState {
+	return []NodeState{
+		Waiting,
+		Generating,
+		Generated,
+	}
+}
