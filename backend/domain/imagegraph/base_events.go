@@ -16,6 +16,10 @@ func (e *ImageGraphEvent) applyImageGraph(ig *ImageGraph) {
 	e.ImageGraphVersion = ig.Version.Next()
 }
 
+func (e *ImageGraphEvent) GetAggregateVersion() int64 {
+	return int64(e.ImageGraphVersion)
+}
+
 type Event interface {
 	dorky.Event
 	applyImageGraph(ig *ImageGraph)

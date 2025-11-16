@@ -111,9 +111,11 @@ func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 		eventType := event.GetType()
 		timestamp := event.GetTimestamp()
 
-		// For now, we'll use nil for aggregate_version
-		// This can be extracted from specific event types if needed
 		var aggregateVersion *int64
+		if versioned, ok := event.(interface{ GetAggregateVersion() int64 }); ok {
+			version := versioned.GetAggregateVersion()
+			aggregateVersion = &version
+		}
 
 		_, err = stmt.ExecContext(ctx,
 			aggregateID,
