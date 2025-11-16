@@ -6,9 +6,7 @@ to process images in a non-destructive way.
 
 ## TODO
 
-refactoring:
-- NodeNeedsOutputEvent shouldn't have NodeConfig embedded in it, should just
-  be data
+- move aggregate version to library? then it can be part of events
 
 - node types
   - pallet matching node
@@ -18,6 +16,11 @@ refactoring:
   - error state in node? store error in node?
 - durable repository/unit of work implementation: sqlite
   - maybe just do event sourcing approach? that actually might be fun
+
+future refactoring:
+- NodeNeedsOutputEvent shouldn't have NodeConfig embedded in it, should just
+  be data
+
 
 ## Overview
 

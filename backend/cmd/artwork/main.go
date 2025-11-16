@@ -119,19 +119,14 @@ func main() {
 		return
 	}
 
-	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	// Block until we receive a signal
 	<-sigChan
 
 	logger.Info("shutting down gracefully...")
 
-	// Stop the message bus
 	messageBus.Stop()
 
-	// Stop the HTTP server with timeout context
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

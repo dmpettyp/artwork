@@ -10,6 +10,11 @@ import (
 	"github.com/dmpettyp/dorky"
 )
 
+type repository interface {
+	SaveAll() error
+	CollectEvents() []dorky.Event
+}
+
 // UnitOfWork implements application.UnitOfWork using PostgreSQL
 type UnitOfWork struct {
 	db *sql.DB
@@ -41,27 +46,32 @@ func (uow *UnitOfWork) Run(
 	var events []dorky.Event
 
 	err := withTx(ctx, uow.db, func(tx *sql.Tx) error {
-		// Create repositories with the transaction
+		igRepo := newImageGraphRepository(tx)
+		layoutRepo := newLayoutRepository(tx)
+		vpRepo := newViewportRepository(tx)
+
 		repos := &application.Repos{
-			ImageGraphRepository: newImageGraphRepository(tx),
-			LayoutRepository:     newLayoutRepository(tx),
-			ViewportRepository:   newViewportRepository(tx),
+			ImageGraphRepository: igRepo,
+			LayoutRepository:     layoutRepo,
+			ViewportRepository:   vpRepo,
 		}
 
-		// Execute the provided function
+		repositories := []repository{igRepo, layoutRepo, vpRepo}
+
 		if err := fn(repos); err != nil {
 			return err
 		}
 
-		// Save all modified aggregates back to the database
-		if err := saveModifiedAggregates(ctx, repos); err != nil {
-			return fmt.Errorf("failed to save modified aggregates: %w", err)
+		for _, repo := range repositories {
+			if err := repo.SaveAll(); err != nil {
+				return err
+			}
 		}
 
-		// Collect events from all repositories
-		events = collectEvents(repos)
+		for _, repo := range repositories {
+			events = append(events, repo.CollectEvents()...)
+		}
 
-		// Save events to the events table
 		if err := saveEvents(ctx, tx, events); err != nil {
 			return fmt.Errorf("failed to save events: %w", err)
 		}
@@ -76,49 +86,6 @@ func (uow *UnitOfWork) Run(
 	return events, nil
 }
 
-// saveModifiedAggregates persists all modified aggregates back to the database
-func saveModifiedAggregates(ctx context.Context, repos *application.Repos) error {
-	if igRepo, ok := repos.ImageGraphRepository.(*ImageGraphRepository); ok {
-		if err := igRepo.SaveAll(); err != nil {
-			return fmt.Errorf("failed to save image graphs: %w", err)
-		}
-	}
-
-	if layoutRepo, ok := repos.LayoutRepository.(*LayoutRepository); ok {
-		if err := layoutRepo.SaveAll(); err != nil {
-			return fmt.Errorf("failed to save layouts: %w", err)
-		}
-	}
-
-	if vpRepo, ok := repos.ViewportRepository.(*ViewportRepository); ok {
-		if err := vpRepo.SaveAll(); err != nil {
-			return fmt.Errorf("failed to save viewports: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// collectEvents retrieves and clears events from all modified aggregates
-func collectEvents(repos *application.Repos) []dorky.Event {
-	var allEvents []dorky.Event
-
-	if igRepo, ok := repos.ImageGraphRepository.(*ImageGraphRepository); ok {
-		allEvents = append(allEvents, igRepo.CollectEvents()...)
-	}
-
-	if layoutRepo, ok := repos.LayoutRepository.(*LayoutRepository); ok {
-		allEvents = append(allEvents, layoutRepo.CollectEvents()...)
-	}
-
-	if vpRepo, ok := repos.ViewportRepository.(*ViewportRepository); ok {
-		allEvents = append(allEvents, vpRepo.CollectEvents()...)
-	}
-
-	return allEvents
-}
-
-// saveEvents persists events to the events table
 func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
 	if len(events) == 0 {
 		return nil
