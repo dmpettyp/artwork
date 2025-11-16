@@ -8,6 +8,8 @@ to process images in a non-destructive way.
 
 - move aggregate version to library? then it can be part of events
 
+- more retro style
+
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
@@ -62,6 +64,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - input node should take filename for node name
 - DONE - registry lib for node application
 - DONE - lots of domain refactoring/cleanup
 - DONE - better right click menu

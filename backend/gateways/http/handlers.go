@@ -408,6 +408,8 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 	}
 	defer file.Close()
 
+	s.logger.Info("filename", "f", header.Filename)
+
 	// Validate content type
 	contentType := header.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "image/") {
@@ -444,6 +446,22 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 	)
 
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
+		if errors.Is(err, application.ErrImageGraphNotFound) {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+			return
+		}
+		s.logger.Error("failed to handle SetImageGraphNodeOutputImageCommand", "error", err)
+		respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to set node output image"})
+		return
+	}
+
+	setNameCommand := application.NewSetImageGraphNodeNameCommand(
+		imageGraphID,
+		nodeID,
+		header.Filename,
+	)
+
+	if err := s.messageBus.HandleCommand(r.Context(), setNameCommand); err != nil {
 		if errors.Is(err, application.ErrImageGraphNotFound) {
 			respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
 			return
