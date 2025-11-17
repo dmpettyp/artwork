@@ -14,6 +14,9 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 
 
 - finish db integration
+  3. Wire up configuration: Create DB connection in main.go
+  4. Switch from inmem to postgres: Update dependency injection
+  5. Test with real database: Integration tests
 
 - more retro style
 
