@@ -4,6 +4,12 @@ artwork is used to model a pipeline for generating artwork. It creates an graph
 of nodes, each of which has inputs and outputs that can be connected together
 to process images in a non-destructive way.
 
+## Installation
+
+Using golang-migrate:
+
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
 ## TODO
 
 
