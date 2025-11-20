@@ -2,7 +2,7 @@ package imagegraph
 
 import "fmt"
 
-type NodeConfig map[string]interface{}
+type NodeConfig map[string]any
 
 func (nc NodeConfig) Exists(key string) bool {
 	_, ok := nc[key]
@@ -99,7 +99,7 @@ func (nc NodeConfig) GetStringOptional(key string) (*string, error) {
 	return &vString, nil
 }
 
-func (nc NodeConfig) Each(f func(string, interface{}) error) error {
+func (nc NodeConfig) Each(f func(string, any) error) error {
 	for k, v := range nc {
 		err := f(k, v)
 		if err != nil {

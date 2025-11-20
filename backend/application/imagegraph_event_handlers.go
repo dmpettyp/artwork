@@ -12,7 +12,7 @@ import (
 
 // ImageGraphNotifier is an interface for broadcasting graph notifications
 type ImageGraphNotifier interface {
-	BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate interface{})
+	BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate any)
 	BroadcastLayoutUpdate(graphID imagegraph.ImageGraphID)
 }
 
@@ -107,7 +107,7 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	error,
 ) {
 	// Broadcast that node is processing
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "processing",
 	})
@@ -135,10 +135,10 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 	error,
 ) {
 	// Broadcast that node output is complete
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "completed",
-		"outputs": map[string]interface{}{
+		"outputs": map[string]any{
 			string(event.OutputName): event.ImageID.String(),
 		},
 	})
@@ -188,7 +188,7 @@ func (h *ImageGraphEventHandlers) HandleNodePreviewSetEvent(
 	[]dorky.Event,
 	error,
 ) {
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 	})
 
@@ -203,7 +203,7 @@ func (h *ImageGraphEventHandlers) HandleNodeAddedEvent(
 	error,
 ) {
 	// Broadcast that node was added
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "added",
 	})
@@ -219,7 +219,7 @@ func (h *ImageGraphEventHandlers) HandleNodeRemovedEvent(
 	error,
 ) {
 	// Broadcast that node was removed
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "removed",
 	})
@@ -235,7 +235,7 @@ func (h *ImageGraphEventHandlers) HandleNodeInputConnectedEvent(
 	error,
 ) {
 	// Broadcast that connection was made
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "connected",
 	})
@@ -251,7 +251,7 @@ func (h *ImageGraphEventHandlers) HandleNodeInputDisconnectedEvent(
 	error,
 ) {
 	// Broadcast that connection was removed
-	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]interface{}{
+	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "disconnected",
 	})

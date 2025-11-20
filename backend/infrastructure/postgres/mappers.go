@@ -35,22 +35,22 @@ type imageGraphDTO struct {
 }
 
 type nodeDTO struct {
-	ID             string                 `json:"id"`
-	Version        int64                  `json:"version"`
-	Type           string                 `json:"type"`
-	Name           string                 `json:"name"`
-	State          string                 `json:"state"`
-	Config         map[string]interface{} `json:"config"`
-	PreviewImageID string                 `json:"preview_image_id,omitempty"`
-	Inputs         map[string]inputDTO    `json:"inputs"`
-	Outputs        map[string]outputDTO   `json:"outputs"`
+	ID             string               `json:"id"`
+	Version        int64                `json:"version"`
+	Type           string               `json:"type"`
+	Name           string               `json:"name"`
+	State          string               `json:"state"`
+	Config         map[string]any       `json:"config"`
+	PreviewImageID string               `json:"preview_image_id,omitempty"`
+	Inputs         map[string]inputDTO  `json:"inputs"`
+	Outputs        map[string]outputDTO `json:"outputs"`
 }
 
 type inputDTO struct {
-	Name       string                `json:"name"`
-	ImageID    string                `json:"image_id,omitempty"`
-	Connected  bool                  `json:"connected"`
-	Connection *inputConnectionDTO   `json:"connection,omitempty"`
+	Name       string              `json:"name"`
+	ImageID    string              `json:"image_id,omitempty"`
+	Connected  bool                `json:"connected"`
+	Connection *inputConnectionDTO `json:"connection,omitempty"`
 }
 
 type inputConnectionDTO struct {

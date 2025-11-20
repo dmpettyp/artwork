@@ -25,17 +25,6 @@ func (nt NodeType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(str)
 }
 
-type NodeConfigFieldType int
-
-const (
-	NodeConfigTypeNone NodeConfigFieldType = iota
-	NodeConfigTypeString
-	NodeConfigTypeInt
-	NodeConfigTypeFloat
-	NodeConfigTypeBool
-	NodeConfigTypeOption
-)
-
 func AllNodeTypes() []NodeType {
 	return []NodeType{
 		NodeTypeInput,
@@ -50,13 +39,24 @@ func AllNodeTypes() []NodeType {
 	}
 }
 
+type NodeConfigFieldType int
+
+const (
+	NodeConfigTypeNone NodeConfigFieldType = iota
+	NodeConfigTypeString
+	NodeConfigTypeInt
+	NodeConfigTypeFloat
+	NodeConfigTypeBool
+	NodeConfigTypeOption
+)
+
 // NodeConfigField represents a single configuration field for a node type
 type NodeConfigField struct {
 	Name      string
 	FieldType NodeConfigFieldType
 	Required  bool
 	Options   []string
-	Default   interface{} // Default value for the field (type depends on FieldType)
+	Default   any // Default value for the field (type depends on FieldType)
 }
 
 // NodeTypeConfig represents the configuration for a node type

@@ -27,20 +27,20 @@ type ImageGraphNotifier struct {
 // BroadcastMessage represents a message to broadcast to clients
 type BroadcastMessage struct {
 	GraphID imagegraph.ImageGraphID
-	Data    interface{}
+	Data    any
 }
 
 // WebSocketMessage is the structure sent to clients
 type WebSocketMessage struct {
-	Type string      `json:"type"`
-	Data interface{} `json:"data"`
+	Type string `json:"type"`
+	Data any    `json:"data"`
 }
 
 // NodeUpdateMessage contains node state changes
 type NodeUpdateMessage struct {
-	NodeID  string      `json:"node_id"`
-	State   string      `json:"state"`
-	Outputs interface{} `json:"outputs,omitempty"`
+	NodeID  string `json:"node_id"`
+	State   string `json:"state"`
+	Outputs any    `json:"outputs,omitempty"`
 }
 
 // NewImageGraphNotifier creates a new ImageGraphNotifier
@@ -99,7 +99,7 @@ func (n *ImageGraphNotifier) Unregister(graphID imagegraph.ImageGraphID, conn *w
 }
 
 // Broadcast sends a message to all clients connected to a specific graph
-func (n *ImageGraphNotifier) Broadcast(graphID imagegraph.ImageGraphID, data interface{}) {
+func (n *ImageGraphNotifier) Broadcast(graphID imagegraph.ImageGraphID, data any) {
 	select {
 	case n.broadcast <- &BroadcastMessage{GraphID: graphID, Data: data}:
 	default:
@@ -108,7 +108,7 @@ func (n *ImageGraphNotifier) Broadcast(graphID imagegraph.ImageGraphID, data int
 }
 
 // broadcastToGraph sends data to all connections for a graph
-func (n *ImageGraphNotifier) broadcastToGraph(graphID imagegraph.ImageGraphID, data interface{}) {
+func (n *ImageGraphNotifier) broadcastToGraph(graphID imagegraph.ImageGraphID, data any) {
 	n.mu.RLock()
 	connections := n.graphConnections[graphID]
 	n.mu.RUnlock()
@@ -138,7 +138,7 @@ func (n *ImageGraphNotifier) broadcastToGraph(graphID imagegraph.ImageGraphID, d
 }
 
 // BroadcastNodeUpdate sends a node update to all clients viewing the graph
-func (n *ImageGraphNotifier) BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate interface{}) {
+func (n *ImageGraphNotifier) BroadcastNodeUpdate(graphID imagegraph.ImageGraphID, nodeUpdate any) {
 	msg := WebSocketMessage{
 		Type: "node_update",
 		Data: nodeUpdate,
@@ -150,7 +150,7 @@ func (n *ImageGraphNotifier) BroadcastNodeUpdate(graphID imagegraph.ImageGraphID
 func (n *ImageGraphNotifier) BroadcastLayoutUpdate(graphID imagegraph.ImageGraphID) {
 	msg := WebSocketMessage{
 		Type: "layout_update",
-		Data: map[string]interface{}{},
+		Data: map[string]any{},
 	}
 	n.Broadcast(graphID, msg)
 }
