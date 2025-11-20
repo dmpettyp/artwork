@@ -7,10 +7,16 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dmpettyp/dorky v0.0.0-20251005144453-fdc257b3d921 h1:gjgUL9Ui0ZowkV6odWNFI6tm+oq/qq9IlCN7r3JDbT0=
 github.com/dmpettyp/dorky v0.0.0-20251005144453-fdc257b3d921/go.mod h1:O7tyhaittFCbCjAaZJRAlLug8fZMueQRCnW3BpcoACY=
+github.com/dmpettyp/dorky v0.0.0-20251117013211-b144987f2ffb h1:qg4YiI8360MGgMQ3DXGsrn2Nav2KXhpToaXbX52DTq8=
+github.com/dmpettyp/dorky v0.0.0-20251117013211-b144987f2ffb/go.mod h1:O7tyhaittFCbCjAaZJRAlLug8fZMueQRCnW3BpcoACY=
 github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5 h1:6DQzjDB7YVYUkq7K1FwmX1WVMYXthLvPRucfSd7gVYM=
 github.com/dmpettyp/id v0.0.0-20251005002343-68291fb87bf5/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
+github.com/dmpettyp/id v0.0.0-20251028210813-8a4abd9bb67e h1:LgAFAIZgHM1J7wvo9jjh9dk9yLQwe0Yc0Ni0LHzlSHg=
+github.com/dmpettyp/id v0.0.0-20251028210813-8a4abd9bb67e/go.mod h1:wj+vTazDiJ8ne2k1oy1VexpO0IEefVSTF0ccgOEOWWQ=
 github.com/dmpettyp/mapper v0.0.0-20251008224010-89f1817dea21 h1:DQBtcT0NbeQSTcN6dKQkZumT2EmcrpbrK4sTQ3lwtPM=
 github.com/dmpettyp/mapper v0.0.0-20251008224010-89f1817dea21/go.mod h1:ltaK3kUF8PxSnR76tK4s/e7cvshf+Dm+0v/tv4e+3Lg=
+github.com/dmpettyp/mapper v0.0.0-20251008225654-49dd6fa10533 h1:gnHb7dGPrYJjdCfbZNliOizpYa1AwMDqxrp5N8RbL8k=
+github.com/dmpettyp/mapper v0.0.0-20251008225654-49dd6fa10533/go.mod h1:ltaK3kUF8PxSnR76tK4s/e7cvshf+Dm+0v/tv4e+3Lg=
 github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057 h1:b6iJxHMvVeIcC9skNrt89Vs9uC1taZag+d9XR5LqPeE=
 github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057/go.mod h1:imuAA0fD1Cb8CZlCDGtqT8w3YPvwDwtcHGQDySmeZUQ=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
