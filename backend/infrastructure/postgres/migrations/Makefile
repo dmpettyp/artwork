@@ -45,7 +45,7 @@ drop: ## Drop everything in the database (WARNING: very destructive)
 
 .PHONY: docker-start
 docker-start: ## Start postgres in Docker
-	docker run --name postgres-artwork -e POSTGRES_PASSWORD=$(PASSWORD) -v pgdata:/tmp -p 5432:5432 -d postgres
+	docker run --name postgres-artwork -e POSTGRES_PASSWORD=$(PASSWORD) -v postgres_data:/var/lib/postgresql -p 5432:5432 -d postgres
 
 .PHONY: docker-stop
 docker-stop: ## Stop and remove postgres container
