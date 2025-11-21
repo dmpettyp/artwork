@@ -14,10 +14,12 @@ type LayoutViews struct {
 	db *sql.DB
 }
 
-// Get retrieves a Layout by graph ID (read-only, no locking)
-func (v *LayoutViews) Get(graphID imagegraph.ImageGraphID) (*ui.Layout, error) {
-	ctx := context.Background()
+func NewLayoutViews(db *sql.DB) *LayoutViews {
+	return &LayoutViews{db: db}
+}
 
+// Get retrieves a Layout by graph ID (read-only, no locking)
+func (v *LayoutViews) Get(ctx context.Context, graphID imagegraph.ImageGraphID) (*ui.Layout, error) {
 	var row layoutRow
 	err := v.db.QueryRowContext(ctx, `
 		SELECT graph_id, data, updated_at

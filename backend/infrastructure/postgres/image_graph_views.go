@@ -13,10 +13,12 @@ type ImageGraphViews struct {
 	db *sql.DB
 }
 
-// Get retrieves an ImageGraph by ID (read-only, no locking)
-func (v *ImageGraphViews) Get(id imagegraph.ImageGraphID) (*imagegraph.ImageGraph, error) {
-	ctx := context.Background()
+func NewImageGraphViews(db *sql.DB) *ImageGraphViews {
+	return &ImageGraphViews{db: db}
+}
 
+// Get retrieves an ImageGraph by ID (read-only, no locking)
+func (v *ImageGraphViews) Get(ctx context.Context, id imagegraph.ImageGraphID) (*imagegraph.ImageGraph, error) {
 	var row imageGraphRow
 	err := v.db.QueryRowContext(ctx, `
 		SELECT id, name, version, data, created_at, updated_at
@@ -44,9 +46,7 @@ func (v *ImageGraphViews) Get(id imagegraph.ImageGraphID) (*imagegraph.ImageGrap
 }
 
 // List retrieves all ImageGraphs (read-only)
-func (v *ImageGraphViews) List() ([]*imagegraph.ImageGraph, error) {
-	ctx := context.Background()
-
+func (v *ImageGraphViews) List(ctx context.Context) ([]*imagegraph.ImageGraph, error) {
 	rows, err := v.db.QueryContext(ctx, `
 		SELECT id, name, version, data, created_at, updated_at
 		FROM image_graphs

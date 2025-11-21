@@ -14,10 +14,12 @@ type ViewportViews struct {
 	db *sql.DB
 }
 
-// Get retrieves a Viewport by graph ID (read-only, no locking)
-func (v *ViewportViews) Get(graphID imagegraph.ImageGraphID) (*ui.Viewport, error) {
-	ctx := context.Background()
+func NewViewportViews(db *sql.DB) *ViewportViews {
+	return &ViewportViews{db: db}
+}
 
+// Get retrieves a Viewport by graph ID (read-only, no locking)
+func (v *ViewportViews) Get(ctx context.Context, graphID imagegraph.ImageGraphID) (*ui.Viewport, error) {
 	var row viewportRow
 	err := v.db.QueryRowContext(ctx, `
 		SELECT graph_id, data, updated_at

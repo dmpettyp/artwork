@@ -48,7 +48,7 @@ func NewImageGraph(
 		Nodes:   NewNodes(),
 	}
 
-	ig.addEvent(NewCreatedEvent(ig))
+	ig.AddEvent(NewCreatedEvent(ig))
 
 	return ig, nil
 }
@@ -58,17 +58,17 @@ func (ig *ImageGraph) Clone() *ImageGraph {
 
 	for nodeID, n := range ig.Nodes {
 		c := &(*n)
-		c.SetEventAdder(clone.addEvent)
+		c.SetEventAdder(clone.AddEvent)
 		clone.Nodes[nodeID] = c
 	}
 
 	return &clone
 }
 
-func (ig *ImageGraph) addEvent(e Event) {
+func (ig *ImageGraph) AddEvent(e Event) {
 	e.SetEntity("ImageGraph", ig.ID.ID)
 	e.applyImageGraph(ig)
-	ig.AddEvent(e)
+	ig.Entity.AddEvent(e)
 }
 
 // AddNode adds a node to an ImageGraph
@@ -78,7 +78,7 @@ func (ig *ImageGraph) AddNode(
 	name string,
 	config NodeConfig,
 ) error {
-	n, err := NewNode(ig.addEvent, id, nodeType, name, config)
+	n, err := NewNode(ig.AddEvent, id, nodeType, name, config)
 
 	if err != nil {
 		return fmt.Errorf("could not create node for ImageGraph %q: %w", ig.ID, err)
@@ -90,7 +90,7 @@ func (ig *ImageGraph) AddNode(
 		return fmt.Errorf("could not add node to ImageGraph %q: %w", ig.ID, err)
 	}
 
-	ig.addEvent(NewNodeAddedEvent(ig, n))
+	ig.AddEvent(NewNodeAddedEvent(ig, n))
 
 	return nil
 }
@@ -114,7 +114,7 @@ func (ig *ImageGraph) RemoveNode(
 		return fmt.Errorf("%s: %w", removeNodeError, err)
 	}
 
-	ig.addEvent(NewNodeRemovedEvent(ig, node))
+	ig.AddEvent(NewNodeRemovedEvent(ig, node))
 
 	//
 	// Disconnect each upstream node's output that connects to this node

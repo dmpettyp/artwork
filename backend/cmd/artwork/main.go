@@ -12,7 +12,8 @@ import (
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
-	"github.com/dmpettyp/artwork/infrastructure/inmem"
+	// "github.com/dmpettyp/artwork/infrastructure/inmem"
+	"github.com/dmpettyp/artwork/infrastructure/postgres"
 	"github.com/dmpettyp/dorky"
 )
 
@@ -32,12 +33,27 @@ func main() {
 
 	logger.Info("this is artwork")
 
-	uow, err := inmem.NewUnitOfWork()
+	db, err := postgres.NewDB(postgres.DefaultConfig())
 
 	if err != nil {
-		logger.Error("could not create image graph unit of work", "error", err)
+		logger.Error("could not create postgres db connection", "error", err)
 		return
 	}
+
+	uow := postgres.NewUnitOfWork(db)
+	imageGraphViews := postgres.NewImageGraphViews(db)
+	layoutViews := postgres.NewLayoutViews(db)
+	viewportViews := postgres.NewViewportViews(db)
+
+	// uow, err := inmem.NewUnitOfWork()
+
+	// if err != nil {
+	// 	logger.Error("could not create image graph unit of work", "error", err)
+	// 	return
+	// }
+	// imageGraphViews := uow.ImageGraphViews
+	// layoutViews := uow.LayoutViews,
+	// viewportViews := uow.ViewportViews,
 
 	messageBus := dorky.NewMessageBus(logger)
 
@@ -102,9 +118,9 @@ func main() {
 	httpServer := httpgateway.NewHTTPServer(
 		logger,
 		messageBus,
-		uow.ImageGraphViews,
-		uow.LayoutViews,
-		uow.ViewportViews,
+		imageGraphViews,
+		layoutViews,
+		viewportViews,
 		imageStorage,
 		notifier,
 	)
@@ -114,10 +130,10 @@ func main() {
 	go messageBus.Start(context.Background())
 
 	// Bootstrap the application with default ImageGraph
-	if err := bootstrap(context.Background(), logger, messageBus); err != nil {
-		logger.Error("bootstrap failed", "error", err)
-		return
-	}
+	// if err := bootstrap(context.Background(), logger, messageBus); err != nil {
+	// 	logger.Error("bootstrap failed", "error", err)
+	// 	return
+	// }
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)

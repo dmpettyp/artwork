@@ -292,6 +292,10 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 		Nodes:   nodes,
 	}
 
+	for _, node := range ig.Nodes {
+		node.SetEventAdder(ig.AddEvent)
+	}
+
 	return ig, nil
 }
 

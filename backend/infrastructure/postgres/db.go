@@ -30,8 +30,8 @@ func DefaultConfig() Config {
 	return Config{
 		Host:            "localhost",
 		Port:            5432,
-		User:            "artwork",
-		Password:        "artwork",
+		User:            "postgres",
+		Password:        "foofoofoo",
 		Database:        "artwork",
 		SSLMode:         "disable",
 		MaxOpenConns:    25,
