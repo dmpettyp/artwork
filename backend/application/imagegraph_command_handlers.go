@@ -88,11 +88,17 @@ func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
 			command.NodeID,
 			command.NodeType,
 			command.Name,
-			command.Config,
 		)
 
 		if err != nil {
 			return fmt.Errorf("could not process AddImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+		}
+
+		if command.Config != nil {
+			err = ig.SetNodeConfig(command.NodeID, command.Config)
+			if err != nil {
+				return fmt.Errorf("could not process AddImageGraphNodeCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+			}
 		}
 
 		return nil
@@ -301,10 +307,11 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeConfigCommand(
 			return fmt.Errorf("could not process SetImageGraphNodeConfigCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
-		err = ig.SetNodeConfig(command.NodeID, command.Config)
-
-		if err != nil {
-			return fmt.Errorf("could not process SetImageGraphNodeConfigCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+		if command.Config != nil {
+			err = ig.SetNodeConfig(command.NodeID, command.Config)
+			if err != nil {
+				return fmt.Errorf("could not process SetImageGraphNodeConfigCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+			}
 		}
 
 		return nil

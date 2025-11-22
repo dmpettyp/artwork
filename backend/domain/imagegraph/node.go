@@ -26,8 +26,7 @@ type Node struct {
 
 	State state.State[NodeState]
 
-	// The configuration for the node. The configuration is a map containing
-	// the node's settings that are provided to the image processor.
+	// Config is the typed configuration for the node.
 	Config NodeConfig
 
 	// The preview image for the node
@@ -51,7 +50,6 @@ func NewNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	config NodeConfig,
 ) (
 	*Node,
 	error,
@@ -93,15 +91,15 @@ func NewNode(
 		Version:  0,
 		Type:     nodeType,
 		Name:     name,
+		Config:   NewNodeConfig(nodeType),
 		Inputs:   inputs,
 		Outputs:  outputs,
 	}
 
 	n.addEvent(NewNodeCreatedEvent(n))
 
-	err = n.SetConfig(config)
-
-	if err != nil {
+	// For nodes with no inputs (like Input), trigger output generation right away
+	if err = n.triggerOutputsIfReady(); err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
 	}
 
@@ -117,7 +115,14 @@ func (n *Node) SetConfig(config NodeConfig) error {
 		return fmt.Errorf("config cannot be nil")
 	}
 
-	if err := n.Type.ValidateConfig(config); err != nil {
+	if config.NodeType() != n.Type {
+		return fmt.Errorf(
+			"config type %v does not match node type %v",
+			config.NodeType(), n.Type,
+		)
+	}
+
+	if err := config.Validate(); err != nil {
 		return fmt.Errorf(
 			"could not set config for node %q: %w", n.ID, err,
 		)

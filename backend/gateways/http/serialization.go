@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -14,9 +15,9 @@ type createImageGraphRequest struct {
 }
 
 type addNodeRequest struct {
-	Name   string                `json:"name"`
-	Type   string                `json:"type"`
-	Config imagegraph.NodeConfig `json:"config"`
+	Name   string          `json:"name"`
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
 }
 
 type connectionRequest struct {
@@ -27,8 +28,8 @@ type connectionRequest struct {
 }
 
 type updateNodeRequest struct {
-	Name   *string               `json:"name,omitempty"`
-	Config imagegraph.NodeConfig `json:"config,omitempty"`
+	Name   *string         `json:"name,omitempty"`
+	Config json.RawMessage `json:"config,omitempty"`
 }
 
 type updateLayoutRequest struct {

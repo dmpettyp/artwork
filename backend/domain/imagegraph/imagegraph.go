@@ -76,9 +76,8 @@ func (ig *ImageGraph) AddNode(
 	id NodeID,
 	nodeType NodeType,
 	name string,
-	config NodeConfig,
 ) error {
-	n, err := NewNode(ig.AddEvent, id, nodeType, name, config)
+	n, err := NewNode(ig.AddEvent, id, nodeType, name)
 
 	if err != nil {
 		return fmt.Errorf("could not create node for ImageGraph %q: %w", ig.ID, err)

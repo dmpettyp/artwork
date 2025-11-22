@@ -10,6 +10,10 @@ import (
 	"github.com/dmpettyp/dorky"
 )
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
 // bootstrap creates a default ImageGraph extracted from the running server
 func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.MessageBus) error {
 	logger.Info("bootstrapping application with default ImageGraph")
@@ -41,7 +45,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		inputNodeID,
 		imagegraph.NodeTypeInput,
 		"",
-		imagegraph.NodeConfig{},
+		imagegraph.NewNodeConfigInput(),
 	)
 	if err := messageBus.HandleCommand(ctx, addInputCmd); err != nil {
 		return err
@@ -49,12 +53,11 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Input node", "id", inputNodeID.String())
 
 	// Add Crop node
-	cropConfig := imagegraph.NodeConfig{
-		"left":   564,
-		"right":  1565,
-		"top":    771,
-		"bottom": 1994,
-	}
+	cropConfig := imagegraph.NewNodeConfigCrop()
+	cropConfig.Left = ptr(564)
+	cropConfig.Right = ptr(1565)
+	cropConfig.Top = ptr(771)
+	cropConfig.Bottom = ptr(1994)
 	addCropCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		cropNodeID,
@@ -68,10 +71,9 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Crop node", "id", cropNodeID.String())
 
 	// Add Resize node (shrink)
-	resizeShrinkConfig := imagegraph.NodeConfig{
-		"width":         15,
-		"interpolation": "Bicubic",
-	}
+	resizeShrinkConfig := imagegraph.NewNodeConfigResize()
+	resizeShrinkConfig.Width = ptr(15)
+	resizeShrinkConfig.Interpolation = "Bicubic"
 	addResizeShrinkCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		resizeShrinkNodeID,
@@ -85,9 +87,8 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Resize node (shrink)", "id", resizeShrinkNodeID.String())
 
 	// Add Blur node
-	blurConfig := imagegraph.NodeConfig{
-		"radius": 1,
-	}
+	blurConfig := imagegraph.NewNodeConfigBlur()
+	blurConfig.Radius = 1
 	addBlurCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		blurNodeID,
@@ -101,10 +102,9 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Blur node", "id", blurNodeID.String())
 
 	// Add Resize node (grow to 500w)
-	resizeGrowConfig := imagegraph.NodeConfig{
-		"width":         500,
-		"interpolation": "NearestNeighbor",
-	}
+	resizeGrowConfig := imagegraph.NewNodeConfigResize()
+	resizeGrowConfig.Width = ptr(500)
+	resizeGrowConfig.Interpolation = "NearestNeighbor"
 	addResizeGrowCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		resizeGrowNodeID,
@@ -118,9 +118,8 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Resize node (grow to 500w)", "id", resizeGrowNodeID.String())
 
 	// Add Resize Match node
-	resizeMatchConfig := imagegraph.NodeConfig{
-		"interpolation": "NearestNeighbor",
-	}
+	resizeMatchConfig := imagegraph.NewNodeConfigResizeMatch()
+	resizeMatchConfig.Interpolation = "NearestNeighbor"
 	addResizeMatchCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		resizeMatchNodeID,
@@ -134,11 +133,10 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 	logger.Info("added Resize Match node", "id", resizeMatchNodeID.String())
 
 	// Add Pixel Inflate node
-	pixelInflateConfig := imagegraph.NodeConfig{
-		"width":      500,
-		"line_width": 3,
-		"line_color": "#333333",
-	}
+	pixelInflateConfig := imagegraph.NewNodeConfigPixelInflate()
+	pixelInflateConfig.Width = 500
+	pixelInflateConfig.LineWidth = 3
+	pixelInflateConfig.LineColor = "#333333"
 	addPixelInflateCmd := application.NewAddImageGraphNodeCommand(
 		graphID,
 		pixelInflateNodeID,
@@ -157,7 +155,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		output1NodeID,
 		imagegraph.NodeTypeOutput,
 		"Width 500",
-		imagegraph.NodeConfig{},
+		imagegraph.NewNodeConfigOutput(),
 	)
 	if err := messageBus.HandleCommand(ctx, addOutput1Cmd); err != nil {
 		return err
@@ -170,7 +168,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		output2NodeID,
 		imagegraph.NodeTypeOutput,
 		"Output with original size",
-		imagegraph.NodeConfig{},
+		imagegraph.NewNodeConfigOutput(),
 	)
 	if err := messageBus.HandleCommand(ctx, addOutput2Cmd); err != nil {
 		return err
@@ -183,7 +181,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.Messa
 		output3NodeID,
 		imagegraph.NodeTypeOutput,
 		"no lines",
-		imagegraph.NodeConfig{},
+		imagegraph.NewNodeConfigOutput(),
 	)
 	if err := messageBus.HandleCommand(ctx, addOutput3Cmd); err != nil {
 		return err

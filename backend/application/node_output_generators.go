@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
@@ -31,9 +32,9 @@ func generateBlurNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	radius, err := event.NodeConfig.GetInt("radius")
-	if err != nil {
-		return err
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigBlur)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate Blur Node outputs")
 	}
 
 	inputImageID, err := event.GetInput("original")
@@ -46,7 +47,7 @@ func generateBlurNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		inputImageID,
-		radius,
+		config.Radius,
 	)
 }
 
@@ -55,24 +56,9 @@ func generateCropNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	left, err := event.NodeConfig.GetIntOptional("left")
-	if err != nil {
-		return err
-	}
-
-	right, err := event.NodeConfig.GetIntOptional("right")
-	if err != nil {
-		return err
-	}
-
-	top, err := event.NodeConfig.GetIntOptional("top")
-	if err != nil {
-		return err
-	}
-
-	bottom, err := event.NodeConfig.GetIntOptional("bottom")
-	if err != nil {
-		return err
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigCrop)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate Crop Node outputs")
 	}
 
 	inputImageID, err := event.GetInput("original")
@@ -85,10 +71,10 @@ func generateCropNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		inputImageID,
-		left,
-		right,
-		top,
-		bottom,
+		config.Left,
+		config.Right,
+		config.Top,
+		config.Bottom,
 	)
 }
 
@@ -97,19 +83,9 @@ func generateResizeNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	width, err := event.NodeConfig.GetIntOptional("width")
-	if err != nil {
-		return err
-	}
-
-	height, err := event.NodeConfig.GetIntOptional("height")
-	if err != nil {
-		return err
-	}
-
-	interpolation, err := event.NodeConfig.GetString("interpolation")
-	if err != nil {
-		return err
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigResize)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate Resize Node outputs")
 	}
 
 	inputImageID, err := event.GetInput("original")
@@ -122,9 +98,9 @@ func generateResizeNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		inputImageID,
-		width,
-		height,
-		interpolation,
+		config.Width,
+		config.Height,
+		config.Interpolation,
 	)
 }
 
@@ -133,6 +109,11 @@ func generateResizeMatchNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigResizeMatch)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate ResizeMatch Node outputs")
+	}
+
 	originalImageID, err := event.GetInput("original")
 	if err != nil {
 		return err
@@ -143,18 +124,13 @@ func generateResizeMatchNodeOutputs(
 		return err
 	}
 
-	interpolation, err := event.NodeConfig.GetString("interpolation")
-	if err != nil {
-		return err
-	}
-
 	return imageGen.GenerateOutputsForResizeMatchNode(
 		ctx,
 		event.ImageGraphID,
 		event.NodeID,
 		originalImageID,
 		sizeMatchImageID,
-		interpolation,
+		config.Interpolation,
 	)
 }
 
@@ -163,19 +139,9 @@ func generatePixelInflateNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	width, err := event.NodeConfig.GetInt("width")
-	if err != nil {
-		return err
-	}
-
-	lineWidth, err := event.NodeConfig.GetInt("line_width")
-	if err != nil {
-		return err
-	}
-
-	lineColor, err := event.NodeConfig.GetString("line_color")
-	if err != nil {
-		return err
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigPixelInflate)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate PixelInflate Node outputs")
 	}
 
 	inputImageID, err := event.GetInput("original")
@@ -188,9 +154,9 @@ func generatePixelInflateNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		inputImageID,
-		width,
-		lineWidth,
-		lineColor,
+		config.Width,
+		config.LineWidth,
+		config.LineColor,
 	)
 }
 
@@ -199,14 +165,9 @@ func generatePaletteExtractNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
-	numColors, err := event.NodeConfig.GetInt("num_colors")
-	if err != nil {
-		return err
-	}
-
-	clusterBy, err := event.NodeConfig.GetString("cluster_by")
-	if err != nil {
-		return err
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigPaletteExtract)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate PaletteExtract Node outputs")
 	}
 
 	sourceImageID, err := event.GetInput("source")
@@ -219,8 +180,8 @@ func generatePaletteExtractNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		sourceImageID,
-		numColors,
-		clusterBy,
+		config.NumColors,
+		config.ClusterBy,
 	)
 }
 

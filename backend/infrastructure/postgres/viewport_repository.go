@@ -98,10 +98,9 @@ func (r *ViewportRepository) SaveAll() error {
 		}
 
 		_, err = r.tx.ExecContext(ctx, `
-			INSERT INTO viewports (graph_id, data)
-			VALUES ($1, $2)
-			ON CONFLICT (graph_id) DO UPDATE
-			SET data = EXCLUDED.data, updated_at = NOW()
+			UPDATE viewports
+			SET data = $2, updated_at = NOW()
+			WHERE graph_id = $1
 		`, row.GraphID, row.Data)
 
 		if err != nil {

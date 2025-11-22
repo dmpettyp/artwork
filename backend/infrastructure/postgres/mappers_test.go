@@ -37,9 +37,7 @@ func TestImageGraphRoundTrip(t *testing.T) {
 				Type:    imagegraph.NodeTypeBlur,
 				Name:    "Blur Node",
 				State:   node1State,
-				Config: imagegraph.NodeConfig{
-					"radius": 5.0,
-				},
+				Config: &imagegraph.NodeConfigBlur{Radius: 5},
 				Preview: previewID,
 				Inputs: imagegraph.Inputs{
 					"input": {
@@ -64,7 +62,7 @@ func TestImageGraphRoundTrip(t *testing.T) {
 				Type:    imagegraph.NodeTypeOutput,
 				Name:    "Output Node",
 				State:   node2State,
-				Config:  imagegraph.NodeConfig{},
+				Config:  imagegraph.NewNodeConfigOutput(),
 				Inputs: imagegraph.Inputs{
 					"input": {
 						Name:      "input",
@@ -124,8 +122,12 @@ func TestImageGraphRoundTrip(t *testing.T) {
 		t.Errorf("node1 preview mismatch: got %v, want %v", node1.Preview, previewID)
 	}
 
-	if radius, ok := node1.Config["radius"].(float64); !ok || radius != 5.0 {
-		t.Errorf("node1 config radius mismatch: got %v, want 5.0", node1.Config["radius"])
+	blurConfig, ok := node1.Config.(*imagegraph.NodeConfigBlur)
+	if !ok {
+		t.Fatal("node1 config is not NodeConfigBlur")
+	}
+	if blurConfig.Radius != 5 {
+		t.Errorf("node1 config radius mismatch: got %v, want 5", blurConfig.Radius)
 	}
 
 	input := node1.Inputs["input"]

@@ -111,6 +111,13 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	config := imagegraph.NewNodeConfig(nodeType)
+	if err := json.Unmarshal(req.Config, config); err != nil {
+		s.logger.Error("failed to parse config", "error", err)
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid config"})
+		return
+	}
+
 	nodeID := imagegraph.MustNewNodeID()
 
 	command := application.NewAddImageGraphNodeCommand(
@@ -118,7 +125,7 @@ func (s *HTTPServer) handleAddNode(w http.ResponseWriter, r *http.Request) {
 		nodeID,
 		nodeType,
 		req.Name,
-		req.Config,
+		config,
 	)
 
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {
@@ -349,10 +356,35 @@ func (s *HTTPServer) handleUpdateNode(w http.ResponseWriter, r *http.Request) {
 
 	// Update config if provided
 	if req.Config != nil {
+		// Look up the image graph to get the node's type
+		ig, err := s.imageGraphViews.Get(r.Context(), imageGraphID)
+		if err != nil {
+			if errors.Is(err, application.ErrImageGraphNotFound) {
+				respondJSON(w, http.StatusNotFound, errorResponse{Error: "image graph not found"})
+				return
+			}
+			s.logger.Error("failed to get image graph", "error", err)
+			respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to get image graph"})
+			return
+		}
+
+		node, exists := ig.Nodes[nodeID]
+		if !exists {
+			respondJSON(w, http.StatusNotFound, errorResponse{Error: "node not found"})
+			return
+		}
+
+		config := imagegraph.NewNodeConfig(node.Type)
+		if err := json.Unmarshal(req.Config, config); err != nil {
+			s.logger.Error("failed to parse config", "error", err)
+			respondJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid config"})
+			return
+		}
+
 		command := application.NewSetImageGraphNodeConfigCommand(
 			imageGraphID,
 			nodeID,
-			req.Config,
+			config,
 		)
 
 		if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {

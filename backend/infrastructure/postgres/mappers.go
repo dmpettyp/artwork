@@ -40,7 +40,7 @@ type nodeDTO struct {
 	Type           string               `json:"type"`
 	Name           string               `json:"name"`
 	State          string               `json:"state"`
-	Config         map[string]any       `json:"config"`
+	Config         json.RawMessage      `json:"config"`
 	PreviewImageID string               `json:"preview_image_id,omitempty"`
 	Inputs         map[string]inputDTO  `json:"inputs"`
 	Outputs        map[string]outputDTO `json:"outputs"`
@@ -131,13 +131,18 @@ func serializeImageGraph(ig *imagegraph.ImageGraph) (imageGraphRow, error) {
 			outputsDTO[string(outputName)] = outputDTO
 		}
 
+		configJSON, err := json.Marshal(node.Config)
+		if err != nil {
+			return imageGraphRow{}, fmt.Errorf("failed to marshal config for node %s: %w", node.ID, err)
+		}
+
 		nodeDTO := nodeDTO{
 			ID:      node.ID.String(),
 			Version: int64(node.Version),
 			Type:    imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
 			Name:    node.Name,
 			State:   imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
-			Config:  node.Config,
+			Config:  configJSON,
 			Inputs:  inputsDTO,
 			Outputs: outputsDTO,
 		}
@@ -263,8 +268,11 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 			return nil, fmt.Errorf("failed to create node state: %w", err)
 		}
 
-		if typeConfig := imagegraph.GetNodeTypeConfig(nodeType); typeConfig != nil {
-			typeConfig.CoerceConfigTypes(nodeDTO.Config)
+		config := imagegraph.NewNodeConfig(nodeType)
+		if len(nodeDTO.Config) > 0 {
+			if err := json.Unmarshal(nodeDTO.Config, config); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal config for node %s: %w", nodeID, err)
+			}
 		}
 
 		node := &imagegraph.Node{
@@ -273,7 +281,7 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 			Type:    nodeType,
 			Name:    nodeDTO.Name,
 			State:   nodeStateObj,
-			Config:  nodeDTO.Config,
+			Config:  config,
 			Inputs:  inputs,
 			Outputs: outputs,
 		}
