@@ -81,7 +81,6 @@ func (r *ImageGraphRepository) Add(ig *imagegraph.ImageGraph) error {
 		return fmt.Errorf("failed to insert image graph: %w", err)
 	}
 
-	// Track for event collection (already inserted, don't need to update)
 	r.modified[ig.ID] = ig
 
 	return nil

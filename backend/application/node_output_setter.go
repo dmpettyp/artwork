@@ -32,6 +32,8 @@ func (s *NodeOutputSetter) SetNodeOutputImage(
 		imageID,
 	)
 
+	fmt.Println(cmd)
+
 	err := s.messageBus.HandleCommand(ctx, cmd)
 
 	if err != nil {

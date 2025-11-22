@@ -121,7 +121,8 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	}
 
 	go func() {
-		_ = generator(ctx, event, h.imageGen)
+		err := generator(ctx, event, h.imageGen)
+		fmt.Println(err)
 	}()
 
 	return nil, nil

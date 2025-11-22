@@ -334,8 +334,30 @@ var NodeTypeConfigs = []NodeTypeConfig{
 	},
 }
 
-// getNodeTypeConfig returns the config for a given node type
-func getNodeTypeConfig(nt NodeType) *NodeTypeConfig {
+// CoerceConfigTypes converts config values to their expected types based on field definitions.
+// This handles JSON deserialization where numbers become float64.
+func (ntc *NodeTypeConfig) CoerceConfigTypes(config NodeConfig) {
+	fieldTypes := make(map[string]NodeConfigFieldType)
+	for _, field := range ntc.Fields {
+		fieldTypes[field.Name] = field.FieldType
+	}
+
+	for key, value := range config {
+		fieldType, exists := fieldTypes[key]
+		if !exists {
+			continue
+		}
+
+		if fieldType == NodeConfigTypeInt {
+			if num, ok := value.(float64); ok {
+				config[key] = int(num)
+			}
+		}
+	}
+}
+
+// GetNodeTypeConfig returns the config for a given node type
+func GetNodeTypeConfig(nt NodeType) *NodeTypeConfig {
 	for i := range NodeTypeConfigs {
 		if NodeTypeConfigs[i].NodeType == nt {
 			return &NodeTypeConfigs[i]
@@ -345,7 +367,7 @@ func getNodeTypeConfig(nt NodeType) *NodeTypeConfig {
 }
 
 func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
-	nodeTypeConfig := getNodeTypeConfig(nt)
+	nodeTypeConfig := GetNodeTypeConfig(nt)
 	if nodeTypeConfig == nil {
 		return fmt.Errorf("node type %q does not have config", nt)
 	}
@@ -425,7 +447,7 @@ func (nt NodeType) ValidateConfig(nodeConfig NodeConfig) error {
 
 // InputNames returns the ordered list of input names for this node type
 func (nt NodeType) InputNames() []InputName {
-	cfg := getNodeTypeConfig(nt)
+	cfg := GetNodeTypeConfig(nt)
 	if cfg == nil {
 		return []InputName{}
 	}
@@ -434,7 +456,7 @@ func (nt NodeType) InputNames() []InputName {
 
 // OutputNames returns the ordered list of output names for this node type
 func (nt NodeType) OutputNames() []OutputName {
-	cfg := getNodeTypeConfig(nt)
+	cfg := GetNodeTypeConfig(nt)
 	if cfg == nil {
 		return []OutputName{}
 	}
@@ -442,7 +464,7 @@ func (nt NodeType) OutputNames() []OutputName {
 }
 
 func (nt NodeType) NameRequired() bool {
-	cfg := getNodeTypeConfig(nt)
+	cfg := GetNodeTypeConfig(nt)
 	if cfg == nil {
 		return false
 	}

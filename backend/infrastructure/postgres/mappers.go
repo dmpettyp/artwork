@@ -263,6 +263,10 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 			return nil, fmt.Errorf("failed to create node state: %w", err)
 		}
 
+		if typeConfig := imagegraph.GetNodeTypeConfig(nodeType); typeConfig != nil {
+			typeConfig.CoerceConfigTypes(nodeDTO.Config)
+		}
+
 		node := &imagegraph.Node{
 			ID:      nodeID,
 			Version: imagegraph.NodeVersion(nodeDTO.Version),

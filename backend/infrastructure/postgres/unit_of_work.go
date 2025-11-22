@@ -18,21 +18,11 @@ type repository interface {
 // UnitOfWork implements application.UnitOfWork using PostgreSQL
 type UnitOfWork struct {
 	db *sql.DB
-
-	// Views for read-model queries
-	ImageGraphViews *ImageGraphViews
-	LayoutViews     *LayoutViews
-	ViewportViews   *ViewportViews
 }
 
 // NewUnitOfWork creates a new PostgreSQL-based unit of work
 func NewUnitOfWork(db *sql.DB) *UnitOfWork {
-	return &UnitOfWork{
-		db:              db,
-		ImageGraphViews: &ImageGraphViews{db: db},
-		LayoutViews:     &LayoutViews{db: db},
-		ViewportViews:   &ViewportViews{db: db},
-	}
+	return &UnitOfWork{db: db}
 }
 
 // Run executes a function within a transaction boundary
