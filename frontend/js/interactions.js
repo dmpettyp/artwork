@@ -29,11 +29,19 @@ export class InteractionHandler {
         this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.svg.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+        // Prevent middle-click paste/auto-scroll
+        this.svg.addEventListener('auxclick', e => e.preventDefault());
     }
 
     handleMouseDown(e) {
-        // Ignore right-click
-        if (e.button === 2) {
+        // Prevent middle-click auto-scroll
+        if (e.button === 1) {
+            e.preventDefault();
+            return;
+        }
+
+        // Only handle left-click (button 0)
+        if (e.button !== 0) {
             return;
         }
 

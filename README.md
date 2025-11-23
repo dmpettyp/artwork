@@ -13,26 +13,13 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 ## TODO
 
 
-- finish db integration
-  3. Wire up configuration: Create DB connection in main.go
-  4. Switch from inmem to postgres: Update dependency injection
-  5. Test with real database: Integration tests
-
-- more retro style
-
 - node types
   - pallet matching node
   - paint? paint over? something that can be used to create a stencil
   - stencil apply
 - need better error handling when image generation fails
   - error state in node? store error in node?
-- durable repository/unit of work implementation: sqlite
-  - maybe just do event sourcing approach? that actually might be fun
-
-future refactoring:
-- NodeNeedsOutputEvent shouldn't have NodeConfig embedded in it, should just
-  be data
-
+- more retro style
 
 ## Overview
 
@@ -74,6 +61,7 @@ in the domain models to drive further changes in the ImageGraph pipeline.
 
 ## Done
 
+- DONE - full postgres store
 - DONE - better json representation for commands and events
 - DONE - expose Version from ImageGraph events to be written to the DB
 - DONE - input node should take filename for node name

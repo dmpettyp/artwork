@@ -21,6 +21,9 @@ export class Renderer {
         this.svg.addEventListener('wheel', (e) => {
             e.preventDefault();
 
+            // Ignore if no actual scroll (e.g., middle click on some mice)
+            if (e.deltaY === 0) return;
+
             const delta = -e.deltaY;
             const zoomFactor = delta > 0 ? ZOOM_CONFIG.factor.in : ZOOM_CONFIG.factor.out;
 

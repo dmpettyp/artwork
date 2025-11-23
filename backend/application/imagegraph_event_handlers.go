@@ -106,7 +106,6 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	[]dorky.Event,
 	error,
 ) {
-	// Broadcast that node is processing
 	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "processing",
@@ -121,8 +120,11 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	}
 
 	go func() {
-		_ = generator(ctx, event, h.imageGen)
-		// fmt.Println(err)
+		err := generator(ctx, event, h.imageGen)
+
+		if err != nil {
+			fmt.Println(err)
+		}
 	}()
 
 	return nil, nil
@@ -135,7 +137,6 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 	[]dorky.Event,
 	error,
 ) {
-	// Broadcast that node output is complete
 	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
 		"node_id": event.NodeID.String(),
 		"state":   "completed",
