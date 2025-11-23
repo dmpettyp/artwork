@@ -58,7 +58,7 @@ func NewNode(
 		return nil, fmt.Errorf("cannot create Node with nil ID")
 	}
 
-	cfg, ok := NodeTypeConfigs[nodeType]
+	cfg, ok := NodeTypeDefs[nodeType]
 	if !ok {
 		return nil, fmt.Errorf("cannot create Node of unknown type")
 	}
@@ -140,7 +140,7 @@ func (n *Node) SetConfig(config NodeConfig) error {
 }
 
 func (n *Node) SetName(name string) error {
-	if NodeTypeConfigs[n.Type].NameRequired && len(name) == 0 {
+	if NodeTypeDefs[n.Type].NameRequired && len(name) == 0 {
 		return fmt.Errorf("cannot set node name to empty string")
 	}
 

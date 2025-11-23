@@ -24,16 +24,16 @@ func (nt NodeType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(str)
 }
 
-// NodeTypeConfig represents the configuration for a node type
-type NodeTypeConfig struct {
+// NodeTypeDef defines the structure of a node type
+type NodeTypeDef struct {
 	Inputs       []InputName
 	Outputs      []OutputName
 	NameRequired bool
 	NewConfig    func() NodeConfig
 }
 
-// NodeTypeConfigs maps node types to their configurations
-var NodeTypeConfigs = map[NodeType]NodeTypeConfig{
+// NodeTypeDefs maps node types to their definitions
+var NodeTypeDefs = map[NodeType]NodeTypeDef{
 	NodeTypeInput: {
 		Outputs:   []OutputName{"original"},
 		NewConfig: func() NodeConfig { return NewNodeConfigInput() },

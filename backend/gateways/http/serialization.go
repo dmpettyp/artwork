@@ -204,7 +204,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 
 	for _, node := range ig.Nodes {
 		// Map inputs in the order defined by the node type configuration
-		inputNames := imagegraph.NodeTypeConfigs[node.Type].Inputs
+		inputNames := imagegraph.NodeTypeDefs[node.Type].Inputs
 		inputs := make([]inputResponse, 0, len(inputNames))
 		for _, inputName := range inputNames {
 			input, ok := node.Inputs[inputName]
@@ -232,7 +232,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 		}
 
 		// Map outputs in the order defined by the node type configuration
-		outputNames := imagegraph.NodeTypeConfigs[node.Type].Outputs
+		outputNames := imagegraph.NodeTypeDefs[node.Type].Outputs
 		outputs := make([]outputResponse, 0, len(outputNames))
 		for _, outputName := range outputNames {
 			output, ok := node.Outputs[outputName]
@@ -290,7 +290,7 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(nodeTypeMetadata))
 
 	for _, info := range nodeTypeMetadata {
-		cfg, ok := imagegraph.NodeTypeConfigs[info.nodeType]
+		cfg, ok := imagegraph.NodeTypeDefs[info.nodeType]
 		if !ok {
 			continue
 		}

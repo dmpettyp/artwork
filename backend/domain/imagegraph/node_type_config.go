@@ -58,7 +58,7 @@ func isValidHexColor(color string) bool {
 }
 
 func NewNodeConfig(nodeType NodeType) NodeConfig {
-	cfg, ok := NodeTypeConfigs[nodeType]
+	cfg, ok := NodeTypeDefs[nodeType]
 	if !ok || cfg.NewConfig == nil {
 		return nil
 	}

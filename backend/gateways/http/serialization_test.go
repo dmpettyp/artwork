@@ -7,7 +7,7 @@ import (
 )
 
 func TestNodeTypeMapperIsComplete(t *testing.T) {
-	for nodeType := range imagegraph.NodeTypeConfigs {
+	for nodeType := range imagegraph.NodeTypeDefs {
 		str := imagegraph.NodeTypeMapper.FromWithDefault(nodeType, "MISSING")
 		if str == "MISSING" {
 			t.Fatalf("NodeType %v not in mapper", nodeType)
