@@ -82,6 +82,27 @@ export class NodeConfigFormBuilder {
                 if (fieldDef.type === 'float') {
                     input.step = 'any';
                 }
+            } else if (fieldDef.type === 'color') {
+                // Color inputs need special handling - create a wrapper with picker + hex display
+                input.type = 'color';
+                input.className = 'form-input-color';
+
+                // Create wrapper to hold color input and hex display
+                const wrapper = document.createElement('div');
+                wrapper.className = 'color-field-wrapper';
+
+                const hexDisplay = document.createElement('span');
+                hexDisplay.className = 'color-hex-display';
+                hexDisplay.textContent = input.value || '#000000';
+
+                // Update hex display when color changes
+                input.addEventListener('input', () => {
+                    hexDisplay.textContent = input.value;
+                });
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(hexDisplay);
+                input._wrapper = wrapper; // Store reference for later
             } else if (fieldDef.type === 'bool') {
                 input.type = 'checkbox';
             } else {
@@ -108,9 +129,19 @@ export class NodeConfigFormBuilder {
                     input.value = fieldDef.default;
                 }
             }
+
+            // Update hex display for color fields after value is set
+            if (fieldDef.type === 'color' && input._wrapper) {
+                const hexDisplay = input._wrapper.querySelector('.color-hex-display');
+                if (hexDisplay) {
+                    hexDisplay.textContent = input.value || '#000000';
+                }
+            }
         }
 
-        return { label, input };
+        // Return wrapper for color fields, input for others
+        const element = input._wrapper || input;
+        return { label, input: element };
     }
 
     /**
@@ -217,7 +248,7 @@ export class NodeConfigFormBuilder {
             } else if (fieldType === 'option') {
                 // Keep as string
                 value = input.value;
-            } else if (fieldType === 'string') {
+            } else if (fieldType === 'string' || fieldType === 'color') {
                 // Keep as string
                 value = input.value;
             }
@@ -225,8 +256,8 @@ export class NodeConfigFormBuilder {
             // Only include valid values
             if (value !== '' && !isNaN(value)) {
                 config[fieldName] = value;
-            } else if ((fieldType === 'option' || fieldType === 'string') && value !== '') {
-                // Include option and string values even if they're strings
+            } else if ((fieldType === 'option' || fieldType === 'string' || fieldType === 'color') && value !== '') {
+                // Include string-like values
                 config[fieldName] = value;
             }
         });

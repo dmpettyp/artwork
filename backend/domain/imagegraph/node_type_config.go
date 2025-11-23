@@ -13,6 +13,7 @@ const (
 	FieldTypeFloat  FieldType = "float"
 	FieldTypeBool   FieldType = "bool"
 	FieldTypeOption FieldType = "option"
+	FieldTypeColor  FieldType = "color"
 )
 
 // FieldSchema describes a configuration field for API schema generation
@@ -346,9 +347,9 @@ func (c *NodeConfigPixelInflate) NodeType() NodeType {
 
 func (c *NodeConfigPixelInflate) Schema() []FieldSchema {
 	return []FieldSchema{
-		{Name: "width", Type: FieldTypeInt, Required: true},
-		{Name: "line_width", Type: FieldTypeInt, Required: true},
-		{Name: "line_color", Type: FieldTypeString, Required: true},
+		{Name: "width", Type: FieldTypeInt, Required: true, Default: 500},
+		{Name: "line_width", Type: FieldTypeInt, Required: true, Default: 3},
+		{Name: "line_color", Type: FieldTypeColor, Required: true, Default: "#FFFFFF"},
 	}
 }
 
@@ -409,4 +410,3 @@ func (c *NodeConfigPaletteApply) NodeType() NodeType {
 func (c *NodeConfigPaletteApply) Schema() []FieldSchema {
 	return []FieldSchema{}
 }
-

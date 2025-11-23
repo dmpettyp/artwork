@@ -132,11 +132,12 @@ The ImageGraph aggregate (`backend/domain/imagegraph/imagegraph.go`) provides th
 
 ### Node Configuration
 
-Node configurations are validated based on node type:
-- Each node type defines its config schema in `NodeTypeConfigs`
-- Configs are type-checked (int, float, string, bool, option)
-- Required fields are enforced
-- Custom validation logic for complex rules (e.g., crop bounds)
+Each node type has a typed config struct in `node_type_config.go` that implements the `NodeConfig` interface:
+- `Validate()` - validates the config values
+- `NodeType()` - returns the associated node type
+- `Schema()` - returns field schema for API responses
+
+The `NodeTypeConfigs` map in `node_type.go` associates each node type with its inputs, outputs, and config factory.
 
 ## Development Patterns
 
@@ -144,30 +145,33 @@ Node configurations are validated based on node type:
 
 When adding a new node type, update ALL of the following locations (exhaustiveness tests will fail if you miss any):
 
-1. **Domain Layer** (`backend/domain/imagegraph/node_type.go`):
+1. **Domain - node_type.go** (`backend/domain/imagegraph/node_type.go`):
    - Add the node type constant (e.g., `NodeTypeMyNewType`)
-   - Add to `AllNodeTypes()` function
-   - Add configuration to `NodeTypeConfigs` array with inputs, outputs, config fields, and validation
+   - Add entry to `NodeTypeConfigs` map with `Inputs`, `Outputs`, `NameRequired`, and `NewConfig` factory
 
-2. **Infrastructure - PostgreSQL** (`backend/infrastructure/postgres/mappers.go`):
-   - Add mapping to `nodeTypeMapper` (e.g., `"my_new_type", imagegraph.NodeTypeMyNewType`)
+2. **Domain - node_type_config.go** (`backend/domain/imagegraph/node_type_config.go`):
+   - Create config struct (e.g., `NodeConfigMyNewType`)
+   - Add constructor (e.g., `NewNodeConfigMyNewType()`)
+   - Implement `Validate()`, `NodeType()`, and `Schema()` methods
 
-3. **Gateways - HTTP** (`backend/gateways/http/serialization.go`):
-   - Add mapping to `nodeTypeMapper` (e.g., `"my_new_type", imagegraph.NodeTypeMyNewType`)
+3. **Domain - mappers.go** (`backend/domain/imagegraph/mappers.go`):
+   - Add mapping to `NodeTypeMapper` (e.g., `"my_new_type", NodeTypeMyNewType`)
 
-4. **Image Generation** (`backend/infrastructure/imagegen/imagegen.go`):
+4. **HTTP - serialization.go** (`backend/gateways/http/serialization.go`):
+   - Add entry to `nodeTypeMetadata` slice with node type, API name, display name, and category
+
+5. **Image Generation** (`backend/infrastructure/imagegen/imagegen.go`):
    - Implement generation logic in `ImageGen.GenerateNodeOutput()` switch statement
 
-5. **Frontend Schema** (`frontend/js/schemas/`):
+6. **Frontend Schema** (`frontend/js/schemas/`):
    - Add schema file for the new node type (e.g., `my_new_type.js`)
 
-6. **Verify**: Run tests to ensure mapper completeness:
+7. **Verify**: Run tests to ensure mapper completeness:
    ```bash
-   go test ./infrastructure/postgres/  # Tests nodeTypeMapper completeness
-   go test ./gateways/http/             # Tests HTTP mapper completeness
+   go test ./...
    ```
 
-The exhaustiveness tests (`TestNodeTypeMapperIsComplete`) will fail if the mappers are incomplete, ensuring you don't forget any locations.
+The exhaustiveness tests (`TestNodeTypeMapperIsComplete`) will fail if the mapper is incomplete.
 
 ### Command/Event Flow
 
