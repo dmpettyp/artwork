@@ -5,34 +5,63 @@ import (
 	"slices"
 )
 
+type FieldType string
+
+const (
+	FieldTypeInt    FieldType = "int"
+	FieldTypeString FieldType = "string"
+	FieldTypeFloat  FieldType = "float"
+	FieldTypeBool   FieldType = "bool"
+	FieldTypeOption FieldType = "option"
+)
+
+// FieldSchema describes a configuration field for API schema generation
+type FieldSchema struct {
+	Name     string    `json:"name"`
+	Type     FieldType `json:"type"`
+	Required bool      `json:"required"`
+	Options  []string  `json:"options,omitempty"`
+	Default  any       `json:"default,omitempty"`
+}
+
 type NodeConfig interface {
 	Validate() error
 	NodeType() NodeType
+	Schema() []FieldSchema
+}
+
+// Shared options for interpolation fields
+var interpolationOptions = []string{
+	"NearestNeighbor",
+	"Bilinear",
+	"Bicubic",
+	"MitchellNetravali",
+	"Lanczos2",
+	"Lanczos3",
+}
+
+// Shared options for cluster_by fields
+var clusterByOptions = []string{"RGB", "HSL"}
+
+func isValidHexColor(color string) bool {
+	if len(color) != 7 || color[0] != '#' {
+		return false
+	}
+	for i := 1; i < 7; i++ {
+		ch := color[i]
+		if !((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')) {
+			return false
+		}
+	}
+	return true
 }
 
 func NewNodeConfig(nodeType NodeType) NodeConfig {
-	switch nodeType {
-	case NodeTypeInput:
-		return NewNodeConfigInput()
-	case NodeTypeOutput:
-		return NewNodeConfigOutput()
-	case NodeTypeCrop:
-		return NewNodeConfigCrop()
-	case NodeTypeBlur:
-		return NewNodeConfigBlur()
-	case NodeTypeResize:
-		return NewNodeConfigResize()
-	case NodeTypeResizeMatch:
-		return NewNodeConfigResizeMatch()
-	case NodeTypePixelInflate:
-		return NewNodeConfigPixelInflate()
-	case NodeTypePaletteExtract:
-		return NewNodeConfigPaletteExtract()
-	case NodeTypePaletteApply:
-		return NewNodeConfigPaletteApply()
-	default:
+	cfg := GetNodeTypeConfig(nodeType)
+	if cfg == nil || cfg.NewConfig == nil {
 		return nil
 	}
+	return cfg.NewConfig()
 }
 
 // NodeConfigInput is the configuration for input nodes.
@@ -50,6 +79,10 @@ func (c *NodeConfigInput) NodeType() NodeType {
 	return NodeTypeInput
 }
 
+func (c *NodeConfigInput) Schema() []FieldSchema {
+	return []FieldSchema{}
+}
+
 // NodeConfigOutput is the configuration for output nodes.
 type NodeConfigOutput struct{}
 
@@ -63,6 +96,10 @@ func (c *NodeConfigOutput) Validate() error {
 
 func (c *NodeConfigOutput) NodeType() NodeType {
 	return NodeTypeOutput
+}
+
+func (c *NodeConfigOutput) Schema() []FieldSchema {
+	return []FieldSchema{}
 }
 
 // NodeConfigCrop is the configuration for crop nodes.
@@ -148,6 +185,17 @@ func (c *NodeConfigCrop) NodeType() NodeType {
 	return NodeTypeCrop
 }
 
+func (c *NodeConfigCrop) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "left", Type: FieldTypeInt, Required: false},
+		{Name: "right", Type: FieldTypeInt, Required: false},
+		{Name: "top", Type: FieldTypeInt, Required: false},
+		{Name: "bottom", Type: FieldTypeInt, Required: false},
+		{Name: "aspect_ratio_width", Type: FieldTypeInt, Required: false},
+		{Name: "aspect_ratio_height", Type: FieldTypeInt, Required: false},
+	}
+}
+
 // NodeConfigBlur is the configuration for blur nodes.
 type NodeConfigBlur struct {
 	Radius int `json:"radius"`
@@ -169,6 +217,12 @@ func (c *NodeConfigBlur) Validate() error {
 
 func (c *NodeConfigBlur) NodeType() NodeType {
 	return NodeTypeBlur
+}
+
+func (c *NodeConfigBlur) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "radius", Type: FieldTypeInt, Required: true, Default: 2},
+	}
 }
 
 // NodeConfigResize is the configuration for resize nodes.
@@ -208,9 +262,8 @@ func (c *NodeConfigResize) Validate() error {
 		}
 	}
 
-	// Validate interpolation
-	if err := validateInterpolation(c.Interpolation); err != nil {
-		return err
+	if !slices.Contains(interpolationOptions, c.Interpolation) {
+		return fmt.Errorf("interpolation must be one of: %v", interpolationOptions)
 	}
 
 	return nil
@@ -218,6 +271,14 @@ func (c *NodeConfigResize) Validate() error {
 
 func (c *NodeConfigResize) NodeType() NodeType {
 	return NodeTypeResize
+}
+
+func (c *NodeConfigResize) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "width", Type: FieldTypeInt, Required: false},
+		{Name: "height", Type: FieldTypeInt, Required: false},
+		{Name: "interpolation", Type: FieldTypeOption, Required: true, Options: interpolationOptions},
+	}
 }
 
 // NodeConfigResizeMatch is the configuration for resize-match nodes.
@@ -230,11 +291,20 @@ func NewNodeConfigResizeMatch() *NodeConfigResizeMatch {
 }
 
 func (c *NodeConfigResizeMatch) Validate() error {
-	return validateInterpolation(c.Interpolation)
+	if !slices.Contains(interpolationOptions, c.Interpolation) {
+		return fmt.Errorf("interpolation must be one of: %v", interpolationOptions)
+	}
+	return nil
 }
 
 func (c *NodeConfigResizeMatch) NodeType() NodeType {
 	return NodeTypeResizeMatch
+}
+
+func (c *NodeConfigResizeMatch) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "interpolation", Type: FieldTypeOption, Required: true, Options: interpolationOptions},
+	}
 }
 
 // NodeConfigPixelInflate is the configuration for pixel-inflate nodes.
@@ -263,15 +333,8 @@ func (c *NodeConfigPixelInflate) Validate() error {
 		return fmt.Errorf("line_width must be 100 or less")
 	}
 
-	// Validate hex color format #RRGGBB
-	if len(c.LineColor) != 7 || c.LineColor[0] != '#' {
+	if !isValidHexColor(c.LineColor) {
 		return fmt.Errorf("line_color must be in #RRGGBB format")
-	}
-	for i := 1; i < 7; i++ {
-		ch := c.LineColor[i]
-		if !((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f')) {
-			return fmt.Errorf("line_color must be in #RRGGBB format")
-		}
 	}
 
 	return nil
@@ -279,6 +342,14 @@ func (c *NodeConfigPixelInflate) Validate() error {
 
 func (c *NodeConfigPixelInflate) NodeType() NodeType {
 	return NodeTypePixelInflate
+}
+
+func (c *NodeConfigPixelInflate) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "width", Type: FieldTypeInt, Required: true},
+		{Name: "line_width", Type: FieldTypeInt, Required: true},
+		{Name: "line_color", Type: FieldTypeString, Required: true},
+	}
 }
 
 // NodeConfigPaletteExtract is the configuration for palette-extract nodes.
@@ -302,9 +373,8 @@ func (c *NodeConfigPaletteExtract) Validate() error {
 		return fmt.Errorf("num_colors must be 1000 or less")
 	}
 
-	validClusterBy := []string{"RGB", "HSL"}
-	if !slices.Contains(validClusterBy, c.ClusterBy) {
-		return fmt.Errorf("cluster_by must be one of: %v", validClusterBy)
+	if !slices.Contains(clusterByOptions, c.ClusterBy) {
+		return fmt.Errorf("cluster_by must be one of: %v", clusterByOptions)
 	}
 
 	return nil
@@ -312,6 +382,13 @@ func (c *NodeConfigPaletteExtract) Validate() error {
 
 func (c *NodeConfigPaletteExtract) NodeType() NodeType {
 	return NodeTypePaletteExtract
+}
+
+func (c *NodeConfigPaletteExtract) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "num_colors", Type: FieldTypeInt, Required: true, Default: 16},
+		{Name: "cluster_by", Type: FieldTypeOption, Required: true, Options: clusterByOptions, Default: "RGB"},
+	}
 }
 
 // NodeConfigPaletteApply is the configuration for palette-apply nodes.
@@ -329,18 +406,7 @@ func (c *NodeConfigPaletteApply) NodeType() NodeType {
 	return NodeTypePaletteApply
 }
 
-// Helper function for interpolation validation
-func validateInterpolation(interpolation string) error {
-	validOptions := []string{
-		"NearestNeighbor",
-		"Bilinear",
-		"Bicubic",
-		"MitchellNetravali",
-		"Lanczos2",
-		"Lanczos3",
-	}
-	if !slices.Contains(validOptions, interpolation) {
-		return fmt.Errorf("interpolation must be one of: %v", validOptions)
-	}
-	return nil
+func (c *NodeConfigPaletteApply) Schema() []FieldSchema {
+	return []FieldSchema{}
 }
+

@@ -161,11 +161,11 @@ type nodeTypeSchema struct {
 }
 
 type nodeTypeSchemaField struct {
-	Name     string      `json:"name"`
-	Type     string      `json:"type"`
-	Required bool        `json:"required"`
-	Options  []string    `json:"options,omitempty"`
-	Default  interface{} `json:"default,omitempty"`
+	Name     string               `json:"name"`
+	Type     imagegraph.FieldType `json:"type"`
+	Required bool                 `json:"required"`
+	Options  []string             `json:"options,omitempty"`
+	Default  interface{}          `json:"default,omitempty"`
 }
 
 type errorResponse struct {
@@ -174,13 +174,6 @@ type errorResponse struct {
 
 // Mappers
 
-var fieldTypeMapper = map[imagegraph.NodeConfigFieldType]string{
-	imagegraph.NodeConfigTypeString: "string",
-	imagegraph.NodeConfigTypeInt:    "int",
-	imagegraph.NodeConfigTypeFloat:  "float",
-	imagegraph.NodeConfigTypeBool:   "bool",
-	imagegraph.NodeConfigTypeOption: "option",
-}
 
 // nodeTypeInfo holds both the API name and display name for a node type
 type nodeTypeInfo struct {
@@ -315,16 +308,14 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 			outputs[i] = string(output)
 		}
 
-		// Convert fields (preserve order from domain)
-		fields := make([]nodeTypeSchemaField, len(cfg.Fields))
-		for i, field := range cfg.Fields {
-			fieldType := fieldTypeMapper[field.FieldType]
-			if fieldType == "" {
-				fieldType = "unknown"
-			}
+		// Get schema from typed config
+		nodeConfig := imagegraph.NewNodeConfig(cfg.NodeType)
+		schema := nodeConfig.Schema()
+		fields := make([]nodeTypeSchemaField, len(schema))
+		for i, field := range schema {
 			fields[i] = nodeTypeSchemaField{
 				Name:     field.Name,
-				Type:     fieldType,
+				Type:     field.Type,
 				Required: field.Required,
 				Options:  field.Options,
 				Default:  field.Default,

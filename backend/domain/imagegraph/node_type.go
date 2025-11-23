@@ -38,126 +38,70 @@ func AllNodeTypes() []NodeType {
 	}
 }
 
-type NodeConfigFieldType int
-
-const (
-	NodeConfigTypeNone NodeConfigFieldType = iota
-	NodeConfigTypeString
-	NodeConfigTypeInt
-	NodeConfigTypeFloat
-	NodeConfigTypeBool
-	NodeConfigTypeOption
-)
-
-// NodeConfigField represents a single configuration field for a node type
-type NodeConfigField struct {
-	Name      string
-	FieldType NodeConfigFieldType
-	Required  bool
-	Options   []string
-	Default   any // Default value for the field (type depends on FieldType)
-}
-
 // NodeTypeConfig represents the configuration for a node type
 type NodeTypeConfig struct {
 	NodeType     NodeType
 	Inputs       []InputName
 	Outputs      []OutputName
 	NameRequired bool
-	Fields       []NodeConfigField
+	NewConfig    func() NodeConfig
 }
 
 // NodeTypeConfigs defines all node type configurations in order
 var NodeTypeConfigs = []NodeTypeConfig{
 	{
-		NodeType: NodeTypeInput,
-		Outputs:  []OutputName{"original"},
+		NodeType:  NodeTypeInput,
+		Outputs:   []OutputName{"original"},
+		NewConfig: func() NodeConfig { return NewNodeConfigInput() },
 	},
 	{
 		NodeType:     NodeTypeOutput,
 		Inputs:       []InputName{"input"},
 		Outputs:      []OutputName{"final"},
 		NameRequired: true,
+		NewConfig:    func() NodeConfig { return NewNodeConfigOutput() },
 	},
 	{
-		NodeType: NodeTypeCrop,
-		Inputs:   []InputName{"original"},
-		Outputs:  []OutputName{"cropped"},
-		Fields: []NodeConfigField{
-			{"left", NodeConfigTypeInt, false, nil, nil},
-			{"right", NodeConfigTypeInt, false, nil, nil},
-			{"top", NodeConfigTypeInt, false, nil, nil},
-			{"bottom", NodeConfigTypeInt, false, nil, nil},
-			{"aspect_ratio_width", NodeConfigTypeInt, false, nil, nil},
-			{"aspect_ratio_height", NodeConfigTypeInt, false, nil, nil},
-		},
+		NodeType:  NodeTypeCrop,
+		Inputs:    []InputName{"original"},
+		Outputs:   []OutputName{"cropped"},
+		NewConfig: func() NodeConfig { return NewNodeConfigCrop() },
 	},
 	{
-		NodeType: NodeTypeBlur,
-		Inputs:   []InputName{"original"},
-		Outputs:  []OutputName{"blurred"},
-		Fields: []NodeConfigField{
-			{"radius", NodeConfigTypeInt, false, nil, 2},
-		},
+		NodeType:  NodeTypeBlur,
+		Inputs:    []InputName{"original"},
+		Outputs:   []OutputName{"blurred"},
+		NewConfig: func() NodeConfig { return NewNodeConfigBlur() },
 	},
 	{
-		NodeType: NodeTypeResize,
-		Inputs:   []InputName{"original"},
-		Outputs:  []OutputName{"resized"},
-		Fields: []NodeConfigField{
-			{"width", NodeConfigTypeInt, false, nil, nil},
-			{"height", NodeConfigTypeInt, false, nil, nil},
-			{"interpolation", NodeConfigTypeOption, true, []string{
-				"NearestNeighbor",
-				"Bilinear",
-				"Bicubic",
-				"MitchellNetravali",
-				"Lanczos2",
-				"Lanczos3",
-			}, nil},
-		},
+		NodeType:  NodeTypeResize,
+		Inputs:    []InputName{"original"},
+		Outputs:   []OutputName{"resized"},
+		NewConfig: func() NodeConfig { return NewNodeConfigResize() },
 	},
 	{
-		NodeType: NodeTypeResizeMatch,
-		Inputs:   []InputName{"original", "size_match"},
-		Outputs:  []OutputName{"resized"},
-		Fields: []NodeConfigField{
-			{"interpolation", NodeConfigTypeOption, true, []string{
-				"NearestNeighbor",
-				"Bilinear",
-				"Bicubic",
-				"MitchellNetravali",
-				"Lanczos2",
-				"Lanczos3",
-			}, nil},
-		},
+		NodeType:  NodeTypeResizeMatch,
+		Inputs:    []InputName{"original", "size_match"},
+		Outputs:   []OutputName{"resized"},
+		NewConfig: func() NodeConfig { return NewNodeConfigResizeMatch() },
 	},
 	{
-		NodeType: NodeTypePixelInflate,
-		Inputs:   []InputName{"original"},
-		Outputs:  []OutputName{"inflated"},
-		Fields: []NodeConfigField{
-			{"width", NodeConfigTypeInt, true, nil, nil},
-			{"line_width", NodeConfigTypeInt, true, nil, nil},
-			{"line_color", NodeConfigTypeString, true, nil, nil},
-		},
+		NodeType:  NodeTypePixelInflate,
+		Inputs:    []InputName{"original"},
+		Outputs:   []OutputName{"inflated"},
+		NewConfig: func() NodeConfig { return NewNodeConfigPixelInflate() },
 	},
 	{
-		NodeType: NodeTypePaletteExtract,
-		Inputs:   []InputName{"source"},
-		Outputs:  []OutputName{"palette"},
-		Fields: []NodeConfigField{
-			{"num_colors", NodeConfigTypeInt, true, nil, 16},
-			{"cluster_by", NodeConfigTypeOption, true, []string{
-				"RGB",
-				"HSL",
-			}, "RGB"},
-		},
+		NodeType:  NodeTypePaletteExtract,
+		Inputs:    []InputName{"source"},
+		Outputs:   []OutputName{"palette"},
+		NewConfig: func() NodeConfig { return NewNodeConfigPaletteExtract() },
 	},
 	{
-		NodeType: NodeTypePaletteApply,
-		Inputs:   []InputName{"source", "palette"},
-		Outputs:  []OutputName{"mapped"},
+		NodeType:  NodeTypePaletteApply,
+		Inputs:    []InputName{"source", "palette"},
+		Outputs:   []OutputName{"mapped"},
+		NewConfig: func() NodeConfig { return NewNodeConfigPaletteApply() },
 	},
 }
 
