@@ -175,24 +175,25 @@ type errorResponse struct {
 // Mappers
 
 
-// nodeTypeInfo holds both the API name and display name for a node type
+// nodeTypeInfo holds the API name, display name, and category for a node type
 type nodeTypeInfo struct {
+	nodeType    imagegraph.NodeType
 	name        string
 	displayName string
 	category    string
 }
 
-// nodeTypeMetadata maps NodeType constants to their API metadata
-var nodeTypeMetadata = map[imagegraph.NodeType]nodeTypeInfo{
-	imagegraph.NodeTypeInput:          {"input", "Input", "Input/Output"},
-	imagegraph.NodeTypeOutput:         {"output", "Output", "Input/Output"},
-	imagegraph.NodeTypeBlur:           {"blur", "Blur", "Transform"},
-	imagegraph.NodeTypeCrop:           {"crop", "Crop", "Resize"},
-	imagegraph.NodeTypeResize:         {"resize", "Resize", "Resize"},
-	imagegraph.NodeTypeResizeMatch:    {"resize_match", "Match To Size", "Resize"},
-	imagegraph.NodeTypePixelInflate:   {"pixel_inflate", "Inflate Pixels", "Resize"},
-	imagegraph.NodeTypePaletteExtract: {"palette_extract", "Palette Extract", "Palette"},
-	imagegraph.NodeTypePaletteApply:   {"palette_apply", "Palette Apply", "Palette"},
+// nodeTypeMetadata defines node types in display order for the UI
+var nodeTypeMetadata = []nodeTypeInfo{
+	{imagegraph.NodeTypeInput, "input", "Input", "Input/Output"},
+	{imagegraph.NodeTypeOutput, "output", "Output", "Input/Output"},
+	{imagegraph.NodeTypeCrop, "crop", "Crop", "Resize"},
+	{imagegraph.NodeTypeResize, "resize", "Resize", "Resize"},
+	{imagegraph.NodeTypeResizeMatch, "resize_match", "Match To Size", "Resize"},
+	{imagegraph.NodeTypePixelInflate, "pixel_inflate", "Inflate Pixels", "Resize"},
+	{imagegraph.NodeTypeBlur, "blur", "Blur", "Transform"},
+	{imagegraph.NodeTypePaletteExtract, "palette_extract", "Palette Extract", "Palette"},
+	{imagegraph.NodeTypePaletteApply, "palette_apply", "Palette Apply", "Palette"},
 }
 
 // Conversion functions
@@ -203,7 +204,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 
 	for _, node := range ig.Nodes {
 		// Map inputs in the order defined by the node type configuration
-		inputNames := node.Type.InputNames()
+		inputNames := imagegraph.NodeTypeConfigs[node.Type].Inputs
 		inputs := make([]inputResponse, 0, len(inputNames))
 		for _, inputName := range inputNames {
 			input, ok := node.Inputs[inputName]
@@ -231,7 +232,7 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 		}
 
 		// Map outputs in the order defined by the node type configuration
-		outputNames := node.Type.OutputNames()
+		outputNames := imagegraph.NodeTypeConfigs[node.Type].Outputs
 		outputs := make([]outputResponse, 0, len(outputNames))
 		for _, outputName := range outputNames {
 			output, ok := node.Outputs[outputName]
@@ -286,13 +287,11 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 
 // buildNodeTypeSchemas converts domain node type configs to API schema entries
 func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
-	configs := imagegraph.NodeTypeConfigs
-	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(configs))
+	apiSchemas := make([]nodeTypeSchemaAPIEntry, 0, len(nodeTypeMetadata))
 
-	for _, cfg := range configs {
-		info, ok := nodeTypeMetadata[cfg.NodeType]
+	for _, info := range nodeTypeMetadata {
+		cfg, ok := imagegraph.NodeTypeConfigs[info.nodeType]
 		if !ok {
-			// Skip unknown node types
 			continue
 		}
 
@@ -309,7 +308,7 @@ func buildNodeTypeSchemas() []nodeTypeSchemaAPIEntry {
 		}
 
 		// Get schema from typed config
-		nodeConfig := imagegraph.NewNodeConfig(cfg.NodeType)
+		nodeConfig := imagegraph.NewNodeConfig(info.nodeType)
 		schema := nodeConfig.Schema()
 		fields := make([]nodeTypeSchemaField, len(schema))
 		for i, field := range schema {

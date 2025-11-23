@@ -58,28 +58,26 @@ func NewNode(
 		return nil, fmt.Errorf("cannot create Node with nil ID")
 	}
 
-	if nodeType == NodeTypeNone {
-		return nil, fmt.Errorf("cannot create Node of type none")
+	cfg, ok := NodeTypeConfigs[nodeType]
+	if !ok {
+		return nil, fmt.Errorf("cannot create Node of unknown type")
 	}
 
-	if nodeType.NameRequired() && len(name) == 0 {
+	if cfg.NameRequired && len(name) == 0 {
 		return nil, fmt.Errorf("Node requires a name")
 	}
 
 	initState, err := state.NewState(Waiting)
-
 	if err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
 	}
 
-	inputs, err := NewInputs(nodeType.InputNames())
-
+	inputs, err := NewInputs(cfg.Inputs)
 	if err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
 	}
 
-	outputs, err := NewOutputs(nodeType.OutputNames())
-
+	outputs, err := NewOutputs(cfg.Outputs)
 	if err != nil {
 		return nil, fmt.Errorf("could not create node: %w", err)
 	}
@@ -91,7 +89,7 @@ func NewNode(
 		Version:  0,
 		Type:     nodeType,
 		Name:     name,
-		Config:   NewNodeConfig(nodeType),
+		Config:   cfg.NewConfig(),
 		Inputs:   inputs,
 		Outputs:  outputs,
 	}
@@ -142,7 +140,7 @@ func (n *Node) SetConfig(config NodeConfig) error {
 }
 
 func (n *Node) SetName(name string) error {
-	if n.Type.NameRequired() && len(name) == 0 {
+	if NodeTypeConfigs[n.Type].NameRequired && len(name) == 0 {
 		return fmt.Errorf("cannot set node name to empty string")
 	}
 
