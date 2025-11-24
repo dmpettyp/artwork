@@ -8,6 +8,19 @@ Artwork is an image processing pipeline application that uses a node-based graph
 
 The core concept is an **ImageGraph**: a directed acyclic graph (DAG) of connected nodes where each node performs a specific image transformation. Images flow through the pipeline from input nodes through transformation nodes to output nodes.
 
+## Quick Start
+
+```bash
+# Start Postgres with expected defaults (user: postgres, pass: foofoofoo, db: artwork)
+docker run --name artwork-postgres -e POSTGRES_PASSWORD=foofoofoo -e POSTGRES_USER=postgres \
+  -e POSTGRES_DB=artwork -p 5432:5432 -d postgres:16
+
+cd backend
+make run  # serves API/WS + static frontend on http://localhost:8080
+```
+
+Images are stored under `backend/uploads/`. Ensure that directory exists and is writable before starting.
+
 ## Build and Run Commands
 
 ### Backend (Go)
@@ -29,6 +42,15 @@ The backend runs on port 8080 by default. Set `LOG_LEVEL=debug` environment vari
 
 ### Frontend
 The frontend is static HTML/CSS/JavaScript served by the Go backend. Simply run the backend and navigate to `http://localhost:8080`.
+
+## Switching Infrastructure
+
+- **Postgres (default):** `cmd/artwork/main.go` wires `postgres.NewUnitOfWork(postgres.NewDB(postgres.DefaultConfig()))`.
+- **In-memory:** swap in the commented `inmem.NewUnitOfWork()` block in `cmd/artwork/main.go` and remove Postgres wiring when you want a no-deps local/dev run. Tests already use in-memory repos and mock storage.
+
+## Optional Bootstrap
+
+`cmd/artwork/bootstrap.go` seeds a demo graph. To enable, uncomment the `bootstrap(...)` call near the bottom of `cmd/artwork/main.go`. It expects an image in storage matching the hardcoded ImageID; update the ImageID or upload a matching file before enabling.
 
 ## Architecture
 
@@ -60,6 +82,11 @@ The codebase follows DDD with clear separation of concerns:
 **Gateways Layer** (`backend/gateways/`):
 - `http/`: HTTP API handlers, WebSocket notifications, serialization
 
+### HTTP & WebSocket Surfaces
+
+- API (under `/api`): node type schemas, list/create graphs, get graph, add/delete/patch nodes, connect/disconnect nodes, upload outputs, layout/viewport get+put, fetch images. Routes are defined in `backend/gateways/http/server.go`.
+- WebSocket: `/api/imagegraphs/{id}/ws` streams graph/layout/viewport change notifications for a single graph.
+
 ### Event-Driven Architecture
 
 The system uses event sourcing patterns:
@@ -83,6 +110,11 @@ The system uses event sourcing patterns:
 5. Generated images are saved and set as node outputs via `SetNodeOutputImage`
 6. Output images propagate downstream to connected nodes
 7. When outputs change, downstream nodes reset and regenerate if needed
+
+Sequence in practice:
+1. HTTP handler → command → domain change → domain events
+2. Message bus fan-out → event handlers
+3. Handlers run side effects (imagegen, storage cleanup) and notifier pushes updates over WebSocket
 
 ### Node Types
 
@@ -204,10 +236,11 @@ return h.uow.Run(ctx, func(repos *Repos) error {
 
 ## Testing
 
-- Domain logic tests in `backend/domain/imagegraph/imagegraph_test.go`
-- HTTP handler tests in `backend/gateways/http/http_test.go`
-- Use table-driven tests for validation logic
-- Test state transitions and event emission
+- Domain logic tests in `backend/domain/imagegraph/imagegraph_test.go`.
+- HTTP handler tests in `backend/gateways/http/http_test.go` (in-memory UoW + mock storage; no Postgres needed).
+- `go test ./...` from `backend` is the main entrypoint.
+- Use table-driven tests for validation logic.
+- Test state transitions and event emission.
 
 ## Common Gotchas
 
@@ -217,6 +250,8 @@ return h.uow.Run(ctx, func(repos *Repos) error {
 4. **State transitions are validated**: Invalid state transitions return errors from the state machine
 5. **Preview images are separate from outputs**: Nodes have both preview images (for UI thumbnails) and output images (for pipeline)
 6. **Output propagation is automatic**: Setting a node's output image automatically sets it as input for all connected downstream nodes
+7. **Uploads directory**: `backend/uploads/` must exist and be writable; missing or read-only will break image saving.
+8. **Interpolation names**: Resize/ResizeMatch only accept keys in `resizeInterpolationFunctions` (`NearestNeighbor`, `Bilinear`, `Bicubic`, `MitchellNetravali`, `Lanczos2`, `Lanczos3`).
 
 ## Code Style
 
