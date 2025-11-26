@@ -446,6 +446,38 @@ body {
     color: var(--color-text);
 }
 
+.palette-colors-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+}
+
+.palette-colors-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.palette-color-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.palette-color-row .color-picker {
+    width: 48px;
+    height: 48px;
+    padding: 2px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+}
+
+.palette-color-row .color-text {
+    flex: 1;
+    margin-bottom: 0;
+}
+
 .modal-content select,
 .modal-content .form-select {
     width: 100%;

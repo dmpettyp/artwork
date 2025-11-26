@@ -22,7 +22,7 @@ export class NodeConfigFormBuilder {
 
         // Fields is now an array, iterate directly to preserve order
         config.fields.forEach(fieldDef => {
-            const { label, input } = this._createField(fieldDef.name, fieldDef, idPrefix, currentValues);
+            const { label, input } = this._createField(fieldDef.name, fieldDef, idPrefix, currentValues, nodeType);
             container.appendChild(label);
             container.appendChild(input);
         });
@@ -32,12 +32,86 @@ export class NodeConfigFormBuilder {
      * Create a single form field (label + input)
      * @private
      */
-    _createField(fieldName, fieldDef, idPrefix, currentValues) {
+    _createField(fieldName, fieldDef, idPrefix, currentValues, nodeType) {
         const label = document.createElement('label');
         label.setAttribute('for', `${idPrefix}-${fieldName}`);
         label.textContent = `${fieldName}${fieldDef.required ? ' *' : ''}`;
 
         let input;
+
+        // Special handling for palette_create colors: present as list with color pickers
+        if (nodeType === 'palette_create' && fieldName === 'colors') {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'palette-colors-field';
+            wrapper.setAttribute('data-field-name', fieldName);
+            wrapper.setAttribute('data-field-type', 'palette_colors');
+            wrapper.id = `${idPrefix}-${fieldName}`;
+
+            const rowsContainer = document.createElement('div');
+            rowsContainer.className = 'palette-colors-rows';
+            wrapper.appendChild(rowsContainer);
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn';
+            addBtn.textContent = 'Add color';
+            wrapper.appendChild(addBtn);
+
+            const addRow = (colorValue = '#000000') => {
+                const row = document.createElement('div');
+                row.className = 'palette-color-row';
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.className = 'form-input color-picker';
+                colorInput.value = colorValue;
+
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.className = 'form-input color-text';
+                textInput.value = colorValue;
+                textInput.placeholder = '#RRGGBB';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn';
+                removeBtn.textContent = 'Remove';
+
+                colorInput.addEventListener('input', () => {
+                    textInput.value = colorInput.value;
+                });
+
+                textInput.addEventListener('input', () => {
+                    // Only update color input when valid hex; otherwise leave as-is
+                    if (/^#[0-9a-fA-F]{6}$/.test(textInput.value)) {
+                        colorInput.value = textInput.value;
+                    }
+                });
+
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                });
+
+                row.appendChild(colorInput);
+                row.appendChild(textInput);
+                row.appendChild(removeBtn);
+                rowsContainer.appendChild(row);
+            };
+
+            // Initialize rows from current value if present
+            const initial = (currentValues && currentValues[fieldName]) ? currentValues[fieldName] : '';
+            if (initial) {
+                const parts = initial.split(',').map(p => p.trim()).filter(Boolean);
+                if (parts.length > 0) {
+                    parts.forEach(color => addRow(color));
+                }
+            }
+
+            addBtn.addEventListener('click', () => addRow('#000000'));
+
+            // No inputs with data-field-name are nested; wrapper acts as field element
+            return { label, input: wrapper };
+        }
 
         // Handle option type (dropdown)
         if (fieldDef.type === 'option') {
@@ -158,7 +232,9 @@ export class NodeConfigFormBuilder {
             return { valid: true, errors: [] };
         }
 
-        const inputs = container.querySelectorAll('input, select');
+        const inputs = Array.from(container.querySelectorAll('input, select')).filter(
+            el => !el.closest('[data-field-type="palette_colors"]')
+        );
         const fieldMap = new Map();
 
         // Build map of field values
@@ -170,6 +246,19 @@ export class NodeConfigFormBuilder {
                 input,
                 fieldType,
                 value: fieldType === 'bool' ? input.checked : input.value
+            });
+        });
+
+        // Include palette color list fields
+        const paletteContainers = container.querySelectorAll('[data-field-type="palette_colors"]');
+        paletteContainers.forEach(containerEl => {
+            const fieldName = containerEl.getAttribute('data-field-name');
+            const rows = containerEl.querySelectorAll('.palette-color-row .color-text');
+            const values = Array.from(rows).map(input => input.value.trim()).filter(v => v.length > 0);
+            fieldMap.set(fieldName, {
+                input: containerEl,
+                fieldType: 'palette_colors',
+                value: values
             });
         });
 
@@ -186,6 +275,23 @@ export class NodeConfigFormBuilder {
             }
 
             const { input, fieldType, value } = field;
+
+            if (fieldType === 'palette_colors') {
+                // Accept empty list; validate each entry when present
+                let hasError = false;
+                value.forEach(val => {
+                    if (!/^#[0-9a-fA-F]{6}$/.test(val)) {
+                        errors.push(`Field "${fieldName}" has invalid color "${val}"`);
+                        hasError = true;
+                    }
+                });
+                if (hasError) {
+                    input.classList.add('error');
+                } else {
+                    input.classList.remove('error');
+                }
+                return;
+            }
 
             // Check required fields
             if (fieldDef.required) {
@@ -232,7 +338,9 @@ export class NodeConfigFormBuilder {
      */
     getValues(container) {
         const config = {};
-        const inputs = container.querySelectorAll('input, select');
+        const inputs = Array.from(container.querySelectorAll('input, select')).filter(
+            el => !el.closest('[data-field-type="palette_colors"]')
+        );
 
         inputs.forEach(input => {
             const fieldName = input.getAttribute('data-field-name');
@@ -260,6 +368,18 @@ export class NodeConfigFormBuilder {
                 // Include string-like values
                 config[fieldName] = value;
             }
+        });
+
+        // Palette colors fields
+        const paletteContainers = container.querySelectorAll('[data-field-type="palette_colors"]');
+        paletteContainers.forEach(containerEl => {
+            const fieldName = containerEl.getAttribute('data-field-name');
+            const rows = containerEl.querySelectorAll('.palette-color-row .color-text');
+            const values = Array.from(rows)
+                .map(input => input.value.trim())
+                .filter(v => v.length > 0);
+            // Join with commas; empty list allowed
+            config[fieldName] = values.join(',');
         });
 
         return config;
