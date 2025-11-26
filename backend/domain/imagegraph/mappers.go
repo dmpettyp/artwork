@@ -1,6 +1,6 @@
 package imagegraph
 
-import "github.com/dmpettyp/mapper"
+import "github.com/dmpettyp/dorky/mapper"
 
 var NodeTypeMapper = mapper.MustNew[string, NodeType](
 	"input", NodeTypeInput,

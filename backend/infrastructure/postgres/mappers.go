@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/dmpettyp/dorky/state"
+
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/state"
 )
 
 type imageGraphRow struct {

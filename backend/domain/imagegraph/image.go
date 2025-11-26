@@ -1,6 +1,6 @@
 package imagegraph
 
-import "github.com/dmpettyp/id"
+import "github.com/dmpettyp/dorky/id"
 
 type ImageID struct{ id.ID }
 

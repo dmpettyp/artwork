@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/dmpettyp/dorky/messages"
+
 	"github.com/dmpettyp/artwork/application"
-	"github.com/dmpettyp/dorky"
 )
 
 type repository interface {
 	SaveAll() error
-	CollectEvents() []dorky.Event
+	CollectEvents() []messages.Event
 }
 
 // UnitOfWork implements application.UnitOfWork using PostgreSQL
@@ -30,10 +31,10 @@ func (uow *UnitOfWork) Run(
 	ctx context.Context,
 	fn func(repos *application.Repos) error,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
-	var events []dorky.Event
+	var events []messages.Event
 
 	err := withTx(ctx, uow.db, func(tx *sql.Tx) error {
 		igRepo := newImageGraphRepository(tx)
@@ -76,7 +77,7 @@ func (uow *UnitOfWork) Run(
 	return events, nil
 }
 
-func saveEvents(ctx context.Context, tx *sql.Tx, events []dorky.Event) error {
+func saveEvents(ctx context.Context, tx *sql.Tx, events []messages.Event) error {
 	if len(events) == 0 {
 		return nil
 	}

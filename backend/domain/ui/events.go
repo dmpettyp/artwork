@@ -2,12 +2,12 @@ package ui
 
 import (
 	"github.com/dmpettyp/artwork/domain/imagegraph"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 // LayoutEvent is the base event for Layout domain events
 type LayoutEvent struct {
-	dorky.BaseEvent
+	messages.BaseEvent
 	GraphID imagegraph.ImageGraphID
 }
 
@@ -30,7 +30,7 @@ func NewLayoutUpdatedEvent(layout *Layout) *LayoutUpdatedEvent {
 
 // ViewportEvent is the base event for Viewport domain events
 type ViewportEvent struct {
-	dorky.BaseEvent
+	messages.BaseEvent
 	GraphID imagegraph.ImageGraphID
 }
 

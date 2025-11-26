@@ -3,9 +3,9 @@ package application
 import (
 	"context"
 
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 type UnitOfWork interface {
-	Run(context.Context, func(repos *Repos) error) ([]dorky.Event, error)
+	Run(context.Context, func(repos *Repos) error) ([]messages.Event, error)
 }

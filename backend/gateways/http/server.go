@@ -6,14 +6,15 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/dmpettyp/dorky/messagebus"
+
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
-	"github.com/dmpettyp/dorky"
 )
 
 type HTTPServer struct {
 	logger          *slog.Logger
-	messageBus      *dorky.MessageBus
+	messageBus      *messagebus.MessageBus
 	imageGraphViews application.ImageGraphViews
 	layoutViews     application.LayoutViews
 	viewportViews   application.ViewportViews
@@ -37,7 +38,7 @@ func WithPort(port string) ServerOption {
 // commands to the provided message bus
 func NewHTTPServer(
 	logger *slog.Logger,
-	messageBus *dorky.MessageBus,
+	messageBus *messagebus.MessageBus,
 	imageGraphViews application.ImageGraphViews,
 	layoutViews application.LayoutViews,
 	viewportViews application.ViewportViews,

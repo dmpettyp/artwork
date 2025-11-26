@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/aggregate"
 )
 
 // Viewport represents the canvas viewport state (zoom and pan) for an ImageGraph
 // This is an aggregate root identified by GraphID
 type Viewport struct {
+	aggregate.Aggregate
+
 	// The ImageGraph this viewport belongs to (serves as the aggregate ID)
 	GraphID imagegraph.ImageGraphID
 
@@ -21,8 +23,6 @@ type Viewport struct {
 
 	// Pan offset Y
 	PanY float64
-
-	dorky.Entity
 }
 
 // NewViewport creates a new Viewport with default settings

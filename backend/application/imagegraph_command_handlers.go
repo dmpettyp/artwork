@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 type ImageGraphCommandHandlers struct {
@@ -17,7 +18,7 @@ type ImageGraphCommandHandlers struct {
 // all ImageGraph Commands and registers all handlers with the provided
 // message bus
 func NewImageGraphCommandHandlers(
-	mb *dorky.MessageBus,
+	mb *messagebus.MessageBus,
 	uow UnitOfWork,
 ) (
 	*ImageGraphCommandHandlers,
@@ -26,17 +27,17 @@ func NewImageGraphCommandHandlers(
 	handlers := &ImageGraphCommandHandlers{uow: uow}
 
 	err := errors.Join(
-		dorky.RegisterCommandHandler(mb, handlers.HandleCreateImageGraphCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleAddImageGraphNodeCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleRemoveImageGraphNodeCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleConnectImageGraphNodesCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleDisconnectImageGraphNodesCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeOutputImageCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodeOutputImageCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodePreviewCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodePreviewCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeConfigCommand),
-		dorky.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeNameCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleCreateImageGraphCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleAddImageGraphNodeCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleRemoveImageGraphNodeCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleConnectImageGraphNodesCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleDisconnectImageGraphNodesCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeOutputImageCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodeOutputImageCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodePreviewCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleUnsetImageGraphNodePreviewCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeConfigCommand),
+		messagebus.RegisterCommandHandler(mb, handlers.HandleSetImageGraphNodeNameCommand),
 	)
 
 	if err != nil {
@@ -50,7 +51,7 @@ func (h *ImageGraphCommandHandlers) HandleCreateImageGraphCommand(
 	ctx context.Context,
 	command *CreateImageGraphCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -74,7 +75,7 @@ func (h *ImageGraphCommandHandlers) HandleAddImageGraphNodeCommand(
 	ctx context.Context,
 	command *AddImageGraphNodeCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -109,7 +110,7 @@ func (h *ImageGraphCommandHandlers) HandleRemoveImageGraphNodeCommand(
 	ctx context.Context,
 	command *RemoveImageGraphNodeCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -133,7 +134,7 @@ func (h *ImageGraphCommandHandlers) HandleConnectImageGraphNodesCommand(
 	ctx context.Context,
 	command *ConnectImageGraphNodesCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -162,7 +163,7 @@ func (h *ImageGraphCommandHandlers) HandleDisconnectImageGraphNodesCommand(
 	ctx context.Context,
 	command *DisconnectImageGraphNodesCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -191,7 +192,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 	ctx context.Context,
 	command *SetImageGraphNodeOutputImageCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -219,7 +220,7 @@ func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodeOutputImageCommand(
 	ctx context.Context,
 	command *UnsetImageGraphNodeOutputImageCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -246,7 +247,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 	ctx context.Context,
 	command *SetImageGraphNodePreviewCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -273,7 +274,7 @@ func (h *ImageGraphCommandHandlers) HandleUnsetImageGraphNodePreviewCommand(
 	ctx context.Context,
 	command *UnsetImageGraphNodePreviewCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -297,7 +298,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeConfigCommand(
 	ctx context.Context,
 	command *SetImageGraphNodeConfigCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {
@@ -322,7 +323,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeNameCommand(
 	ctx context.Context,
 	command *SetImageGraphNodeNameCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {

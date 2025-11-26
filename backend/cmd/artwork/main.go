@@ -9,13 +9,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dmpettyp/dorky/messagebus"
+
 	"github.com/dmpettyp/artwork/application"
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/artwork/infrastructure/postgres"
-	"github.com/dmpettyp/dorky"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	logger.Info("this is artwork")
 
 	var (
-		uow            application.UnitOfWork
+		uow             application.UnitOfWork
 		imageGraphViews application.ImageGraphViews
 		layoutViews     application.LayoutViews
 		viewportViews   application.ViewportViews
@@ -73,7 +74,7 @@ func main() {
 		return
 	}
 
-	messageBus := dorky.NewMessageBus(logger)
+	messageBus := messagebus.New(logger)
 
 	// Create image storage
 	imageStorage, err := filestorage.NewFilesystemImageStorage("uploads")

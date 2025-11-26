@@ -7,7 +7,7 @@ import (
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
 )
 
 func ptr[T any](v T) *T {
@@ -15,7 +15,7 @@ func ptr[T any](v T) *T {
 }
 
 // bootstrap creates a default ImageGraph extracted from the running server
-func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *dorky.MessageBus) error {
+func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *messagebus.MessageBus) error {
 	logger.Info("bootstrapping application with default ImageGraph")
 
 	// Generate IDs for the graph and nodes

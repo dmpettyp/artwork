@@ -3,7 +3,7 @@ package imagegraph
 import (
 	"fmt"
 
-	"github.com/dmpettyp/state"
+	"github.com/dmpettyp/dorky/state"
 )
 
 // Node represents a node in the ImageGraph that define the image pipeline.

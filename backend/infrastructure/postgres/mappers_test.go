@@ -3,9 +3,10 @@ package postgres
 import (
 	"testing"
 
+	"github.com/dmpettyp/dorky/state"
+
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/state"
 )
 
 func TestImageGraphRoundTrip(t *testing.T) {
@@ -37,7 +38,7 @@ func TestImageGraphRoundTrip(t *testing.T) {
 				Type:    imagegraph.NodeTypeBlur,
 				Name:    "Blur Node",
 				State:   node1State,
-				Config: &imagegraph.NodeConfigBlur{Radius: 5},
+				Config:  &imagegraph.NodeConfigBlur{Radius: 5},
 				Preview: previewID,
 				Inputs: imagegraph.Inputs{
 					"input": {

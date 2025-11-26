@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 type LayoutEventHandlers struct {
@@ -16,7 +17,7 @@ type LayoutEventHandlers struct {
 // all Layout Events and registers all handlers with the provided
 // message bus
 func NewLayoutEventHandlers(
-	mb *dorky.MessageBus,
+	mb *messagebus.MessageBus,
 	notifier ImageGraphNotifier,
 ) (
 	*LayoutEventHandlers,
@@ -26,7 +27,7 @@ func NewLayoutEventHandlers(
 		notifier: notifier,
 	}
 
-	err := dorky.RegisterEventHandler(mb, handlers.HandleLayoutUpdatedEvent)
+	err := messagebus.RegisterEventHandler(mb, handlers.HandleLayoutUpdatedEvent)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create layout event handlers: %w", err)
@@ -39,7 +40,7 @@ func (h *LayoutEventHandlers) HandleLayoutUpdatedEvent(
 	ctx context.Context,
 	event *ui.LayoutUpdatedEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	// Broadcast that layout was updated

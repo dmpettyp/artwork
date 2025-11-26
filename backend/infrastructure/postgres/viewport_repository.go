@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
@@ -112,8 +112,8 @@ func (r *ViewportRepository) SaveAll() error {
 }
 
 // CollectEvents retrieves and clears events from all modified Viewports
-func (r *ViewportRepository) CollectEvents() []dorky.Event {
-	var events []dorky.Event
+func (r *ViewportRepository) CollectEvents() []messages.Event {
+	var events []messages.Event
 
 	for _, viewport := range r.modified {
 		events = append(events, viewport.GetEvents()...)

@@ -7,7 +7,8 @@ import (
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 // ImageGraphNotifier is an interface for broadcasting graph notifications
@@ -31,7 +32,7 @@ type ImageGraphEventHandlers struct {
 // all ImageGraph Events and registers all handlers with the provided
 // message bus
 func NewImageGraphEventHandlers(
-	mb *dorky.MessageBus,
+	mb *messagebus.MessageBus,
 	uow UnitOfWork,
 	imageGen *imagegen.ImageGen,
 	imageRemover imageRemover,
@@ -48,14 +49,14 @@ func NewImageGraphEventHandlers(
 	}
 
 	err := errors.Join(
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeAddedEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputConnectedEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeInputDisconnectedEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodePreviewSetEvent),
-		dorky.RegisterEventHandler(mb, handlers.HandleNodeRemovedEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeAddedEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeInputConnectedEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeInputDisconnectedEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeNeedsOutputsEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeOutputImageSetEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeOutputImageUnsetEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodePreviewSetEvent),
+		messagebus.RegisterEventHandler(mb, handlers.HandleNodeRemovedEvent),
 	)
 
 	if err != nil {
@@ -69,7 +70,7 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageUnsetEvent(
 	ctx context.Context,
 	event *imagegraph.NodeOutputImageUnsetEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	if err := h.imageRemover.Remove(event.ImageID); err != nil {
@@ -103,7 +104,7 @@ func (h *ImageGraphEventHandlers) HandleNodeNeedsOutputsEvent(
 	ctx context.Context,
 	event *imagegraph.NodeNeedsOutputsEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
@@ -134,7 +135,7 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 	ctx context.Context,
 	event *imagegraph.NodeOutputImageSetEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
@@ -187,7 +188,7 @@ func (h *ImageGraphEventHandlers) HandleNodePreviewSetEvent(
 	ctx context.Context,
 	event *imagegraph.NodePreviewSetEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	h.notifier.BroadcastNodeUpdate(event.ImageGraphID, map[string]any{
@@ -201,7 +202,7 @@ func (h *ImageGraphEventHandlers) HandleNodeAddedEvent(
 	ctx context.Context,
 	event *imagegraph.NodeAddedEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	// Broadcast that node was added
@@ -217,7 +218,7 @@ func (h *ImageGraphEventHandlers) HandleNodeRemovedEvent(
 	ctx context.Context,
 	event *imagegraph.NodeRemovedEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	// Broadcast that node was removed
@@ -233,7 +234,7 @@ func (h *ImageGraphEventHandlers) HandleNodeInputConnectedEvent(
 	ctx context.Context,
 	event *imagegraph.NodeInputConnectedEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	// Broadcast that connection was made
@@ -249,7 +250,7 @@ func (h *ImageGraphEventHandlers) HandleNodeInputDisconnectedEvent(
 	ctx context.Context,
 	event *imagegraph.NodeInputDisconnectedEvent,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	// Broadcast that connection was removed

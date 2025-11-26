@@ -5,9 +5,6 @@ go 1.24.6
 require (
 	github.com/coder/websocket v1.8.14
 	github.com/dmpettyp/dorky v0.0.0-20251117013211-b144987f2ffb
-	github.com/dmpettyp/id v0.0.0-20251028210813-8a4abd9bb67e
-	github.com/dmpettyp/mapper v0.0.0-20251008225654-49dd6fa10533
-	github.com/dmpettyp/state v0.0.0-20250924231209-343abbdf2057
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 )
 

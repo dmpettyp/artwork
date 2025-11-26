@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/dmpettyp/dorky/messages"
+
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/dorky"
 )
 
 type LayoutCommandHandlers struct {
@@ -17,7 +19,7 @@ type LayoutCommandHandlers struct {
 // all Layout Commands and registers all handlers with the provided
 // message bus
 func NewLayoutCommandHandlers(
-	mb *dorky.MessageBus,
+	mb *messagebus.MessageBus,
 	uow UnitOfWork,
 ) (
 	*LayoutCommandHandlers,
@@ -25,7 +27,7 @@ func NewLayoutCommandHandlers(
 ) {
 	handlers := &LayoutCommandHandlers{uow: uow}
 
-	err := dorky.RegisterCommandHandler(mb, handlers.HandleUpdateLayoutCommand)
+	err := messagebus.RegisterCommandHandler(mb, handlers.HandleUpdateLayoutCommand)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create layout command handlers: %w", err)
@@ -38,7 +40,7 @@ func (h *LayoutCommandHandlers) HandleUpdateLayoutCommand(
 	ctx context.Context,
 	command *UpdateLayoutCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {

@@ -1,12 +1,12 @@
 package imagegraph
 
 import (
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 // Base event type that all ImageGraph domain events extend
 type ImageGraphEvent struct {
-	dorky.BaseEvent
+	messages.BaseEvent
 	ImageGraphID      ImageGraphID      `json:"image_graph_id"`
 	ImageGraphVersion ImageGraphVersion `json:"image_graph_version"`
 }
@@ -21,7 +21,7 @@ func (e *ImageGraphEvent) GetAggregateVersion() int64 {
 }
 
 type Event interface {
-	dorky.Event
+	messages.Event
 	applyImageGraph(ig *ImageGraph)
 }
 

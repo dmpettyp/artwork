@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
 )
 
 type NodeOutputSetter struct {
-	messageBus *dorky.MessageBus
+	messageBus *messagebus.MessageBus
 }
 
-func NewNodeOutputSetter(messageBus *dorky.MessageBus) *NodeOutputSetter {
+func NewNodeOutputSetter(messageBus *messagebus.MessageBus) *NodeOutputSetter {
 	return &NodeOutputSetter{
 		messageBus: messageBus,
 	}

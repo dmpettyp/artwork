@@ -1,6 +1,6 @@
 package imagegraph
 
-import "github.com/dmpettyp/id"
+import "github.com/dmpettyp/dorky/id"
 
 // NodeID is the type that represents node IDs
 type NodeID struct{ id.ID }

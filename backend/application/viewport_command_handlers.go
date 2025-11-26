@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 type ViewportCommandHandlers struct {
@@ -17,7 +18,7 @@ type ViewportCommandHandlers struct {
 // all Viewport Commands and registers all handlers with the provided
 // message bus
 func NewViewportCommandHandlers(
-	mb *dorky.MessageBus,
+	mb *messagebus.MessageBus,
 	uow UnitOfWork,
 ) (
 	*ViewportCommandHandlers,
@@ -25,7 +26,7 @@ func NewViewportCommandHandlers(
 ) {
 	handlers := &ViewportCommandHandlers{uow: uow}
 
-	err := dorky.RegisterCommandHandler(mb, handlers.HandleUpdateViewportCommand)
+	err := messagebus.RegisterCommandHandler(mb, handlers.HandleUpdateViewportCommand)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create viewport command handlers: %w", err)
@@ -38,7 +39,7 @@ func (h *ViewportCommandHandlers) HandleUpdateViewportCommand(
 	ctx context.Context,
 	command *UpdateViewportCommand,
 ) (
-	[]dorky.Event,
+	[]messages.Event,
 	error,
 ) {
 	return h.uow.Run(ctx, func(repos *Repos) error {

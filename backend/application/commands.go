@@ -3,11 +3,11 @@ package application
 import (
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 	"github.com/dmpettyp/artwork/domain/ui"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 )
 
 type CreateImageGraphCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	Name         string                  `json:"name"`
 }
@@ -25,7 +25,7 @@ func NewCreateImageGraphCommand(
 }
 
 type AddImageGraphNodeCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	NodeType     imagegraph.NodeType     `json:"node_type"`
@@ -52,7 +52,7 @@ func NewAddImageGraphNodeCommand(
 }
 
 type RemoveImageGraphNodeCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 }
@@ -70,7 +70,7 @@ func NewRemoveImageGraphNodeCommand(
 }
 
 type ConnectImageGraphNodesCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	FromNodeID   imagegraph.NodeID       `json:"from_node_id"`
 	OutputName   imagegraph.OutputName   `json:"output_name"`
@@ -97,7 +97,7 @@ func NewConnectImageGraphNodesCommand(
 }
 
 type DisconnectImageGraphNodesCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	FromNodeID   imagegraph.NodeID       `json:"from_node_id"`
 	OutputName   imagegraph.OutputName   `json:"output_name"`
@@ -124,7 +124,7 @@ func NewDisconnectImageGraphNodesCommand(
 }
 
 type SetImageGraphNodeOutputImageCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	OutputName   imagegraph.OutputName   `json:"output_name"`
@@ -148,7 +148,7 @@ func NewSetImageGraphNodeOutputImageCommand(
 }
 
 type UnsetImageGraphNodeOutputImageCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	OutputName   imagegraph.OutputName   `json:"output_name"`
@@ -169,7 +169,7 @@ func NewUnsetImageGraphNodeOutputImageCommand(
 }
 
 type SetImageGraphNodePreviewCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	ImageID      imagegraph.ImageID      `json:"image_id"`
@@ -190,7 +190,7 @@ func NewSetImageGraphNodePreviewCommand(
 }
 
 type UnsetImageGraphNodePreviewCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 }
@@ -208,7 +208,7 @@ func NewUnsetImageGraphNodePreviewCommand(
 }
 
 type SetImageGraphNodeConfigCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	Config       imagegraph.NodeConfig   `json:"config"`
@@ -229,7 +229,7 @@ func NewSetImageGraphNodeConfigCommand(
 }
 
 type SetImageGraphNodeNameCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	Name         string                  `json:"name"`
@@ -252,7 +252,7 @@ func NewSetImageGraphNodeNameCommand(
 // Layout Commands
 
 type UpdateLayoutCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	GraphID       imagegraph.ImageGraphID `json:"graph_id"`
 	NodePositions []ui.NodePosition       `json:"node_positions"`
 }
@@ -272,7 +272,7 @@ func NewUpdateLayoutCommand(
 // Viewport Commands
 
 type UpdateViewportCommand struct {
-	dorky.BaseCommand
+	messages.BaseCommand
 	GraphID imagegraph.ImageGraphID `json:"graph_id"`
 	Zoom    float64                 `json:"zoom"`
 	PanX    float64                 `json:"pan_x"`

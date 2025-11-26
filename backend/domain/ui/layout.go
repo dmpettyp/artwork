@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/aggregate"
 )
 
 // NodePosition represents the 2D position of a node on the canvas
@@ -17,13 +17,13 @@ type NodePosition struct {
 // Layout represents the node positioning layout for an ImageGraph
 // This is an aggregate root identified by GraphID
 type Layout struct {
+	aggregate.Aggregate
+
 	// The ImageGraph this layout belongs to (serves as the aggregate ID)
 	GraphID imagegraph.ImageGraphID
 
 	// Node positions on the canvas
 	NodePositions []NodePosition
-
-	dorky.Entity
 }
 
 // NewLayout creates a new Layout with empty node positions

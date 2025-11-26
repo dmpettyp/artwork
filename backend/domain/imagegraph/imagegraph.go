@@ -3,13 +3,13 @@ package imagegraph
 import (
 	"fmt"
 
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/aggregate"
 )
 
 // A ImageGraph models an graph that consists of Nodes connected together to
 // drive image creation
 type ImageGraph struct {
-	dorky.Entity
+	aggregate.Aggregate
 
 	// Unique Identifier for the ImageGraph
 	ID ImageGraphID
@@ -68,7 +68,7 @@ func (ig *ImageGraph) Clone() *ImageGraph {
 func (ig *ImageGraph) AddEvent(e Event) {
 	e.SetEntity("ImageGraph", ig.ID.ID)
 	e.applyImageGraph(ig)
-	ig.Entity.AddEvent(e)
+	ig.Aggregate.AddEvent(e)
 }
 
 // AddNode adds a node to an ImageGraph

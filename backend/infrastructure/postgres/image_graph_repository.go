@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messages"
 
 	"github.com/dmpettyp/artwork/domain/imagegraph"
 )
@@ -120,8 +120,8 @@ func (r *ImageGraphRepository) SaveAll() error {
 }
 
 // CollectEvents retrieves and clears events from all modified ImageGraphs
-func (r *ImageGraphRepository) CollectEvents() []dorky.Event {
-	var events []dorky.Event
+func (r *ImageGraphRepository) CollectEvents() []messages.Event {
+	var events []messages.Event
 
 	for _, ig := range r.modified {
 		events = append(events, ig.GetEvents()...)
