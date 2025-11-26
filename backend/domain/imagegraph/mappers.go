@@ -12,6 +12,7 @@ var NodeTypeMapper = mapper.MustNew[string, NodeType](
 	"pixel_inflate", NodeTypePixelInflate,
 	"palette_extract", NodeTypePaletteExtract,
 	"palette_apply", NodeTypePaletteApply,
+	"palette_create", NodeTypePaletteCreate,
 )
 
 var NodeStateMapper = mapper.MustNew[string, NodeState](

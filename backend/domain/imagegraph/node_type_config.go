@@ -3,6 +3,7 @@ package imagegraph
 import (
 	"fmt"
 	"slices"
+	"strings"
 )
 
 type FieldType string
@@ -409,4 +410,54 @@ func (c *NodeConfigPaletteApply) NodeType() NodeType {
 
 func (c *NodeConfigPaletteApply) Schema() []FieldSchema {
 	return []FieldSchema{}
+}
+
+// parseColorsList splits a comma-separated string, trims whitespace, and
+// validates each entry is a #RRGGBB color.
+func parseColorsList(list string) ([]string, error) {
+	raw := strings.Split(list, ",")
+	parts := make([]string, 0, len(raw))
+	for _, part := range raw {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+
+	for _, c := range parts {
+		if !isValidHexColor(c) {
+			return nil, fmt.Errorf("color %q must be in #RRGGBB format", c)
+		}
+	}
+
+	return parts, nil
+}
+
+// NodeConfigPaletteCreate is the configuration for palette-create nodes.
+type NodeConfigPaletteCreate struct {
+	Colors string `json:"colors"`
+}
+
+func NewNodeConfigPaletteCreate() *NodeConfigPaletteCreate {
+	return &NodeConfigPaletteCreate{}
+}
+
+func (c *NodeConfigPaletteCreate) Validate() error {
+	_, err := parseColorsList(c.Colors)
+	return err
+}
+
+func (c *NodeConfigPaletteCreate) NodeType() NodeType {
+	return NodeTypePaletteCreate
+}
+
+func (c *NodeConfigPaletteCreate) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "colors", Type: FieldTypeString, Required: true},
+	}
+}
+
+// ColorsList returns the parsed list of colors from the config.
+func (c *NodeConfigPaletteCreate) ColorsList() ([]string, error) {
+	return parseColorsList(c.Colors)
 }

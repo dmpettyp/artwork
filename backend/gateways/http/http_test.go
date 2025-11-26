@@ -19,7 +19,7 @@ import (
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
-	"github.com/dmpettyp/dorky"
+	"github.com/dmpettyp/dorky/messagebus"
 )
 
 // mockImageStorage is a simple in-memory image storage for testing
@@ -54,7 +54,7 @@ func (m *mockImageStorage) Remove(imageID imagegraph.ImageID) error {
 type testServer struct {
 	server     *httpgateway.HTTPServer
 	testServer *httptest.Server
-	messageBus *dorky.MessageBus
+	messageBus *messagebus.MessageBus
 	cancelFunc context.CancelFunc
 }
 
@@ -71,7 +71,7 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Create message bus
-	mb := dorky.NewMessageBus(logger)
+	mb := messagebus.New(logger)
 
 	// Create mock image storage
 	imageStorage := &mockImageStorage{data: make(map[string][]byte)}

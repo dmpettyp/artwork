@@ -720,6 +720,34 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	return nil
 }
 
+func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	colorStrings []string,
+) error {
+	colors := make([]color.Color, 0, len(colorStrings))
+	for _, hex := range colorStrings {
+		col, err := parseHexColor(hex)
+		if err != nil {
+			return fmt.Errorf("invalid color %q: %w", hex, err)
+		}
+		colors = append(colors, col)
+	}
+
+	paletteImg := createPaletteImage(colors)
+
+	if err := ig.saveAndSetPreview(ctx, imageGraphID, nodeID, paletteImg); err != nil {
+		return fmt.Errorf("could not generate palette create preview: %w", err)
+	}
+
+	if err := ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", paletteImg); err != nil {
+		return fmt.Errorf("could not generate palette create output: %w", err)
+	}
+
+	return nil
+}
+
 // extractPaletteColors extracts all non-transparent unique colors from a palette image
 func extractPaletteColors(img image.Image) []color.Color {
 	bounds := img.Bounds()
@@ -1108,7 +1136,7 @@ type colorWithHSL struct {
 // createPaletteImage creates a near-square image from palette colors
 func createPaletteImage(colors []color.Color) image.Image {
 	if len(colors) == 0 {
-		// Return a 1x1 black image if no colors
+		// Return a 1x1 transparent image if no colors
 		img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 		return img
 	}
@@ -1136,4 +1164,12 @@ func createPaletteImage(colors []color.Color) image.Image {
 	}
 
 	return img
+}
+
+func parseHexColor(hex string) (color.Color, error) {
+	var r, g, b uint8
+	if _, err := fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b); err != nil {
+		return nil, fmt.Errorf("failed to parse hex color: %w", err)
+	}
+	return color.RGBA{R: r, G: g, B: b, A: 255}, nil
 }

@@ -165,7 +165,7 @@ type nodeTypeSchemaField struct {
 	Type     imagegraph.FieldType `json:"type"`
 	Required bool                 `json:"required"`
 	Options  []string             `json:"options,omitempty"`
-	Default  interface{}          `json:"default,omitempty"`
+	Default  any                  `json:"default,omitempty"`
 }
 
 type errorResponse struct {
@@ -173,7 +173,6 @@ type errorResponse struct {
 }
 
 // Mappers
-
 
 // nodeTypeInfo holds the API name, display name, and category for a node type
 type nodeTypeInfo struct {
@@ -192,8 +191,9 @@ var nodeTypeMetadata = []nodeTypeInfo{
 	{imagegraph.NodeTypeResizeMatch, "resize_match", "Match To Size", "Resize"},
 	{imagegraph.NodeTypePixelInflate, "pixel_inflate", "Inflate Pixels", "Resize"},
 	{imagegraph.NodeTypeBlur, "blur", "Blur", "Transform"},
-	{imagegraph.NodeTypePaletteExtract, "palette_extract", "Palette Extract", "Palette"},
-	{imagegraph.NodeTypePaletteApply, "palette_apply", "Palette Apply", "Palette"},
+	{imagegraph.NodeTypePaletteCreate, "palette_create", "Create", "Palette"},
+	{imagegraph.NodeTypePaletteExtract, "palette_extract", "Extract", "Palette"},
+	{imagegraph.NodeTypePaletteApply, "palette_apply", "Apply", "Palette"},
 }
 
 // Conversion functions
