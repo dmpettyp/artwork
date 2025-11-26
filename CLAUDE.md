@@ -1,25 +1,40 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Project Overview
 
-Artwork is an image processing pipeline application that uses a node-based graph system for non-destructive image manipulation. It consists of a Go backend implementing Domain-Driven Design (DDD) principles and a vanilla JavaScript frontend with an SVG-based graph editor.
+Artwork is an image processing pipeline application that uses a node-based graph
+system for non-destructive image manipulation. It consists of a Go backend
+implementing Domain-Driven Design (DDD) principles and a vanilla JavaScript
+frontend with an SVG-based graph editor.
 
-The core concept is an **ImageGraph**: a directed acyclic graph (DAG) of connected nodes where each node performs a specific image transformation. Images flow through the pipeline from input nodes through transformation nodes to output nodes.
+The core concept is an **ImageGraph**: a directed acyclic graph (DAG) of
+connected nodes where each node performs a specific image transformation. Images
+flow through the pipeline from input nodes through transformation nodes to
+output nodes.
 
 ## Quick Start
 
 ```bash
-# Start Postgres with expected defaults (user: postgres, pass: foofoofoo, db: artwork)
-docker run --name artwork-postgres -e POSTGRES_PASSWORD=foofoofoo -e POSTGRES_USER=postgres \
-  -e POSTGRES_DB=artwork -p 5432:5432 -d postgres:16
+# Start Postgres with expected defaults (user: postgres, pass: foofoofoo,
+# db: artwork)
+docker run --name artwork-postgres \
+  -e POSTGRES_PASSWORD=foofoofoo \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_DB=artwork \
+  -p 5432:5432 \
+  -d postgres:16
 
 cd backend
-make run  # serves API/WS + static frontend on http://localhost:8080
+go run ./cmd/artwork -store=postgres  # serves API/WS + frontend on :8080
+# optionally seed a demo graph on startup
+# go run ./cmd/artwork -store=postgres -bootstrap
 ```
 
-Images are stored under `backend/uploads/`. Ensure that directory exists and is writable before starting.
+Images are stored under `backend/uploads/`. Ensure that directory exists and is
+writable before starting.
 
 ## Build and Run Commands
 
@@ -38,19 +53,25 @@ go test ./...
 go test -run TestName ./path/to/package
 ```
 
-The backend runs on port 8080 by default. Set `LOG_LEVEL=debug` environment variable for detailed logging.
+The backend runs on port 8080 by default. Set `LOG_LEVEL=debug` environment
+variable for detailed logging.
 
 ### Frontend
-The frontend is static HTML/CSS/JavaScript served by the Go backend. Simply run the backend and navigate to `http://localhost:8080`.
+The frontend is static HTML/CSS/JavaScript served by the Go backend. Simply run
+the backend and navigate to `http://localhost:8080`.
 
 ## Switching Infrastructure
 
-- **Postgres (default):** `cmd/artwork/main.go` wires `postgres.NewUnitOfWork(postgres.NewDB(postgres.DefaultConfig()))`.
-- **In-memory:** swap in the commented `inmem.NewUnitOfWork()` block in `cmd/artwork/main.go` and remove Postgres wiring when you want a no-deps local/dev run. Tests already use in-memory repos and mock storage.
+- **Postgres (default):** `-store=postgres` (uses
+  `postgres.NewUnitOfWork(postgres.NewDB(postgres.DefaultConfig()))`).
+- **In-memory:** `-store=inmem` for a no-deps local/dev run. Tests already use
+  in-memory repos and mock storage.
 
 ## Optional Bootstrap
 
-`cmd/artwork/bootstrap.go` seeds a demo graph. To enable, uncomment the `bootstrap(...)` call near the bottom of `cmd/artwork/main.go`. It expects an image in storage matching the hardcoded ImageID; update the ImageID or upload a matching file before enabling.
+`cmd/artwork/bootstrap.go` seeds a demo graph. Enable via `-bootstrap` when
+running `cmd/artwork`. It expects an image in storage matching the hardcoded
+ImageID; update the ImageID or upload a matching file before enabling.
 
 ## Architecture
 
@@ -60,7 +81,8 @@ The codebase follows DDD with clear separation of concerns:
 
 **Domain Layer** (`backend/domain/`):
 - `imagegraph/`: Core business logic for the ImageGraph aggregate root
-  - `imagegraph.go`: The ImageGraph aggregate that maintains nodes and connections
+  - `imagegraph.go`: The ImageGraph aggregate that maintains nodes and
+    connections
   - `node.go`: Node entity with inputs, outputs, state, and configuration
   - `node_type.go`: Node type definitions and configuration validation
   - `events.go`: Domain events emitted by the aggregate
@@ -70,7 +92,8 @@ The codebase follows DDD with clear separation of concerns:
 
 **Application Layer** (`backend/application/`):
 - Command handlers: Process commands and orchestrate domain operations
-- Event handlers: React to domain events, trigger image generation, handle side effects
+- Event handlers: React to domain events, trigger image generation, handle side
+  effects
 - `unit_of_work.go`: Transaction boundary for repository operations
 - `node_output_setter.go`: Service for setting node outputs via commands
 
@@ -84,15 +107,38 @@ The codebase follows DDD with clear separation of concerns:
 
 ### HTTP & WebSocket Surfaces
 
-- API (under `/api`): node type schemas, list/create graphs, get graph, add/delete/patch nodes, connect/disconnect nodes, upload outputs, layout/viewport get+put, fetch images. Routes are defined in `backend/gateways/http/server.go`.
-- WebSocket: `/api/imagegraphs/{id}/ws` streams graph/layout/viewport change notifications for a single graph.
+- API (under `/api`): node type schemas, list/create graphs, get graph,
+  add/delete/patch nodes, connect/disconnect nodes, upload outputs,
+  layout/viewport get+put, fetch images. Routes are defined in
+  `backend/gateways/http/server.go`.
+- WebSocket: `/api/imagegraphs/{id}/ws` streams graph/layout/viewport change
+  notifications for a single graph.
+
+### API/WS Cheat Sheet (see serialization.go/http tests for exact shapes)
+- `GET /api/node-types` → schemas for all node types (frontend config source of
+  truth).
+- `GET/POST /api/imagegraphs` → list/create graphs.
+- `GET /api/imagegraphs/{id}` → full graph (nodes, connections, outputs).
+- `POST /api/imagegraphs/{id}/nodes` → add node `{type,name,config}`.
+- `PATCH /api/imagegraphs/{id}/nodes/{node_id}` → `{name?, config?}` update.
+- `DELETE /api/imagegraphs/{id}/nodes/{node_id}` → remove.
+- `PUT /api/imagegraphs/{id}/connectNodes` / `disconnectNodes` → `{from_node_id,
+  output_name, to_node_id, input_name}`.
+- `PUT /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name}` multipart
+  upload image.
+- `GET /api/images/{image_id}` → image bytes.
+- `GET/PUT /api/imagegraphs/{id}/layout` and `/viewport` → layout/viewport
+  state.
+- WebSocket: node/layout/viewport updates for the given graph ID.
 
 ### Event-Driven Architecture
 
 The system uses event sourcing patterns:
-1. Domain operations emit events (e.g., `NodeAddedEvent`, `NodeNeedsOutputsEvent`)
+1. Domain operations emit events (e.g., `NodeAddedEvent`,
+   `NodeNeedsOutputsEvent`)
 2. Events are processed by the message bus (`dorky.MessageBus`)
-3. Event handlers trigger side effects (image generation, WebSocket notifications)
+3. Event handlers trigger side effects (image generation, WebSocket
+   notifications)
 4. All state changes propagate through events
 
 ### Image Processing Pipeline
@@ -114,7 +160,8 @@ The system uses event sourcing patterns:
 Sequence in practice:
 1. HTTP handler → command → domain change → domain events
 2. Message bus fan-out → event handlers
-3. Handlers run side effects (imagegen, storage cleanup) and notifier pushes updates over WebSocket
+3. Handlers run side effects (imagegen, storage cleanup) and notifier pushes
+   updates over WebSocket
 
 ### Node Types
 
@@ -146,7 +193,8 @@ Located in `frontend/`:
 
 ### ImageGraph Operations
 
-The ImageGraph aggregate (`backend/domain/imagegraph/imagegraph.go`) provides these operations:
+The ImageGraph aggregate (`backend/domain/imagegraph/imagegraph.go`) provides
+these operations:
 - `AddNode`: Add a node with type, name, and configuration
 - `RemoveNode`: Remove a node and all its connections
 - `ConnectNodes`: Create a connection from one node's output to another's input
@@ -157,31 +205,37 @@ The ImageGraph aggregate (`backend/domain/imagegraph/imagegraph.go`) provides th
 - `SetNodeName`: Update node name
 
 **Important invariants:**
-- Connections cannot create cycles (DAG constraint enforced in `wouldCreateCycle`)
+- Connections cannot create cycles (DAG constraint enforced in
+  `wouldCreateCycle`)
 - Each input can only connect to one output
 - Outputs can connect to multiple inputs
 - Disconnecting/changing upstream nodes triggers downstream regeneration
 
 ### Node Configuration
 
-Each node type has a typed config struct in `node_type_config.go` that implements the `NodeConfig` interface:
+Each node type has a typed config struct in `node_type_config.go` that
+implements the `NodeConfig` interface:
 - `Validate()` - validates the config values
 - `NodeType()` - returns the associated node type
 - `Schema()` - returns field schema for API responses
 
-The `NodeTypeConfigs` map in `node_type.go` associates each node type with its inputs, outputs, and config factory.
+The `NodeTypeConfigs` map in `node_type.go` associates each node type with its
+inputs, outputs, and config factory.
 
 ## Development Patterns
 
 ### Adding a New Node Type
 
-When adding a new node type, update ALL of the following locations (exhaustiveness tests will fail if you miss any):
+When adding a new node type, update ALL of the following locations
+(exhaustiveness tests will fail if you miss any):
 
 1. **Domain - node_type.go** (`backend/domain/imagegraph/node_type.go`):
    - Add the node type constant (e.g., `NodeTypeMyNewType`)
-   - Add entry to `NodeTypeConfigs` map with `Inputs`, `Outputs`, `NameRequired`, and `NewConfig` factory
+   - Add entry to `NodeTypeConfigs` map with `Inputs`, `Outputs`,
+     `NameRequired`, and `NewConfig` factory
 
-2. **Domain - node_type_config.go** (`backend/domain/imagegraph/node_type_config.go`):
+2. **Domain - node_type_config.go**
+   (`backend/domain/imagegraph/node_type_config.go`):
    - Create config struct (e.g., `NodeConfigMyNewType`)
    - Add constructor (e.g., `NewNodeConfigMyNewType()`)
    - Implement `Validate()`, `NodeType()`, and `Schema()` methods
@@ -190,10 +244,13 @@ When adding a new node type, update ALL of the following locations (exhaustivene
    - Add mapping to `NodeTypeMapper` (e.g., `"my_new_type", NodeTypeMyNewType`)
 
 4. **HTTP - serialization.go** (`backend/gateways/http/serialization.go`):
-   - Add entry to `nodeTypeMetadata` slice with node type, API name, display name, and category
+   - Add entry to `nodeTypeMetadata` slice with node type, API name, display
+     name, and category
 
-5. **Image Generation** (`backend/infrastructure/imagegen/imagegen.go`):
-   - Implement generation logic in `ImageGen.GenerateNodeOutput()` switch statement
+5. **Image Generation** (`backend/application/node_output_generators.go` +
+   `backend/infrastructure/imagegen/`):
+   - Add the generator to `node_output_generators` and implement the logic in
+     `imagegen.ImageGen`
 
 6. **Frontend Schema** (`frontend/js/schemas/`):
    - Add schema file for the new node type (e.g., `my_new_type.js`)
@@ -203,7 +260,8 @@ When adding a new node type, update ALL of the following locations (exhaustivene
    go test ./...
    ```
 
-The exhaustiveness tests (`TestNodeTypeMapperIsComplete`) will fail if the mapper is incomplete.
+The exhaustiveness tests (`TestNodeTypeMapperIsComplete`) will fail if the
+mapper is incomplete.
 
 ### Command/Event Flow
 
@@ -237,29 +295,76 @@ return h.uow.Run(ctx, func(repos *Repos) error {
 ## Testing
 
 - Domain logic tests in `backend/domain/imagegraph/imagegraph_test.go`.
-- HTTP handler tests in `backend/gateways/http/http_test.go` (in-memory UoW + mock storage; no Postgres needed).
+- HTTP handler tests in `backend/gateways/http/http_test.go` (in-memory UoW +
+  mock storage; no Postgres needed).
 - `go test ./...` from `backend` is the main entrypoint.
 - Use table-driven tests for validation logic.
 - Test state transitions and event emission.
 
 ## Common Gotchas
 
-1. **Node configurations are maps**: When accessing config values, type assert carefully and handle missing keys
-2. **ImageIDs are value objects**: Use `.IsNil()` to check for empty ImageID, not `== nil`
-3. **Events must set entity info**: All events need `SetEntity()` called with entity type and ID
-4. **State transitions are validated**: Invalid state transitions return errors from the state machine
-5. **Preview images are separate from outputs**: Nodes have both preview images (for UI thumbnails) and output images (for pipeline)
-6. **Output propagation is automatic**: Setting a node's output image automatically sets it as input for all connected downstream nodes
-7. **Uploads directory**: `backend/uploads/` must exist and be writable; missing or read-only will break image saving.
-8. **Interpolation names**: Resize/ResizeMatch only accept keys in `resizeInterpolationFunctions` (`NearestNeighbor`, `Bilinear`, `Bicubic`, `MitchellNetravali`, `Lanczos2`, `Lanczos3`).
+1. **Typed configs:** Node configs are strongly typed structs; JSON sent to
+   `add/patch` must match the schema (wrong types fail unmarshal/validate).
+2. **Uploads path:** `backend/uploads/` must exist and be writable; otherwise
+   image saving and previews will fail.
+3. **Store selection:** Use `-store=inmem` if Postgres isn’t available; default
+   `-store=postgres` expects the DSN in `postgres.DefaultConfig()`.
+4. **Interpolation names:** Resize/ResizeMatch accept only `NearestNeighbor`,
+   `Bilinear`, `Bicubic`, `MitchellNetravali`, `Lanczos2`, `Lanczos3`.
+5. **Preview vs outputs:** Preview images are set separately from outputs; some
+   handlers (e.g., Input) generate previews asynchronously after outputs are
+   set.
+6. **Image cleanup:** Images are removed when outputs are unset or nodes are
+   deleted; if the process exits mid-run you may need to prune stale files in
+   `backend/uploads/` manually.
+
+## Runbook (day-to-day)
+
+- Start Postgres: see Quick Start docker command, or adjust
+  `postgres.DefaultConfig()` to match your environment.
+- Run server: `go run ./cmd/artwork -store=postgres` (or `-store=inmem`).
+  Optional `-bootstrap` seeds a demo graph.
+- Logs: set `LOG_LEVEL=debug` for verbose slog output.
+- Reset state: drop/clean DB tables and clear `backend/uploads/` to start fresh.
+- Fetch an image: `curl http://localhost:8080/api/images/{image_id} > out.png`.
+
+## Troubleshooting
+
+- **DB connection refused:** ensure Postgres is running with the expected
+  creds/port, or change `postgres.DefaultConfig()`/flags.
+- **Uploads failing:** confirm `backend/uploads/` exists and is writable by the
+  process.
+- **Invalid interpolation:** use one of the allowed names listed above.
+- **WS disconnects:** the server pings every 30s; check browser console/network
+  if idle disconnects happen.
+- **Stale images:** if the process crashed, prune `backend/uploads/` of orphaned
+  files.
+
+## Observability hooks
+
+- HTTP logging: wrap handlers in `backend/gateways/http/server.go` with
+  structured request logging if needed.
+- Bus/imagegen timing: add timing/err logs around imagegen calls in
+  `node_output_generators.go` or event handlers to trace slow nodes; wire
+  metrics if you have a sink.
+
+## Frontend contract
+
+- `/api/node-types` is the source of truth for config shapes and display
+  metadata; prefer consuming it over hardcoding schemas.
 
 ## Code Style
 
-- **Avoid unnecessary comments**: Don't add comments that merely restate what the code does
-- **Self-documenting code**: Use clear variable and function names instead of comments
-- **Comment only when needed**: Add comments for non-obvious logic, important invariants, gotchas, or complex business rules
+- **Avoid unnecessary comments**: Don't add comments that merely restate what
+  the code does
+- **Self-documenting code**: Use clear variable and function names instead of
+  comments
+- **Comment only when needed**: Add comments for non-obvious logic, important
+  invariants, gotchas, or complex business rules
 - **Keep it clean**: Code should be straightforward and speak for itself
 
 ## Image Storage
 
-Images are stored in the `backend/uploads/` directory with ImageID as the filename. The system supports PNG and JPEG formats. Images are automatically cleaned up when no longer referenced by any node output.
+Images are stored in the `backend/uploads/` directory with ImageID as the
+filename. The system supports PNG and JPEG formats. Images are automatically
+cleaned up when no longer referenced by any node output.
