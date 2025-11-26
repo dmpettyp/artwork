@@ -1,12 +1,16 @@
 package http
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/dmpettyp/dorky/messagebus"
+	"github.com/google/uuid"
 
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
@@ -97,7 +101,7 @@ func NewHTTPServer(
 
 	s.server = &http.Server{
 		Addr:    ":" + s.port,
-		Handler: mux,
+		Handler: loggingMiddleware(logger, mux),
 	}
 
 	return s
@@ -129,4 +133,91 @@ func (s *HTTPServer) Stop(ctx context.Context) error {
 // Handler returns the HTTP handler for testing
 func (s *HTTPServer) Handler() http.Handler {
 	return s.server.Handler
+}
+
+type ctxKey string
+
+const requestIDKey ctxKey = "request_id"
+
+// loggingMiddleware wraps handlers with basic structured request logging and
+// request ID propagation.
+func loggingMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		reqID := r.Header.Get("X-Request-ID")
+		if reqID == "" {
+			reqID = uuid.NewString()
+		}
+
+		ctx := context.WithValue(r.Context(), requestIDKey, reqID)
+		r = r.WithContext(ctx)
+
+		logger.Info("http_request_start",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr,
+			"user_agent", r.UserAgent(),
+			"request_id", reqID,
+		)
+
+		lrw := &loggingResponseWriter{
+			ResponseWriter: w,
+			status:         http.StatusOK,
+		}
+
+		next.ServeHTTP(lrw, r)
+
+		logger.Info("http_request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", lrw.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"remote", r.RemoteAddr,
+			"user_agent", r.UserAgent(),
+			"request_id", reqID,
+			"bytes", lrw.bytesWritten,
+		)
+	})
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	status       int
+	bytesWritten int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(statusCode int) {
+	lrw.status = statusCode
+	lrw.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (lrw *loggingResponseWriter) Write(b []byte) (int, error) {
+	n, err := lrw.ResponseWriter.Write(b)
+	lrw.bytesWritten += n
+	return n, err
+}
+
+// Hijack delegates to the underlying ResponseWriter if it supports
+// http.Hijacker (needed for websockets).
+func (lrw *loggingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := lrw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("hijacker not supported")
+	}
+	return h.Hijack()
+}
+
+// Flush delegates to the underlying ResponseWriter if it supports http.Flusher.
+func (lrw *loggingResponseWriter) Flush() {
+	if f, ok := lrw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Push delegates to the underlying ResponseWriter if it supports http.Pusher.
+func (lrw *loggingResponseWriter) Push(target string, opts *http.PushOptions) error {
+	if p, ok := lrw.ResponseWriter.(http.Pusher); ok {
+		return p.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
