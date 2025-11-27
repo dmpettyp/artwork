@@ -57,9 +57,14 @@ export class NodeConfigFormBuilder {
             addBtn.textContent = 'Add color';
             wrapper.appendChild(addBtn);
 
-            const addRow = (colorValue = '#000000') => {
+            const addRow = (colorValue = '#000000', enabled = true) => {
                 const row = document.createElement('div');
                 row.className = 'palette-color-row';
+
+                const includeCheckbox = document.createElement('input');
+                includeCheckbox.type = 'checkbox';
+                includeCheckbox.checked = enabled;
+                includeCheckbox.title = 'Include this color in the palette';
 
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
@@ -77,6 +82,10 @@ export class NodeConfigFormBuilder {
                 removeBtn.className = 'btn';
                 removeBtn.textContent = 'Remove';
 
+                includeCheckbox.addEventListener('change', () => {
+                    row.classList.toggle('disabled', !includeCheckbox.checked);
+                });
+
                 colorInput.addEventListener('input', () => {
                     textInput.value = colorInput.value;
                 });
@@ -92,6 +101,7 @@ export class NodeConfigFormBuilder {
                     row.remove();
                 });
 
+                row.appendChild(includeCheckbox);
                 row.appendChild(colorInput);
                 row.appendChild(textInput);
                 row.appendChild(removeBtn);
@@ -103,7 +113,11 @@ export class NodeConfigFormBuilder {
             if (initial) {
                 const parts = initial.split(',').map(p => p.trim()).filter(Boolean);
                 if (parts.length > 0) {
-                    parts.forEach(color => addRow(color));
+                    parts.forEach(color => {
+                        const enabled = !color.startsWith('!');
+                        const value = enabled ? color : color.slice(1);
+                        addRow(value, enabled);
+                    });
                 }
             }
 
@@ -382,9 +396,15 @@ export class NodeConfigFormBuilder {
         const paletteContainers = container.querySelectorAll('[data-field-type="palette_colors"]');
         paletteContainers.forEach(containerEl => {
             const fieldName = containerEl.getAttribute('data-field-name');
-            const rows = containerEl.querySelectorAll('.palette-color-row .color-text');
+            const rows = containerEl.querySelectorAll('.palette-color-row');
             const values = Array.from(rows)
-                .map(input => input.value.trim())
+                .map(row => {
+                    const textInput = row.querySelector('.color-text');
+                    const include = row.querySelector('input[type="checkbox"]')?.checked ?? true;
+                    const val = textInput ? textInput.value.trim() : '';
+                    if (!val) return '';
+                    return include ? val : `!${val}`;
+                })
                 .filter(v => v.length > 0);
             // Join with commas; empty list allowed
             config[fieldName] = values.join(',');

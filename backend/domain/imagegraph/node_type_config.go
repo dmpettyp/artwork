@@ -435,8 +435,9 @@ func parseColorsList(list string) ([]string, error) {
 	}
 
 	for _, c := range parts {
-		if !isValidHexColor(c) {
-			return nil, fmt.Errorf("color %q must be in #RRGGBB format", c)
+		val := strings.TrimPrefix(c, "!")
+		if !isValidHexColor(val) {
+			return nil, fmt.Errorf("color %q must be in #RRGGBB format (prefix ! allowed to disable)", c)
 		}
 	}
 
@@ -469,5 +470,18 @@ func (c *NodeConfigPaletteCreate) Schema() []FieldSchema {
 
 // ColorsList returns the parsed list of colors from the config.
 func (c *NodeConfigPaletteCreate) ColorsList() ([]string, error) {
-	return parseColorsList(c.Colors)
+	all, err := parseColorsList(c.Colors)
+	if err != nil {
+		return nil, err
+	}
+
+	enabled := make([]string, 0, len(all))
+	for _, col := range all {
+		if strings.HasPrefix(col, "!") {
+			continue
+		}
+		enabled = append(enabled, col)
+	}
+
+	return enabled, nil
 }

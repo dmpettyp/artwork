@@ -465,10 +465,18 @@ body {
     gap: var(--spacing-sm);
 }
 
+.palette-color-row input[type="checkbox"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
 .palette-color-row .color-picker {
-    width: 48px;
-    height: 48px;
-    padding: 2px;
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    padding: 0;
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
 }
@@ -476,6 +484,11 @@ body {
 .palette-color-row .color-text {
     flex: 1;
     margin-bottom: 0;
+    min-width: 140px;
+}
+
+.palette-color-row.disabled {
+    opacity: 0.7;
 }
 
 .modal-content select,
