@@ -191,9 +191,9 @@ var nodeTypeMetadata = []nodeTypeInfo{
 	{imagegraph.NodeTypeResizeMatch, "resize_match", "Match To Size", "Resize"},
 	{imagegraph.NodeTypePixelInflate, "pixel_inflate", "Inflate Pixels", "Resize"},
 	{imagegraph.NodeTypeBlur, "blur", "Blur", "Transform"},
-	{imagegraph.NodeTypePaletteCreate, "palette_create", "Create", "Palette"},
-	{imagegraph.NodeTypePaletteExtract, "palette_extract", "Extract", "Palette"},
-	{imagegraph.NodeTypePaletteApply, "palette_apply", "Apply", "Palette"},
+	{imagegraph.NodeTypePaletteCreate, "palette_create", "Create", "Palette Create"},
+	{imagegraph.NodeTypePaletteExtract, "palette_extract", "Extract", "Palette Extract"},
+	{imagegraph.NodeTypePaletteApply, "palette_apply", "Apply", "Palette Apply"},
 }
 
 // Conversion functions
