@@ -43,7 +43,7 @@ var interpolationOptions = []string{
 }
 
 // Shared options for cluster_by fields
-var clusterByOptions = []string{"RGB", "HSL"}
+var clusterByOptions = []string{"RGB", "Perceptual"}
 
 func isValidHexColor(color string) bool {
 	if len(color) != 7 || color[0] != '#' {

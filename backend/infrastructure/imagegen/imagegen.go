@@ -10,6 +10,8 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"math"
+	"math/rand"
+	"sort"
 
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -652,11 +654,11 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 
 	// Apply k-means clustering to get dominant colors
 	var palette []color.Color
-	if clusterBy == "HSL" {
-		palette = kmeansClusteringHSL(colors, numColors)
-	} else {
-		// Default to RGB clustering
+	switch clusterBy {
+	case "RGB":
 		palette = kmeansClusteringRGB(colors, numColors)
+	default: // Perceptual (OKLab)
+		palette = kmeansClusteringOKLab(colors, numColors)
 	}
 
 	// No sorting - use colors as returned by clustering
@@ -930,207 +932,26 @@ func kmeansClusteringRGB(colors []color.Color, k int) []color.Color {
 		}
 	}
 
-	return result
-}
-
-// kmeansClusteringHSL performs k-means clustering in HSL space to find perceptually distributed colors
-func kmeansClusteringHSL(colors []color.Color, k int) []color.Color {
-	if len(colors) == 0 {
-		return []color.Color{}
-	}
-
-	// If we have fewer colors than k, return all colors
-	if len(colors) <= k {
-		return colors
-	}
-
-	// Convert all colors to HSL
-	colorData := make([]colorWithHSL, len(colors))
-	for i, c := range colors {
-		h, s, l := rgbToHSL(c)
-		colorData[i] = colorWithHSL{color: c, h: h, s: s, l: l}
-	}
-
-	// Initialize centroids by evenly spacing through hue spectrum
-	centroids := make([][3]float64, k)
-	for i := 0; i < k; i++ {
-		// Distribute evenly across hue (0-360), mid saturation, mid lightness
-		centroids[i] = [3]float64{
-			float64(i) * 360.0 / float64(k), // Hue evenly distributed
-			0.5,                             // Mid saturation
-			0.5,                             // Mid lightness
+	// Stable sort by luminance then hue for consistency
+	sort.SliceStable(result, func(i, j int) bool {
+		ri, gi, bi, _ := result[i].RGBA()
+		rj, gj, bj, _ := result[j].RGBA()
+		li := 0.2126*float64(ri>>8) + 0.7152*float64(gi>>8) + 0.0722*float64(bi>>8)
+		lj := 0.2126*float64(rj>>8) + 0.7152*float64(gj>>8) + 0.0722*float64(bj>>8)
+		if li == lj {
+			hi := math.Atan2(float64(bi>>8)-float64(gi>>8), float64(ri>>8)-float64(gi>>8))
+			hj := math.Atan2(float64(bj>>8)-float64(gj>>8), float64(rj>>8)-float64(gj>>8))
+			return hi < hj
 		}
-	}
-
-	// Run k-means iterations
-	const maxIterations = 20
-	for iteration := 0; iteration < maxIterations; iteration++ {
-		// Assign colors to nearest centroid in HSL space
-		assignments := make([]int, len(colorData))
-		for i, cd := range colorData {
-			minDist := float64(1000000)
-			bestCluster := 0
-			for j, centroid := range centroids {
-				// Calculate distance in HSL space
-				// Hue is circular, so we need to handle wraparound
-				dh := math.Abs(cd.h - centroid[0])
-				if dh > 180 {
-					dh = 360 - dh
-				}
-				// Weight hue more heavily (scale by 2)
-				dh *= 2.0
-
-				ds := cd.s - centroid[1]
-				dl := cd.l - centroid[2]
-				dist := dh*dh + ds*ds + dl*dl
-
-				if dist < minDist {
-					minDist = dist
-					bestCluster = j
-				}
-			}
-			assignments[i] = bestCluster
-		}
-
-		// Update centroids
-		newCentroids := make([][3]float64, k)
-		counts := make([]int, k)
-
-		for i, cd := range colorData {
-			cluster := assignments[i]
-			newCentroids[cluster][0] += cd.h
-			newCentroids[cluster][1] += cd.s
-			newCentroids[cluster][2] += cd.l
-			counts[cluster]++
-		}
-
-		for i := 0; i < k; i++ {
-			if counts[i] > 0 {
-				newCentroids[i][0] /= float64(counts[i])
-				newCentroids[i][1] /= float64(counts[i])
-				newCentroids[i][2] /= float64(counts[i])
-			}
-		}
-
-		centroids = newCentroids
-	}
-
-	// Convert centroids back to RGB
-	result := make([]color.Color, k)
-	for i, centroid := range centroids {
-		result[i] = hslToRGB(centroid[0], centroid[1], centroid[2])
-	}
+		return li < lj
+	})
 
 	return result
 }
 
-// hslToRGB converts HSL color to RGB
-func hslToRGB(h, s, l float64) color.Color {
-	var r, g, b float64
-
-	if s == 0 {
-		// Achromatic (gray)
-		r, g, b = l, l, l
-	} else {
-		var q float64
-		if l < 0.5 {
-			q = l * (1 + s)
-		} else {
-			q = l + s - l*s
-		}
-		p := 2*l - q
-
-		r = hueToRGB(p, q, h+120)
-		g = hueToRGB(p, q, h)
-		b = hueToRGB(p, q, h-120)
-	}
-
-	return color.RGBA{
-		R: uint8(r * 255),
-		G: uint8(g * 255),
-		B: uint8(b * 255),
-		A: 255,
-	}
-}
-
-// hueToRGB is a helper for HSL to RGB conversion
-func hueToRGB(p, q, t float64) float64 {
-	// Normalize hue to 0-360
-	for t < 0 {
-		t += 360
-	}
-	for t > 360 {
-		t -= 360
-	}
-
-	if t < 60 {
-		return p + (q-p)*t/60
-	}
-	if t < 180 {
-		return q
-	}
-	if t < 240 {
-		return p + (q-p)*(240-t)/60
-	}
-	return p
-}
-
-// rgbToHSL converts RGB color to HSL
-func rgbToHSL(c color.Color) (h, s, l float64) {
-	r, g, b, _ := c.RGBA()
-	r8, g8, b8 := float64(r>>8)/255.0, float64(g>>8)/255.0, float64(b>>8)/255.0
-
-	max := r8
-	if g8 > max {
-		max = g8
-	}
-	if b8 > max {
-		max = b8
-	}
-
-	min := r8
-	if g8 < min {
-		min = g8
-	}
-	if b8 < min {
-		min = b8
-	}
-
-	l = (max + min) / 2.0
-
-	if max == min {
-		h = 0
-		s = 0
-		return
-	}
-
-	d := max - min
-	if l > 0.5 {
-		s = d / (2.0 - max - min)
-	} else {
-		s = d / (max + min)
-	}
-
-	switch max {
-	case r8:
-		h = (g8 - b8) / d
-		if g8 < b8 {
-			h += 6
-		}
-	case g8:
-		h = (b8-r8)/d + 2
-	case b8:
-		h = (r8-g8)/d + 4
-	}
-
-	h *= 60
-	return
-}
-
-// colorWithHSL holds a color and its HSL values for sorting
-type colorWithHSL struct {
-	color   color.Color
-	h, s, l float64
+type labColor struct {
+	l, a, b float64
+	src     color.Color
 }
 
 // createPaletteImage creates a near-square image from palette colors
@@ -1172,4 +993,227 @@ func parseHexColor(hex string) (color.Color, error) {
 		return nil, fmt.Errorf("failed to parse hex color: %w", err)
 	}
 	return color.RGBA{R: r, G: g, B: b, A: 255}, nil
+}
+
+// kmeansClusteringOKLab performs k-means clustering in OKLab space for better perceptual grouping.
+func kmeansClusteringOKLab(colors []color.Color, k int) []color.Color {
+	if len(colors) == 0 {
+		return []color.Color{}
+	}
+
+	if len(colors) <= k {
+		return colors
+	}
+
+	labColors := make([]labColor, len(colors))
+	for i, c := range colors {
+		l, a, b := rgbToOKLab(c)
+		labColors[i] = labColor{l: l, a: a, b: b, src: c}
+	}
+
+	rng := rand.New(rand.NewSource(42))
+
+	bestPalette := make([]color.Color, k)
+	bestInertia := math.MaxFloat64
+
+	const maxIterations = 30
+	const restarts = 3
+
+	for r := 0; r < restarts; r++ {
+		centroids := initCentroidsKMeansPP(labColors, k, rng)
+		assignments := make([]int, len(labColors))
+
+		for iteration := 0; iteration < maxIterations; iteration++ {
+			changed := false
+
+			for i, lc := range labColors {
+				minDist := math.MaxFloat64
+				best := 0
+				for j, c := range centroids {
+					dl := lc.l - c[0]
+					da := lc.a - c[1]
+					db := lc.b - c[2]
+					dist := dl*dl + da*da + db*db
+					if dist < minDist {
+						minDist = dist
+						best = j
+					}
+				}
+				if assignments[i] != best {
+					assignments[i] = best
+					changed = true
+				}
+			}
+
+			newCentroids := make([][3]float64, k)
+			counts := make([]int, k)
+			for i, lc := range labColors {
+				cluster := assignments[i]
+				newCentroids[cluster][0] += lc.l
+				newCentroids[cluster][1] += lc.a
+				newCentroids[cluster][2] += lc.b
+				counts[cluster]++
+			}
+
+			for i := 0; i < k; i++ {
+				if counts[i] > 0 {
+					newCentroids[i][0] /= float64(counts[i])
+					newCentroids[i][1] /= float64(counts[i])
+					newCentroids[i][2] /= float64(counts[i])
+				} else {
+					idx := i % len(labColors)
+					newCentroids[i] = [3]float64{labColors[idx].l, labColors[idx].a, labColors[idx].b}
+				}
+			}
+
+			centroids = newCentroids
+
+			if !changed {
+				break
+			}
+		}
+
+		inertia := 0.0
+		for i, lc := range labColors {
+			c := centroids[assignments[i]]
+			dl := lc.l - c[0]
+			da := lc.a - c[1]
+			db := lc.b - c[2]
+			inertia += dl*dl + da*da + db*db
+		}
+
+		if inertia < bestInertia {
+			bestInertia = inertia
+			for i, c := range centroids {
+				bestPalette[i] = okLabToRGBA(c[0], c[1], c[2])
+			}
+		}
+	}
+
+	sort.SliceStable(bestPalette, func(i, j int) bool {
+		li, ai, bi := rgbToOKLab(bestPalette[i])
+		lj, aj, bj := rgbToOKLab(bestPalette[j])
+		if li == lj {
+			hi := math.Atan2(ai, bi)
+			hj := math.Atan2(aj, bj)
+			return hi < hj
+		}
+		return li < lj
+	})
+
+	return bestPalette
+}
+
+// initCentroidsKMeansPP initializes centroids using k-means++ in OKLab space.
+func initCentroidsKMeansPP(colors []labColor, k int, rng *rand.Rand) [][3]float64 {
+	centroids := make([][3]float64, 0, k)
+
+	first := colors[rng.Intn(len(colors))]
+	centroids = append(centroids, [3]float64{first.l, first.a, first.b})
+
+	for len(centroids) < k {
+		dists := make([]float64, len(colors))
+		sum := 0.0
+		for i, c := range colors {
+			minDist := math.MaxFloat64
+			for _, cent := range centroids {
+				dl := c.l - cent[0]
+				da := c.a - cent[1]
+				db := c.b - cent[2]
+				dist := dl*dl + da*da + db*db
+				if dist < minDist {
+					minDist = dist
+				}
+			}
+			dists[i] = minDist
+			sum += minDist
+		}
+
+		target := rng.Float64() * sum
+		acc := 0.0
+		for i, d := range dists {
+			acc += d
+			if acc >= target {
+				c := colors[i]
+				centroids = append(centroids, [3]float64{c.l, c.a, c.b})
+				break
+			}
+		}
+	}
+
+	return centroids
+}
+
+// rgbToOKLab converts an sRGB color to OKLab.
+func rgbToOKLab(c color.Color) (float64, float64, float64) {
+	r, g, b, _ := c.RGBA()
+	rf := srgbToLinear(float64(r) / 65535.0)
+	gf := srgbToLinear(float64(g) / 65535.0)
+	bf := srgbToLinear(float64(b) / 65535.0)
+
+	l := 0.4122214708*rf + 0.5363325363*gf + 0.0514459929*bf
+	m := 0.2119034982*rf + 0.6806995451*gf + 0.1073969566*bf
+	s := 0.0883024619*rf + 0.2817188376*gf + 0.6299787005*bf
+
+	l_ := math.Cbrt(l)
+	m_ := math.Cbrt(m)
+	s_ := math.Cbrt(s)
+
+	lOK := 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_
+	aOK := 1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_
+	bOK := 0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_
+
+	return lOK, aOK, bOK
+}
+
+// okLabToRGBA converts OKLab to sRGB and clamps to byte range.
+func okLabToRGBA(l, a, b float64) color.Color {
+	l_ := l + 0.3963377774*a + 0.2158037573*b
+	m_ := l - 0.1055613458*a - 0.0638541728*b
+	s_ := l - 0.0894841775*a - 1.2914855480*b
+
+	l3 := l_ * l_ * l_
+	m3 := m_ * m_ * m_
+	s3 := s_ * s_ * s_
+
+	r := +4.0767416621*l3 - 3.3077115913*m3 + 0.2309699292*s3
+	g := -1.2684380046*l3 + 2.6097574011*m3 - 0.3413193965*s3
+	bc := -0.0041960863*l3 - 0.7034186147*m3 + 1.7076147010*s3
+
+	return color.RGBA{
+		R: floatToByte(linearToSRGB(r)),
+		G: floatToByte(linearToSRGB(g)),
+		B: floatToByte(linearToSRGB(bc)),
+		A: 255,
+	}
+}
+
+func srgbToLinear(c float64) float64 {
+	if c <= 0.04045 {
+		return c / 12.92
+	}
+	return math.Pow((c+0.055)/1.055, 2.4)
+}
+
+func linearToSRGB(c float64) float64 {
+	if c <= 0.0 {
+		return 0.0
+	}
+	if c >= 1.0 {
+		return 1.0
+	}
+	if c <= 0.0031308 {
+		return 12.92 * c
+	}
+	return 1.055*math.Pow(c, 1.0/2.4) - 0.055
+}
+
+func floatToByte(f float64) uint8 {
+	if f < 0 {
+		f = 0
+	}
+	if f > 1 {
+		f = 1
+	}
+	return uint8(f * 255.0)
 }
