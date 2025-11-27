@@ -46,6 +46,19 @@ export class NodeConfigFormBuilder {
             wrapper.setAttribute('data-field-name', fieldName);
             wrapper.setAttribute('data-field-type', 'palette_colors');
             wrapper.id = `${idPrefix}-${fieldName}`;
+            const isEditModal = idPrefix && idPrefix.startsWith('edit');
+            if (nodeType === 'palette_edit') {
+                if (!isEditModal) {
+                    label.textContent = '';
+                    label.style.display = 'none';
+                } else {
+                    label.textContent = 'Palette colors';
+                    label.style.display = '';
+                }
+            } else {
+                label.textContent = 'Colors';
+                label.style.display = '';
+            }
 
             const rowsContainer = document.createElement('div');
             rowsContainer.className = 'palette-colors-rows';
@@ -121,7 +134,11 @@ export class NodeConfigFormBuilder {
                 }
             }
 
-            addBtn.addEventListener('click', () => addRow('#000000'));
+            if (!(nodeType === 'palette_edit' && !isEditModal)) {
+                addBtn.addEventListener('click', () => addRow('#000000'));
+            } else {
+                addBtn.style.display = 'none';
+            }
 
             // No inputs with data-field-name are nested; wrapper acts as field element
             return { label, input: wrapper };
