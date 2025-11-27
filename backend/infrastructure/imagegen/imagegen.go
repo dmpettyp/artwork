@@ -684,6 +684,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	nodeID imagegraph.NodeID,
 	sourceImageID imagegraph.ImageID,
 	paletteImageID imagegraph.ImageID,
+	config *imagegraph.NodeConfigPaletteApply,
 ) error {
 	// Load source image
 	sourceImg, err := ig.loadImage(sourceImageID)
@@ -702,6 +703,11 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 
 	if len(paletteColors) == 0 {
 		return fmt.Errorf("palette image contains no colors")
+	}
+
+	// Normalize palette lightness if requested
+	if config != nil && config.Normalize == "lightness" {
+		paletteColors = normalizePaletteLightness(paletteColors)
 	}
 
 	// Map source image to palette
@@ -795,6 +801,39 @@ func mapImageToPalette(sourceImg image.Image, palette []color.Color) image.Image
 	}
 
 	return outputImg
+}
+
+// normalizePaletteLightness scales palette colors in OKLab so the lightness range spans [0,1].
+func normalizePaletteLightness(palette []color.Color) []color.Color {
+	if len(palette) == 0 {
+		return palette
+	}
+
+	minL := math.MaxFloat64
+	maxL := -math.MaxFloat64
+	labs := make([][3]float64, len(palette))
+
+	for i, c := range palette {
+		l, a, b := rgbToOKLab(c)
+		labs[i] = [3]float64{l, a, b}
+		if l < minL {
+			minL = l
+		}
+		if l > maxL {
+			maxL = l
+		}
+	}
+
+	if maxL <= minL {
+		return palette
+	}
+
+	scaled := make([]color.Color, len(palette))
+	for i, lab := range labs {
+		lNorm := (lab[0] - minL) / (maxL - minL)
+		scaled[i] = okLabToRGBA(lNorm, lab[1], lab[2])
+	}
+	return scaled
 }
 
 // findNearestColor finds the nearest color in the palette using Euclidean distance in RGB space

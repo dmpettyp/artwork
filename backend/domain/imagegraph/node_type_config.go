@@ -394,13 +394,21 @@ func (c *NodeConfigPaletteExtract) Schema() []FieldSchema {
 }
 
 // NodeConfigPaletteApply is the configuration for palette-apply nodes.
-type NodeConfigPaletteApply struct{}
+type NodeConfigPaletteApply struct {
+	Normalize string `json:"normalize"`
+}
 
 func NewNodeConfigPaletteApply() *NodeConfigPaletteApply {
-	return &NodeConfigPaletteApply{}
+	return &NodeConfigPaletteApply{Normalize: "none"}
 }
 
 func (c *NodeConfigPaletteApply) Validate() error {
+	if c.Normalize == "" {
+		c.Normalize = "none"
+	}
+	if !slices.Contains([]string{"none", "lightness"}, c.Normalize) {
+		return fmt.Errorf("normalize must be one of: none, lightness")
+	}
 	return nil
 }
 
@@ -409,7 +417,9 @@ func (c *NodeConfigPaletteApply) NodeType() NodeType {
 }
 
 func (c *NodeConfigPaletteApply) Schema() []FieldSchema {
-	return []FieldSchema{}
+	return []FieldSchema{
+		{Name: "normalize", Type: FieldTypeOption, Required: false, Options: []string{"none", "lightness"}, Default: "none"},
+	}
 }
 
 // parseColorsList splits a comma-separated string, trims whitespace, and

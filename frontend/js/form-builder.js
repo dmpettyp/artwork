@@ -126,7 +126,15 @@ export class NodeConfigFormBuilder {
                 fieldDef.options.forEach(optionValue => {
                     const option = document.createElement('option');
                     option.value = optionValue;
-                    option.textContent = optionValue;
+                    option.textContent = optionValue === 'lightness'
+                        ? 'Normalize lightness'
+                        : optionValue === 'none'
+                            ? 'None'
+                            : optionValue === 'Perceptual'
+                                ? 'Perceptual (OKLab)'
+                                : optionValue === 'RGB'
+                                    ? 'Raw RGB'
+                                    : optionValue;
                     input.appendChild(option);
                 });
             }

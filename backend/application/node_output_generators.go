@@ -191,6 +191,11 @@ func generatePaletteApplyNodeOutputs(
 	event *imagegraph.NodeNeedsOutputsEvent,
 	imageGen *imagegen.ImageGen,
 ) error {
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigPaletteApply)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate PaletteApply Node outputs")
+	}
+
 	sourceImageID, err := event.GetInput("source")
 	if err != nil {
 		return err
@@ -207,6 +212,7 @@ func generatePaletteApplyNodeOutputs(
 		event.NodeID,
 		sourceImageID,
 		paletteImageID,
+		config,
 	)
 }
 
