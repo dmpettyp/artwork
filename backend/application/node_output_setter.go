@@ -8,17 +8,17 @@ import (
 	"github.com/dmpettyp/dorky/messagebus"
 )
 
-type NodeOutputSetter struct {
+type NodeUpdater struct {
 	messageBus *messagebus.MessageBus
 }
 
-func NewNodeOutputSetter(messageBus *messagebus.MessageBus) *NodeOutputSetter {
-	return &NodeOutputSetter{
+func NewNodeUpdater(messageBus *messagebus.MessageBus) *NodeUpdater {
+	return &NodeUpdater{
 		messageBus: messageBus,
 	}
 }
 
-func (s *NodeOutputSetter) SetNodeOutputImage(
+func (s *NodeUpdater) SetNodeOutputImage(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
@@ -41,7 +41,7 @@ func (s *NodeOutputSetter) SetNodeOutputImage(
 	return nil
 }
 
-func (s *NodeOutputSetter) SetNodePreviewImage(
+func (s *NodeUpdater) SetNodePreviewImage(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
@@ -57,6 +57,25 @@ func (s *NodeOutputSetter) SetNodePreviewImage(
 
 	if err != nil {
 		return fmt.Errorf("could not set node preview image: %w", err)
+	}
+
+	return nil
+}
+
+func (s *NodeUpdater) SetNodeConfig(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	config imagegraph.NodeConfig,
+) error {
+	cmd := NewSetImageGraphNodeConfigCommand(
+		imageGraphID,
+		nodeID,
+		config,
+	)
+
+	if err := s.messageBus.HandleCommand(ctx, cmd); err != nil {
+		return fmt.Errorf("could not set node config: %w", err)
 	}
 
 	return nil

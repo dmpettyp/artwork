@@ -13,6 +13,7 @@ var NodeTypeMapper = mapper.MustNew[string, NodeType](
 	"palette_extract", NodeTypePaletteExtract,
 	"palette_apply", NodeTypePaletteApply,
 	"palette_create", NodeTypePaletteCreate,
+	"palette_edit", NodeTypePaletteEdit,
 )
 
 var NodeStateMapper = mapper.MustNew[string, NodeState](

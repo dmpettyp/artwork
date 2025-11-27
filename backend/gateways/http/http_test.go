@@ -76,11 +76,11 @@ func setupTestServer(t *testing.T) *testServer {
 	// Create mock image storage
 	imageStorage := &mockImageStorage{data: make(map[string][]byte)}
 
-	// Create output setter for ImageGen
-	outputSetter := application.NewNodeOutputSetter(mb)
+	// Create node updater for ImageGen
+	nodeUpdater := application.NewNodeUpdater(mb)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, outputSetter)
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater)
 
 	// Create notifier
 	notifier := httpgateway.NewImageGraphNotifier(logger)

@@ -18,6 +18,7 @@ const (
 	NodeTypePaletteExtract
 	NodeTypePaletteApply
 	NodeTypePaletteCreate
+	NodeTypePaletteEdit
 )
 
 func (nt NodeType) MarshalJSON() ([]byte, error) {
@@ -83,5 +84,10 @@ var NodeTypeDefs = map[NodeType]NodeTypeDef{
 	NodeTypePaletteCreate: {
 		Outputs:   []OutputName{"palette"},
 		NewConfig: func() NodeConfig { return NewNodeConfigPaletteCreate() },
+	},
+	NodeTypePaletteEdit: {
+		Inputs:    []InputName{"source"},
+		Outputs:   []OutputName{"palette"},
+		NewConfig: func() NodeConfig { return NewNodeConfigPaletteEdit() },
 	},
 }

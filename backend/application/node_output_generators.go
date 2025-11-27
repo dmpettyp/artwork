@@ -25,6 +25,7 @@ var nodeOutputGenerators = map[imagegraph.NodeType]nodeOutputGenerator{
 	imagegraph.NodeTypePaletteExtract: generatePaletteExtractNodeOutputs,
 	imagegraph.NodeTypePaletteApply:   generatePaletteApplyNodeOutputs,
 	imagegraph.NodeTypePaletteCreate:  generatePaletteCreateNodeOutputs,
+	imagegraph.NodeTypePaletteEdit:    generatePaletteEditNodeOutputs,
 	imagegraph.NodeTypeOutput:         generateOutputNodeOutputs,
 }
 
@@ -236,6 +237,36 @@ func generatePaletteCreateNodeOutputs(
 		event.ImageGraphID,
 		event.NodeID,
 		colors,
+	)
+}
+
+func generatePaletteEditNodeOutputs(
+	ctx context.Context,
+	event *imagegraph.NodeNeedsOutputsEvent,
+	imageGen *imagegen.ImageGen,
+) error {
+	config, ok := event.NodeConfig.(*imagegraph.NodeConfigPaletteEdit)
+	if !ok {
+		return fmt.Errorf("invalid config provided to generate PaletteEdit Node outputs")
+	}
+
+	sourceImageID, err := event.GetInput("source")
+	if err != nil {
+		return err
+	}
+
+	rawList, err := config.ColorsRawList()
+	if err != nil {
+		return err
+	}
+
+	return imageGen.GenerateOutputsForPaletteEditNode(
+		ctx,
+		event.ImageGraphID,
+		event.NodeID,
+		sourceImageID,
+		rawList,
+		config.Colors,
 	)
 }
 

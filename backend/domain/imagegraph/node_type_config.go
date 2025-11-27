@@ -485,3 +485,48 @@ func (c *NodeConfigPaletteCreate) ColorsList() ([]string, error) {
 
 	return enabled, nil
 }
+
+// NodeConfigPaletteEdit reuses the same config shape as PaletteCreate.
+type NodeConfigPaletteEdit struct {
+	Colors string `json:"colors"`
+}
+
+func NewNodeConfigPaletteEdit() *NodeConfigPaletteEdit {
+	return &NodeConfigPaletteEdit{}
+}
+
+func (c *NodeConfigPaletteEdit) Validate() error {
+	_, err := parseColorsList(c.Colors)
+	return err
+}
+
+func (c *NodeConfigPaletteEdit) NodeType() NodeType {
+	return NodeTypePaletteEdit
+}
+
+func (c *NodeConfigPaletteEdit) Schema() []FieldSchema {
+	return []FieldSchema{
+		{Name: "colors", Type: FieldTypeString, Required: false},
+	}
+}
+
+func (c *NodeConfigPaletteEdit) ColorsList() ([]string, error) {
+	all, err := parseColorsList(c.Colors)
+	if err != nil {
+		return nil, err
+	}
+
+	enabled := make([]string, 0, len(all))
+	for _, col := range all {
+		if strings.HasPrefix(col, "!") {
+			continue
+		}
+		enabled = append(enabled, col)
+	}
+
+	return enabled, nil
+}
+
+func (c *NodeConfigPaletteEdit) ColorsRawList() ([]string, error) {
+	return parseColorsList(c.Colors)
+}

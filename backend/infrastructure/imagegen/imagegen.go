@@ -12,6 +12,7 @@ import (
 	"math"
 	"math/rand"
 	"sort"
+	"strings"
 
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
@@ -23,7 +24,7 @@ type imageStorage interface {
 	Get(imageID imagegraph.ImageID) ([]byte, error)
 }
 
-type outputSetter interface {
+type nodeUpdater interface {
 	SetNodeOutputImage(
 		ctx context.Context,
 		imageGraphID imagegraph.ImageGraphID,
@@ -38,20 +39,27 @@ type outputSetter interface {
 		nodeID imagegraph.NodeID,
 		imageID imagegraph.ImageID,
 	) error
+
+	SetNodeConfig(
+		ctx context.Context,
+		imageGraphID imagegraph.ImageGraphID,
+		nodeID imagegraph.NodeID,
+		config imagegraph.NodeConfig,
+	) error
 }
 
 type ImageGen struct {
 	imageStorage imageStorage
-	outputSetter outputSetter
+	nodeUpdater  nodeUpdater
 }
 
 func NewImageGen(
 	imageStorage imageStorage,
-	outputSetter outputSetter,
+	nodeUpdater nodeUpdater,
 ) *ImageGen {
 	return &ImageGen{
 		imageStorage: imageStorage,
-		outputSetter: outputSetter,
+		nodeUpdater:  nodeUpdater,
 	}
 }
 
@@ -110,7 +118,7 @@ func (ig *ImageGen) saveAndSetOutput(
 	}
 
 	// Set the output image on the node
-	err = ig.outputSetter.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
+	err = ig.nodeUpdater.SetNodeOutputImage(ctx, imageGraphID, nodeID, outputName, outputImageID)
 	if err != nil {
 		return fmt.Errorf("could not set node output image: %w", err)
 	}
@@ -162,7 +170,7 @@ func (ig *ImageGen) saveAndSetPreview(
 		return fmt.Errorf("could not save preview image: %w", err)
 	}
 
-	err = ig.outputSetter.SetNodePreviewImage(ctx, imageGraphID, nodeID, previewImageID)
+	err = ig.nodeUpdater.SetNodePreviewImage(ctx, imageGraphID, nodeID, previewImageID)
 
 	if err != nil {
 		return fmt.Errorf("could not set node preview image: %w", err)
@@ -756,6 +764,95 @@ func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
 	return nil
 }
 
+func (ig *ImageGen) GenerateOutputsForPaletteEditNode(
+	ctx context.Context,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	sourceImageID imagegraph.ImageID,
+	existingColors []string,
+	currentConfig string,
+) error {
+	// Load source image
+	sourceImg, err := ig.loadImage(sourceImageID)
+	if err != nil {
+		return err
+	}
+
+	extracted := extractColorsFromImage(sourceImg)
+	if len(extracted) > 100 {
+		return fmt.Errorf("palette edit: source image contains more than 100 unique colors")
+	}
+
+	// Map existing colors (with disabled flag)
+	existingMap := make(map[string]bool)
+	disabledMap := make(map[string]bool)
+	for _, raw := range existingColors {
+		base := strings.TrimPrefix(raw, "!")
+		existingMap[base] = true
+		if strings.HasPrefix(raw, "!") {
+			disabledMap[base] = true
+		}
+	}
+
+	// Add extracted colors if not present
+	for _, c := range extracted {
+		hex := colorToHex(c)
+		if _, ok := existingMap[hex]; ok {
+			continue
+		}
+		existingMap[hex] = true
+	}
+
+	// Build combined list with disabled flags
+	combined := make([]string, 0, len(existingMap))
+	for colorHex := range existingMap {
+		if disabledMap[colorHex] {
+			combined = append(combined, "!"+colorHex)
+		} else {
+			combined = append(combined, colorHex)
+		}
+	}
+
+	// Sort deterministically
+	sort.SliceStable(combined, func(i, j int) bool {
+		ci, _ := parseHexColor(strings.TrimPrefix(combined[i], "!"))
+		cj, _ := parseHexColor(strings.TrimPrefix(combined[j], "!"))
+		return lessByLuminanceHue(ci, cj)
+	})
+
+	// Build enabled palette image
+	enabledColors := make([]color.Color, 0, len(combined))
+	for _, raw := range combined {
+		if strings.HasPrefix(raw, "!") {
+			continue
+		}
+		col, _ := parseHexColor(raw)
+		enabledColors = append(enabledColors, col)
+	}
+
+	paletteImg := createPaletteImage(enabledColors)
+
+	// Update config (only if changed to avoid loops)
+	newConfigStr := strings.Join(combined, ",")
+	if newConfigStr != currentConfig {
+		cfg := imagegraph.NewNodeConfigPaletteEdit()
+		cfg.Colors = newConfigStr
+		if err := ig.nodeUpdater.SetNodeConfig(ctx, imageGraphID, nodeID, cfg); err != nil {
+			return fmt.Errorf("could not update palette edit config: %w", err)
+		}
+	}
+
+	if err := ig.saveAndSetPreview(ctx, imageGraphID, nodeID, paletteImg); err != nil {
+		return fmt.Errorf("could not generate palette edit preview: %w", err)
+	}
+
+	if err := ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", paletteImg); err != nil {
+		return fmt.Errorf("could not generate palette edit output: %w", err)
+	}
+
+	return nil
+}
+
 // extractPaletteColors extracts all non-transparent unique colors from a palette image
 func extractPaletteColors(img image.Image) []color.Color {
 	bounds := img.Bounds()
@@ -973,16 +1070,7 @@ func kmeansClusteringRGB(colors []color.Color, k int) []color.Color {
 
 	// Stable sort by luminance then hue for consistency
 	sort.SliceStable(result, func(i, j int) bool {
-		ri, gi, bi, _ := result[i].RGBA()
-		rj, gj, bj, _ := result[j].RGBA()
-		li := 0.2126*float64(ri>>8) + 0.7152*float64(gi>>8) + 0.0722*float64(bi>>8)
-		lj := 0.2126*float64(rj>>8) + 0.7152*float64(gj>>8) + 0.0722*float64(bj>>8)
-		if li == lj {
-			hi := math.Atan2(float64(bi>>8)-float64(gi>>8), float64(ri>>8)-float64(gi>>8))
-			hj := math.Atan2(float64(bj>>8)-float64(gj>>8), float64(rj>>8)-float64(gj>>8))
-			return hi < hj
-		}
-		return li < lj
+		return lessByLuminanceHue(result[i], result[j])
 	})
 
 	return result
@@ -1032,6 +1120,22 @@ func parseHexColor(hex string) (color.Color, error) {
 		return nil, fmt.Errorf("failed to parse hex color: %w", err)
 	}
 	return color.RGBA{R: r, G: g, B: b, A: 255}, nil
+}
+
+func colorToHex(c color.Color) string {
+	r, g, b, _ := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x", uint8(r>>8), uint8(g>>8), uint8(b>>8))
+}
+
+func lessByLuminanceHue(a, b color.Color) bool {
+	la, aa, ba := rgbToOKLab(a)
+	lb, ab, bb := rgbToOKLab(b)
+	if la == lb {
+		ha := math.Atan2(aa, ba)
+		hb := math.Atan2(ab, bb)
+		return ha < hb
+	}
+	return la < lb
 }
 
 // kmeansClusteringOKLab performs k-means clustering in OKLab space for better perceptual grouping.

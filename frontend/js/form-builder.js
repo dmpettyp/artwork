@@ -40,7 +40,7 @@ export class NodeConfigFormBuilder {
         let input;
 
         // Special handling for palette_create colors: present as list with color pickers
-        if (nodeType === 'palette_create' && fieldName === 'colors') {
+        if ((nodeType === 'palette_create' || nodeType === 'palette_edit') && fieldName === 'colors') {
             const wrapper = document.createElement('div');
             wrapper.className = 'palette-colors-field';
             wrapper.setAttribute('data-field-name', fieldName);

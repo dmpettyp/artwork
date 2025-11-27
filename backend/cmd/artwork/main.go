@@ -84,11 +84,11 @@ func main() {
 		return
 	}
 
-	// Create output setter for ImageGen
-	outputSetter := application.NewNodeOutputSetter(messageBus)
+	// Create node updater for ImageGen
+	nodeUpdater := application.NewNodeUpdater(messageBus)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, outputSetter)
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater)
 
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 
