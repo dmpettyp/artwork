@@ -33,6 +33,7 @@ const modalManager = new ModalManager();
 const toastManager = new ToastManager();
 const graphManager = new GraphManager(api, graphState, renderer, toastManager);
 const outputSidebar = new OutputSidebar(graphState, renderer, toastManager);
+const initialGraphId = graphManager.getGraphIdFromUrl();
 
 // Crop modal for visual crop configuration
 const cropModal = new CropModal(toastManager);
@@ -85,8 +86,7 @@ graphSelect.addEventListener('change', (e) => {
     if (graphId) {
         graphManager.selectGraph(graphId);
     } else {
-        graphManager.disconnectWebSocket();
-        graphState.setCurrentGraph(null);
+        graphManager.clearSelection();
     }
 });
 
@@ -388,7 +388,7 @@ async function initialize() {
         populateAddNodeContextMenu(schemas);
 
         // Load graph list
-        await graphManager.loadGraphList();
+        await graphManager.loadGraphList(initialGraphId);
     } catch (error) {
         console.error('Failed to initialize application:', error);
         toastManager.show('Failed to load application configuration. Please refresh the page.', 'error');

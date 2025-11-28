@@ -14,6 +14,9 @@ export class GraphManager {
 
         // Callbacks
         this.onGraphListRendered = null;
+
+        // URL query parameter name for the active graph
+        this.graphQueryParam = 'graphId';
     }
 
     // Set callback for when graph list is rendered
@@ -21,15 +24,34 @@ export class GraphManager {
         this.onGraphListRendered = callback;
     }
 
+    getGraphIdFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(this.graphQueryParam);
+    }
+
+    updateGraphInUrl(graphId) {
+        const url = new URL(window.location.href);
+
+        if (graphId) {
+            url.searchParams.set(this.graphQueryParam, graphId);
+        } else {
+            url.searchParams.delete(this.graphQueryParam);
+        }
+
+        window.history.replaceState({}, '', url);
+    }
+
     // Load and display graph list
-    async loadGraphList() {
+    async loadGraphList(preferredGraphId = null) {
         try {
             const graphs = await this.api.listImageGraphs();
             this.renderGraphList(graphs);
 
             // Auto-select the first graph if none is selected
             if (graphs.length > 0 && !this.graphState.getCurrentGraphId()) {
-                await this.selectGraph(graphs[0].id);
+                const hasPreferred = preferredGraphId && graphs.some((graph) => graph.id === preferredGraphId);
+                const graphIdToSelect = hasPreferred ? preferredGraphId : graphs[0].id;
+                await this.selectGraph(graphIdToSelect);
             }
         } catch (error) {
             console.error('Failed to load graphs:', error);
@@ -83,6 +105,7 @@ export class GraphManager {
             }
 
             this.graphState.setCurrentGraph(graph);
+            this.updateGraphInUrl(graphId);
             await this.loadGraphList(); // Refresh list to update active state
 
             // Connect to WebSocket for real-time updates
@@ -190,6 +213,12 @@ export class GraphManager {
             this.wsConnection.close(1000, 'Client disconnecting');
             this.wsConnection = null;
         }
+    }
+
+    clearSelection() {
+        this.disconnectWebSocket();
+        this.graphState.setCurrentGraph(null);
+        this.updateGraphInUrl(null);
     }
 
     // Cleanup on page unload
