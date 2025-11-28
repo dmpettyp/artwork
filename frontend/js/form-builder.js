@@ -161,10 +161,10 @@ export class NodeConfigFormBuilder {
                         ? 'Normalize lightness'
                         : optionValue === 'none'
                             ? 'None'
-                            : optionValue === 'Perceptual'
-                                ? 'Perceptual (OKLab)'
-                                : optionValue === 'RGB'
-                                    ? 'Raw RGB'
+                            : optionValue === 'oklab_clusters'
+                                ? 'Perceptual clusters (OKLab)'
+                                : optionValue === 'dominant_frequency'
+                                    ? 'Dominant colors (frequency)'
                                     : optionValue;
                     input.appendChild(option);
                 });

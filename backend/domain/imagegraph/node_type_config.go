@@ -42,8 +42,7 @@ var interpolationOptions = []string{
 	"Lanczos3",
 }
 
-// Shared options for cluster_by fields
-var clusterByOptions = []string{"RGB", "Perceptual"}
+var paletteExtractMethodOptions = []string{"oklab_clusters", "dominant_frequency"}
 
 func isValidHexColor(color string) bool {
 	if len(color) != 7 || color[0] != '#' {
@@ -357,13 +356,13 @@ func (c *NodeConfigPixelInflate) Schema() []FieldSchema {
 // NodeConfigPaletteExtract is the configuration for palette-extract nodes.
 type NodeConfigPaletteExtract struct {
 	NumColors int    `json:"num_colors"`
-	ClusterBy string `json:"cluster_by"`
+	Method    string `json:"method"`
 }
 
 func NewNodeConfigPaletteExtract() *NodeConfigPaletteExtract {
 	return &NodeConfigPaletteExtract{
 		NumColors: 16,
-		ClusterBy: "RGB",
+		Method:    "oklab_clusters",
 	}
 }
 
@@ -375,8 +374,12 @@ func (c *NodeConfigPaletteExtract) Validate() error {
 		return fmt.Errorf("num_colors must be 1000 or less")
 	}
 
-	if !slices.Contains(clusterByOptions, c.ClusterBy) {
-		return fmt.Errorf("cluster_by must be one of: %v", clusterByOptions)
+	if c.Method == "" {
+		c.Method = "oklab_clusters"
+	}
+
+	if !slices.Contains(paletteExtractMethodOptions, c.Method) {
+		return fmt.Errorf("method must be one of: %v", paletteExtractMethodOptions)
 	}
 
 	return nil
@@ -389,7 +392,7 @@ func (c *NodeConfigPaletteExtract) NodeType() NodeType {
 func (c *NodeConfigPaletteExtract) Schema() []FieldSchema {
 	return []FieldSchema{
 		{Name: "num_colors", Type: FieldTypeInt, Required: true, Default: 16},
-		{Name: "cluster_by", Type: FieldTypeOption, Required: true, Options: clusterByOptions, Default: "RGB"},
+		{Name: "method", Type: FieldTypeOption, Required: true, Options: paletteExtractMethodOptions, Default: "oklab_clusters"},
 	}
 }
 

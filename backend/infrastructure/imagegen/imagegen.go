@@ -649,7 +649,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	nodeID imagegraph.NodeID,
 	sourceImageID imagegraph.ImageID,
 	numColors int,
-	clusterBy string,
+	method string,
 ) error {
 	// Load source image
 	sourceImg, err := ig.loadImage(sourceImageID)
@@ -657,15 +657,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 		return err
 	}
 
-	// Extract colors from the image (ignoring alpha)
-	colors := extractColorsFromImage(sourceImg)
-
-	// Apply k-means clustering to get dominant colors
 	var palette []color.Color
-	switch clusterBy {
-	case "RGB":
-		palette = kmeansClusteringRGB(colors, numColors)
-	default: // Perceptual (OKLab)
+	switch method {
+	case "dominant_frequency":
+		palette = mostCommonColors(sourceImg, numColors)
+	default: // "oklab_clusters" and fallback
+		// Extract colors from the image (ignoring alpha)
+		colors := extractColorsFromImage(sourceImg)
 		palette = kmeansClusteringOKLab(colors, numColors)
 	}
 
@@ -983,6 +981,100 @@ func extractColorsFromImage(img image.Image) []color.Color {
 	}
 
 	return colors
+}
+
+// mostCommonColors returns the top-k most frequent colors in an image (alpha ignored)
+func mostCommonColors(img image.Image, k int) []color.Color {
+	if k <= 0 {
+		return []color.Color{}
+	}
+
+	// Colors within this OKLab distance are considered duplicates
+	const proximityThreshold = 0.01
+
+	bounds := img.Bounds()
+	colorCounts := make(map[uint32]int)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.At(x, y)
+			r, g, b, _ := c.RGBA()
+			// Convert to 8-bit and ignore alpha
+			r8, g8, b8 := uint8(r>>8), uint8(g>>8), uint8(b>>8)
+			key := uint32(r8)<<16 | uint32(g8)<<8 | uint32(b8)
+			colorCounts[key]++
+		}
+	}
+
+	type colorCount struct {
+		key   uint32
+		count int
+	}
+
+	sorted := make([]colorCount, 0, len(colorCounts))
+	for key, count := range colorCounts {
+		sorted = append(sorted, colorCount{key: key, count: count})
+	}
+
+	// Sort by frequency (desc), then by key for determinism
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].count == sorted[j].count {
+			return sorted[i].key < sorted[j].key
+		}
+		return sorted[i].count > sorted[j].count
+	})
+
+	if k > len(sorted) {
+		k = len(sorted)
+	}
+
+	// Deduplicate visually-close colors in frequency order
+	type labColor struct {
+		col color.Color
+		lab [3]float64
+	}
+
+	selected := make([]labColor, 0, k)
+	for _, entry := range sorted {
+		if len(selected) >= k {
+			break
+		}
+
+		c := color.RGBA{
+			R: uint8(entry.key >> 16),
+			G: uint8((entry.key >> 8) & 0xFF),
+			B: uint8(entry.key & 0xFF),
+			A: 255,
+		}
+		l, a, b := rgbToOKLab(c)
+
+		tooClose := false
+		for _, chosen := range selected {
+			dl := chosen.lab[0] - l
+			da := chosen.lab[1] - a
+			db := chosen.lab[2] - b
+			if dl*dl+da*da+db*db < proximityThreshold*proximityThreshold {
+				tooClose = true
+				break
+			}
+		}
+
+		if !tooClose {
+			selected = append(selected, labColor{col: c, lab: [3]float64{l, a, b}})
+		}
+	}
+
+	// Order visually: luminance/hue only for a pleasing, stable layout
+	sort.SliceStable(selected, func(i, j int) bool {
+		return lessByLuminanceHue(selected[i].col, selected[j].col)
+	})
+
+	palette := make([]color.Color, 0, k)
+	for _, entry := range selected {
+		palette = append(palette, entry.col)
+	}
+
+	return palette
 }
 
 // kmeansClusteringRGB performs k-means clustering in RGB space to find dominant colors

@@ -183,7 +183,7 @@ func generatePaletteExtractNodeOutputs(
 		event.NodeID,
 		sourceImageID,
 		config.NumColors,
-		config.ClusterBy,
+		config.Method,
 	)
 }
 
