@@ -62,6 +62,16 @@ export class NodeConfigFormBuilder {
 
             const rowsContainer = document.createElement('div');
             rowsContainer.className = 'palette-colors-rows';
+
+            const header = document.createElement('div');
+            header.className = 'palette-colors-header';
+            ['Use', 'Color', 'Hex', ''].forEach((text) => {
+                const cell = document.createElement('div');
+                cell.textContent = text;
+                header.appendChild(cell);
+            });
+
+            wrapper.appendChild(header);
             wrapper.appendChild(rowsContainer);
 
             const addBtn = document.createElement('button');
@@ -92,8 +102,8 @@ export class NodeConfigFormBuilder {
 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'btn';
-                removeBtn.textContent = 'Remove';
+                removeBtn.className = 'btn palette-remove-btn';
+                removeBtn.textContent = '✕';
 
                 includeCheckbox.addEventListener('change', () => {
                     row.classList.toggle('disabled', !includeCheckbox.checked);
