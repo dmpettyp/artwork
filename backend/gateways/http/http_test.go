@@ -80,7 +80,7 @@ func setupTestServer(t *testing.T) *testServer {
 	nodeUpdater := application.NewNodeUpdater(mb)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater)
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger)
 
 	// Create notifier
 	notifier := httpgateway.NewImageGraphNotifier(logger)

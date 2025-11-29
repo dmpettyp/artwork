@@ -13,6 +13,7 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 ## TODO
 
 
+- logging for image generation
 - seems to be a race when generating outputs, don't want older output to be
   written over newer outputs
 - node types

@@ -88,7 +88,7 @@ func main() {
 	nodeUpdater := application.NewNodeUpdater(messageBus)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater)
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger)
 
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 

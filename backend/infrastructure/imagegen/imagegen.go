@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	_ "image/jpeg"
 	"image/png"
+	"log/slog"
 	"math"
 	"math/rand"
 	"sort"
@@ -51,16 +52,42 @@ type nodeUpdater interface {
 type ImageGen struct {
 	imageStorage imageStorage
 	nodeUpdater  nodeUpdater
+	logger       *slog.Logger
 }
 
 func NewImageGen(
 	imageStorage imageStorage,
 	nodeUpdater nodeUpdater,
+	logger *slog.Logger,
 ) *ImageGen {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &ImageGen{
 		imageStorage: imageStorage,
 		nodeUpdater:  nodeUpdater,
+		logger:       logger,
 	}
+}
+
+func (ig *ImageGen) logGeneration(
+	nodeType string,
+	imageGraphID imagegraph.ImageGraphID,
+	nodeID imagegraph.NodeID,
+	attrs ...any,
+) {
+	if ig.logger == nil {
+		return
+	}
+
+	args := []any{
+		"node_type", nodeType,
+		"graph_id", imageGraphID.String(),
+		"node_id", nodeID.String(),
+	}
+	args = append(args, attrs...)
+	ig.logger.Info("generate_node", args...)
 }
 
 func (ig *ImageGen) encodeImage(img image.Image) ([]byte, error) {
@@ -207,6 +234,8 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	inputImageID imagegraph.ImageID,
 	radius int,
 ) error {
+	ig.logGeneration("blur", imageGraphID, nodeID, "radius", radius)
+
 	// Load the input image
 	img, err := ig.loadImage(inputImageID)
 	if err != nil {
@@ -239,6 +268,12 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	height *int,
 	interpolation string,
 ) error {
+	ig.logGeneration("resize", imageGraphID, nodeID,
+		"width", width,
+		"height", height,
+		"interpolation", interpolation,
+	)
+
 	// Load the input image
 	img, err := ig.loadImage(inputImageID)
 	if err != nil {
@@ -304,6 +339,10 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	sizeMatchImageID imagegraph.ImageID,
 	interpolation string,
 ) error {
+	ig.logGeneration("resize_match", imageGraphID, nodeID,
+		"interpolation", interpolation,
+	)
+
 	// Load the original image
 	originalImg, err := ig.loadImage(originalImageID)
 	if err != nil {
@@ -436,6 +475,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	imageID imagegraph.ImageID,
 	left, right, top, bottom *int,
 ) error {
+	ig.logGeneration("crop", imageGraphID, nodeID,
+		"left", left,
+		"right", right,
+		"top", top,
+		"bottom", bottom,
+	)
+
 	originalImage, err := ig.loadImage(imageID)
 
 	if err != nil {
@@ -566,6 +612,12 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	lineWidth int,
 	lineColor string,
 ) error {
+	ig.logGeneration("pixel_inflate", imageGraphID, nodeID,
+		"width", width,
+		"line_width", lineWidth,
+		"line_color", lineColor,
+	)
+
 	// Load the input image
 	img, err := ig.loadImage(inputImageID)
 	if err != nil {
@@ -651,6 +703,11 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	numColors int,
 	method string,
 ) error {
+	ig.logGeneration("palette_extract", imageGraphID, nodeID,
+		"method", method,
+		"num_colors", numColors,
+	)
+
 	// Load source image
 	sourceImg, err := ig.loadImage(sourceImageID)
 	if err != nil {
@@ -692,6 +749,14 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	paletteImageID imagegraph.ImageID,
 	config *imagegraph.NodeConfigPaletteApply,
 ) error {
+	normalizeMode := ""
+	if config != nil {
+		normalizeMode = config.Normalize
+	}
+	ig.logGeneration("palette_apply", imageGraphID, nodeID,
+		"normalize", normalizeMode,
+	)
+
 	// Load source image
 	sourceImg, err := ig.loadImage(sourceImageID)
 	if err != nil {
@@ -740,6 +805,10 @@ func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
 	nodeID imagegraph.NodeID,
 	colorStrings []string,
 ) error {
+	ig.logGeneration("palette_create", imageGraphID, nodeID,
+		"colors_count", len(colorStrings),
+	)
+
 	colors := make([]color.Color, 0, len(colorStrings))
 	for _, hex := range colorStrings {
 		col, err := parseHexColor(hex)
@@ -770,6 +839,10 @@ func (ig *ImageGen) GenerateOutputsForPaletteEditNode(
 	existingColors []string,
 	currentConfig string,
 ) error {
+	ig.logGeneration("palette_edit", imageGraphID, nodeID,
+		"existing_colors", len(existingColors),
+	)
+
 	// Load source image
 	sourceImg, err := ig.loadImage(sourceImageID)
 	if err != nil {
