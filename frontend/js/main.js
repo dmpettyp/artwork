@@ -372,7 +372,7 @@ function populateAddNodeContextMenu(schemas) {
             const legoItem = document.createElement('div');
             legoItem.className = 'context-menu-item';
             legoItem.setAttribute('data-palette-preset', 'lego');
-            legoItem.textContent = 'Lego Palette';
+            legoItem.textContent = 'Lego';
             categorySubmenu.appendChild(legoItem);
 
             const greyscaleItem = document.createElement('div');
