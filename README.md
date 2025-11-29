@@ -13,8 +13,9 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 ## TODO
 
 
+- seems to be a race when generating outputs, don't want older output to be
+  written over newer outputs
 - node types
-  - pallet matching node
   - paint? paint over? something that can be used to create a stencil
   - stencil apply
 - need better error handling when image generation fails

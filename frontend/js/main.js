@@ -35,6 +35,7 @@ const graphManager = new GraphManager(api, graphState, renderer, toastManager);
 const outputSidebar = new OutputSidebar(graphState, renderer, toastManager);
 const initialGraphId = graphManager.getGraphIdFromUrl();
 const LEGO_PALETTE_COLORS = '#000000,#00385e,#004a2d,#006cb7,#009247,#00a2d9,#00af4c,#00bdd2,#3a170d,#41413d,#489ece,#4c2f92,#646765,#678297,#692e14,#6e9379,#78bee9,#7f131b,#828353,#878d8f,#947e5f,#9675b4,#99c93c,#a0a19e,#a55222,#ae7345,#b41b7d,#bca6d0,#c0e3da,#c39737,#cce197,#dd1a21,#ddc48e,#de8b5f,#e6edcf,#e85da2,#f3f3f3,#f57d20,#f6accd,#fbab18,#fcc39e,#ffcd03,#fff478';
+const GREYSCALE_COLORS = '#000000,#111111,#222222,#333333,#444444,#555555,#666666,#777777,#888888,#999999,#aaaaaa,#bbbbbb,#cccccc,#dddddd,#eeeeee,#ffffff';
 
 // Crop modal for visual crop configuration
 const cropModal = new CropModal(toastManager);
@@ -199,6 +200,8 @@ contextMenu.addEventListener('click', (e) => {
         contextMenu.classList.remove('active');
         if (preset === 'lego') {
             createLegoPaletteNode(contextMenuPosition);
+        } else if (preset === 'greyscale') {
+            createGreyscalePaletteNode(contextMenuPosition);
         }
         return;
     }
@@ -371,6 +374,12 @@ function populateAddNodeContextMenu(schemas) {
             legoItem.setAttribute('data-palette-preset', 'lego');
             legoItem.textContent = 'Lego Palette';
             categorySubmenu.appendChild(legoItem);
+
+            const greyscaleItem = document.createElement('div');
+            greyscaleItem.className = 'context-menu-item';
+            greyscaleItem.setAttribute('data-palette-preset', 'greyscale');
+            greyscaleItem.textContent = 'Greyscale';
+            categorySubmenu.appendChild(greyscaleItem);
         }
 
         categoryParent.appendChild(categorySubmenu);
@@ -399,6 +408,30 @@ async function createLegoPaletteNode(position) {
     } catch (error) {
         console.error('Failed to create Lego Palette node:', error);
         toastManager.error(`Failed to add Lego Palette: ${error.message}`);
+    }
+}
+
+async function createGreyscalePaletteNode(position) {
+    const graphId = graphState.getCurrentGraphId();
+    if (!graphId) {
+        toastManager.warning('Please select a graph first');
+        return;
+    }
+
+    try {
+        const nodeId = await api.addNode(graphId, 'palette_create', 'Greyscale', { colors: GREYSCALE_COLORS });
+
+        if (position) {
+            renderer.updateNodePosition(nodeId, position.x, position.y);
+            const nodePositions = renderer.exportNodePositions();
+            await api.updateLayout(graphId, nodePositions);
+        }
+
+        await graphManager.reloadCurrentGraph();
+        toastManager.success('Greyscale palette node added');
+    } catch (error) {
+        console.error('Failed to create Greyscale palette node:', error);
+        toastManager.error(`Failed to add Greyscale palette: ${error.message}`);
     }
 }
 
