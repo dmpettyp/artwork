@@ -618,6 +618,12 @@ body {
     border-radius: var(--border-radius-lg);
 }
 
+.context-menu-divider {
+    height: 1px;
+    background: var(--color-border-light);
+    margin: 4px 0;
+}
+
 /* Image Viewer Modal */
 .modal-image-viewer {
     min-width: 600px;
