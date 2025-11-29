@@ -75,6 +75,7 @@ func (ig *ImageGen) logGeneration(
 	nodeType string,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	attrs ...any,
 ) {
 	if ig.logger == nil {
@@ -85,6 +86,7 @@ func (ig *ImageGen) logGeneration(
 		"node_type", nodeType,
 		"graph_id", imageGraphID.String(),
 		"node_id", nodeID.String(),
+		"node_version", int64(nodeVersion),
 	}
 	args = append(args, attrs...)
 	ig.logger.Info("generate_node", args...)
@@ -231,10 +233,11 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	inputImageID imagegraph.ImageID,
 	radius int,
 ) error {
-	ig.logGeneration("blur", imageGraphID, nodeID, "radius", radius)
+	ig.logGeneration("blur", imageGraphID, nodeID, nodeVersion, "radius", radius)
 
 	// Load the input image
 	img, err := ig.loadImage(inputImageID)
@@ -263,12 +266,13 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	inputImageID imagegraph.ImageID,
 	width *int,
 	height *int,
 	interpolation string,
 ) error {
-	ig.logGeneration("resize", imageGraphID, nodeID,
+	ig.logGeneration("resize", imageGraphID, nodeID, nodeVersion,
 		"width", width,
 		"height", height,
 		"interpolation", interpolation,
@@ -335,11 +339,12 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	originalImageID imagegraph.ImageID,
 	sizeMatchImageID imagegraph.ImageID,
 	interpolation string,
 ) error {
-	ig.logGeneration("resize_match", imageGraphID, nodeID,
+	ig.logGeneration("resize_match", imageGraphID, nodeID, nodeVersion,
 		"interpolation", interpolation,
 	)
 
@@ -472,10 +477,11 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	imageID imagegraph.ImageID,
 	left, right, top, bottom *int,
 ) error {
-	ig.logGeneration("crop", imageGraphID, nodeID,
+	ig.logGeneration("crop", imageGraphID, nodeID, nodeVersion,
 		"left", left,
 		"right", right,
 		"top", top,
@@ -580,8 +586,11 @@ func (ig *ImageGen) GenerateOutputsForOutputNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	imageID imagegraph.ImageID,
 ) error {
+	ig.logGeneration("output", imageGraphID, nodeID, nodeVersion)
+
 	originalImage, err := ig.loadImage(imageID)
 
 	if err != nil {
@@ -607,12 +616,13 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	inputImageID imagegraph.ImageID,
 	width int,
 	lineWidth int,
 	lineColor string,
 ) error {
-	ig.logGeneration("pixel_inflate", imageGraphID, nodeID,
+	ig.logGeneration("pixel_inflate", imageGraphID, nodeID, nodeVersion,
 		"width", width,
 		"line_width", lineWidth,
 		"line_color", lineColor,
@@ -699,11 +709,12 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	sourceImageID imagegraph.ImageID,
 	numColors int,
 	method string,
 ) error {
-	ig.logGeneration("palette_extract", imageGraphID, nodeID,
+	ig.logGeneration("palette_extract", imageGraphID, nodeID, nodeVersion,
 		"method", method,
 		"num_colors", numColors,
 	)
@@ -745,6 +756,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	sourceImageID imagegraph.ImageID,
 	paletteImageID imagegraph.ImageID,
 	config *imagegraph.NodeConfigPaletteApply,
@@ -753,7 +765,7 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	if config != nil {
 		normalizeMode = config.Normalize
 	}
-	ig.logGeneration("palette_apply", imageGraphID, nodeID,
+	ig.logGeneration("palette_apply", imageGraphID, nodeID, nodeVersion,
 		"normalize", normalizeMode,
 	)
 
@@ -803,9 +815,10 @@ func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	colorStrings []string,
 ) error {
-	ig.logGeneration("palette_create", imageGraphID, nodeID,
+	ig.logGeneration("palette_create", imageGraphID, nodeID, nodeVersion,
 		"colors_count", len(colorStrings),
 	)
 
@@ -835,11 +848,12 @@ func (ig *ImageGen) GenerateOutputsForPaletteEditNode(
 	ctx context.Context,
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
+	nodeVersion imagegraph.NodeVersion,
 	sourceImageID imagegraph.ImageID,
 	existingColors []string,
 	currentConfig string,
 ) error {
-	ig.logGeneration("palette_edit", imageGraphID, nodeID,
+	ig.logGeneration("palette_edit", imageGraphID, nodeID, nodeVersion,
 		"existing_colors", len(existingColors),
 	)
 
