@@ -32,6 +32,9 @@ type Node struct {
 	// The preview image for the node
 	Preview ImageID
 
+	// Version when preview/output images were last set
+	ImageVersion NodeVersion
+
 	// The inputs that provide images to the node that are processed and
 	// then set as outputs
 	Inputs Inputs
@@ -151,12 +154,20 @@ func (n *Node) SetName(name string) error {
 	return nil
 }
 
-func (n *Node) SetPreview(imageID ImageID) error {
+func (n *Node) SetPreview(imageID ImageID, version NodeVersion) error {
 	if imageID.IsNil() {
 		return fmt.Errorf("cannot set preview to nil image, use UnsetPreview instead")
 	}
 
+	if version == 0 {
+		version = n.Version
+	}
+	if version < n.ImageVersion {
+		return nil
+	}
+
 	n.Preview = imageID
+	n.ImageVersion = version
 
 	n.addEvent(NewNodePreviewSetEvent(n))
 
@@ -165,6 +176,10 @@ func (n *Node) SetPreview(imageID ImageID) error {
 
 func (n *Node) UnsetPreview() error {
 	n.Preview = ImageID{}
+	// When clearing, bump to current version (or leave if already ahead)
+	if n.ImageVersion < n.Version {
+		n.ImageVersion = n.Version
+	}
 
 	n.addEvent(NewNodePreviewUnsetEvent(n))
 
@@ -191,7 +206,16 @@ func (n *Node) IsOutputConnectedTo(
 func (n *Node) SetOutputImage(
 	outputName OutputName,
 	imageID ImageID,
+	version NodeVersion,
 ) error {
+	if version == 0 {
+		version = n.Version
+	}
+	if version < n.ImageVersion {
+		return nil
+	}
+	n.ImageVersion = version
+
 	if err := n.Outputs.SetImage(outputName, imageID); err != nil {
 		return fmt.Errorf(
 			"could not set output %q for node %q: %w", outputName, n.ID, err,

@@ -129,6 +129,7 @@ type SetImageGraphNodeOutputImageCommand struct {
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	OutputName   imagegraph.OutputName   `json:"output_name"`
 	ImageID      imagegraph.ImageID      `json:"image_id"`
+	NodeVersion  imagegraph.NodeVersion  `json:"node_version"`
 }
 
 func NewSetImageGraphNodeOutputImageCommand(
@@ -136,12 +137,14 @@ func NewSetImageGraphNodeOutputImageCommand(
 	nodeID imagegraph.NodeID,
 	outputName imagegraph.OutputName,
 	imageID imagegraph.ImageID,
+	nodeVersion imagegraph.NodeVersion,
 ) *SetImageGraphNodeOutputImageCommand {
 	command := &SetImageGraphNodeOutputImageCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 		OutputName:   outputName,
 		ImageID:      imageID,
+		NodeVersion:  nodeVersion,
 	}
 	command.Init("SetImageGraphNodeOutputImageCommand")
 	return command
@@ -173,17 +176,20 @@ type SetImageGraphNodePreviewCommand struct {
 	ImageGraphID imagegraph.ImageGraphID `json:"image_graph_id"`
 	NodeID       imagegraph.NodeID       `json:"node_id"`
 	ImageID      imagegraph.ImageID      `json:"image_id"`
+	NodeVersion  imagegraph.NodeVersion  `json:"node_version"`
 }
 
 func NewSetImageGraphNodePreviewCommand(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	imageID imagegraph.ImageID,
+	nodeVersion imagegraph.NodeVersion,
 ) *SetImageGraphNodePreviewCommand {
 	command := &SetImageGraphNodePreviewCommand{
 		ImageGraphID: imageGraphID,
 		NodeID:       nodeID,
 		ImageID:      imageID,
+		NodeVersion:  nodeVersion,
 	}
 	command.Init("SetImageGraphNodePreviewCommand")
 	return command

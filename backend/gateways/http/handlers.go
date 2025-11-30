@@ -475,6 +475,7 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		nodeID,
 		imagegraph.OutputName(outputName),
 		imageID,
+		0,
 	)
 
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {

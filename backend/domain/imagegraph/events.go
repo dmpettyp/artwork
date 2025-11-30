@@ -256,12 +256,14 @@ func NewNodeNameSetEvent(n *Node) *NodeNameSetEvent {
 
 type NodePreviewSetEvent struct {
 	NodeEvent
-	ImageID ImageID `json:"image_id"`
+	ImageID      ImageID     `json:"image_id"`
+	ImageVersion NodeVersion `json:"image_version"`
 }
 
 func NewNodePreviewSetEvent(n *Node) *NodePreviewSetEvent {
 	e := &NodePreviewSetEvent{
-		ImageID: n.Preview,
+		ImageID:      n.Preview,
+		ImageVersion: n.ImageVersion,
 	}
 	e.Init("NodePreviewSet")
 	e.applyNode(n)
@@ -270,10 +272,13 @@ func NewNodePreviewSetEvent(n *Node) *NodePreviewSetEvent {
 
 type NodePreviewUnsetEvent struct {
 	NodeEvent
+	ImageVersion NodeVersion `json:"image_version"`
 }
 
 func NewNodePreviewUnsetEvent(n *Node) *NodePreviewUnsetEvent {
-	e := &NodePreviewUnsetEvent{}
+	e := &NodePreviewUnsetEvent{
+		ImageVersion: n.ImageVersion,
+	}
 	e.Init("NodePreviewUnset")
 	e.applyNode(n)
 	return e

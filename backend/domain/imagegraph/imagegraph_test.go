@@ -252,7 +252,6 @@ func TestImageGraph_AddNode(t *testing.T) {
 	})
 }
 
-
 func TestImageGraph_SetNodeName(t *testing.T) {
 	t.Run("sets name for existing node", func(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
@@ -375,7 +374,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodePreview(nodeID, imageID)
+		err := ig.SetNodePreview(nodeID, imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -392,7 +391,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		nodeID := imagegraph.MustNewNodeID()
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodePreview(nodeID, imageID)
+		err := ig.SetNodePreview(nodeID, imageID, 0)
 
 		if err == nil {
 			t.Fatal("expected error for non-existent node, got nil")
@@ -407,7 +406,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodePreview(nodeID, imageID)
+		err := ig.SetNodePreview(nodeID, imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -431,8 +430,8 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		imageID1 := imagegraph.MustNewImageID()
 		imageID2 := imagegraph.MustNewImageID()
 
-		ig.SetNodePreview(nodeID, imageID1)
-		err := ig.SetNodePreview(nodeID, imageID2)
+		ig.SetNodePreview(nodeID, imageID1, 0)
+		err := ig.SetNodePreview(nodeID, imageID2, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -450,7 +449,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodePreview(nodeID, imageID)
+		ig.SetNodePreview(nodeID, imageID, 0)
 
 		err := ig.UnsetNodePreview(nodeID)
 
@@ -470,7 +469,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodePreview(nodeID, imageID)
+		ig.SetNodePreview(nodeID, imageID, 0)
 		ig.ResetEvents()
 
 		err := ig.UnsetNodePreview(nodeID)
@@ -493,7 +492,7 @@ func TestImageGraph_SetNodePreview(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodePreview(imagegraph.NodeID{}, imageID)
+		err := ig.SetNodePreview(imagegraph.NodeID{}, imageID, 0)
 
 		if err == nil {
 			t.Fatal("expected error for nil node ID, got nil")
@@ -508,7 +507,7 @@ func TestImageGraph_UnsetNodePreview(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodePreview(nodeID, imageID)
+		ig.SetNodePreview(nodeID, imageID, 0)
 
 		err := ig.UnsetNodePreview(nodeID)
 
@@ -539,7 +538,7 @@ func TestImageGraph_UnsetNodePreview(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "node")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodePreview(nodeID, imageID)
+		ig.SetNodePreview(nodeID, imageID, 0)
 		ig.ResetEvents()
 
 		err := ig.UnsetNodePreview(nodeID)
@@ -715,7 +714,7 @@ func TestImageGraph_RemoveNode(t *testing.T) {
 
 		// Set an image before connecting to verify it gets unset
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 
 		// Connect input → resize (this will synchronously propagate the image)
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
@@ -1204,7 +1203,7 @@ func TestImageGraph_DisconnectNodes(t *testing.T) {
 
 		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		// Verify image was set
@@ -1314,7 +1313,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(nodeID, "original", imageID)
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1332,7 +1331,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		fakeID := imagegraph.MustNewNodeID()
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(fakeID, "original", imageID)
+		err := ig.SetNodeOutputImage(fakeID, "original", imageID, 0)
 
 		if err == nil {
 			t.Fatal("expected error for non-existent node, got nil")
@@ -1346,7 +1345,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(nodeID, "invalid", imageID)
+		err := ig.SetNodeOutputImage(nodeID, "invalid", imageID, 0)
 
 		if err == nil {
 			t.Fatal("expected error for invalid output name, got nil")
@@ -1365,7 +1364,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+		err := ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1401,7 +1400,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+		err := ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1434,7 +1433,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(nodeID, "original", imageID)
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1462,7 +1461,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+		err := ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1487,8 +1486,8 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		imageID1 := imagegraph.MustNewImageID()
 		imageID2 := imagegraph.MustNewImageID()
 
-		ig.SetNodeOutputImage(nodeID, "original", imageID1)
-		err := ig.SetNodeOutputImage(nodeID, "original", imageID2)
+		ig.SetNodeOutputImage(nodeID, "original", imageID1, 0)
+		err := ig.SetNodeOutputImage(nodeID, "original", imageID2, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1511,7 +1510,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(inputID, "original", imageID)
+		err := ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -1528,7 +1527,7 @@ func TestImageGraph_SetNodeOutputImage(t *testing.T) {
 		ig, _ := imagegraph.NewImageGraph(imagegraph.MustNewImageGraphID(), "test")
 		imageID := imagegraph.MustNewImageID()
 
-		err := ig.SetNodeOutputImage(imagegraph.NodeID{}, "original", imageID)
+		err := ig.SetNodeOutputImage(imagegraph.NodeID{}, "original", imageID, 0)
 
 		if err == nil {
 			t.Fatal("expected error for nil node ID, got nil")
@@ -1543,7 +1542,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(nodeID, "original", imageID)
+		ig.SetNodeOutputImage(nodeID, "original", imageID, 0)
 
 		err := ig.UnsetNodeOutputImage(nodeID, "original")
 
@@ -1589,7 +1588,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 
 		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 
 		err := ig.UnsetNodeOutputImage(inputID, "original")
@@ -1622,7 +1621,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 
 		// Set image first, then connect (ConnectNodes will synchronously propagate)
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 		ig.ConnectNodes(inputID, "original", resize1ID, "original")
 		ig.ConnectNodes(inputID, "original", resize2ID, "original")
 
@@ -1650,7 +1649,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 		ig.AddNode(nodeID, imagegraph.NodeTypeInput, "input")
 
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(nodeID, "original", imageID)
+		ig.SetNodeOutputImage(nodeID, "original", imageID, 0)
 		ig.ResetEvents()
 
 		err := ig.UnsetNodeOutputImage(nodeID, "original")
@@ -1678,7 +1677,7 @@ func TestImageGraph_UnsetNodeOutputImage(t *testing.T) {
 
 		ig.ConnectNodes(inputID, "original", resizeID, "original")
 		imageID := imagegraph.MustNewImageID()
-		ig.SetNodeOutputImage(inputID, "original", imageID)
+		ig.SetNodeOutputImage(inputID, "original", imageID, 0)
 		ig.ResetEvents()
 
 		err := ig.UnsetNodeOutputImage(inputID, "original")

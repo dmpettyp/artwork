@@ -152,6 +152,7 @@ func (h *ImageGraphEventHandlers) HandleNodeOutputImageSetEvent(
 				ctx,
 				event.ImageGraphID,
 				event.NodeID,
+				event.NodeVersion,
 				event.ImageID,
 			)
 		}()

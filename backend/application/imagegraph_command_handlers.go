@@ -206,6 +206,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 			command.NodeID,
 			command.OutputName,
 			command.ImageID,
+			command.NodeVersion,
 		)
 
 		if err != nil {
@@ -260,6 +261,7 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 		err = ig.SetNodePreview(
 			command.NodeID,
 			command.ImageID,
+			command.NodeVersion,
 		)
 
 		if err != nil {

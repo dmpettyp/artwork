@@ -24,12 +24,14 @@ func (s *NodeUpdater) SetNodeOutputImage(
 	nodeID imagegraph.NodeID,
 	outputName imagegraph.OutputName,
 	imageID imagegraph.ImageID,
+	nodeVersion imagegraph.NodeVersion,
 ) error {
 	cmd := NewSetImageGraphNodeOutputImageCommand(
 		imageGraphID,
 		nodeID,
 		outputName,
 		imageID,
+		nodeVersion,
 	)
 
 	err := s.messageBus.HandleCommand(ctx, cmd)
@@ -46,11 +48,13 @@ func (s *NodeUpdater) SetNodePreviewImage(
 	imageGraphID imagegraph.ImageGraphID,
 	nodeID imagegraph.NodeID,
 	imageID imagegraph.ImageID,
+	nodeVersion imagegraph.NodeVersion,
 ) error {
 	cmd := NewSetImageGraphNodePreviewCommand(
 		imageGraphID,
 		nodeID,
 		imageID,
+		nodeVersion,
 	)
 
 	err := s.messageBus.HandleCommand(ctx, cmd)

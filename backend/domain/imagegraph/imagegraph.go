@@ -427,9 +427,10 @@ func (ig *ImageGraph) SetNodeOutputImage(
 	nodeID NodeID,
 	outputName OutputName,
 	imageID ImageID,
+	nodeVersion NodeVersion,
 ) error {
 	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetOutputImage(outputName, imageID)
+		return n.SetOutputImage(outputName, imageID, nodeVersion)
 	})
 
 	if err != nil {
@@ -499,9 +500,10 @@ func (ig *ImageGraph) UnsetNodeOutputConnections(
 func (ig *ImageGraph) SetNodePreview(
 	nodeID NodeID,
 	imageID ImageID,
+	nodeVersion NodeVersion,
 ) error {
 	err := ig.Nodes.WithNode(nodeID, func(n *Node) error {
-		return n.SetPreview(imageID)
+		return n.SetPreview(imageID, nodeVersion)
 	})
 
 	if err != nil {
