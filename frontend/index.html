@@ -138,6 +138,17 @@
         </div>
     </div>
 
+    <!-- Modal for viewing node JSON -->
+    <div id="view-json-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="view-json-title">Node JSON</h3>
+            <pre id="view-json-pre" class="code-block"></pre>
+            <div class="modal-actions">
+                <button id="view-json-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for crop node configuration -->
     <div id="crop-modal" class="modal">
         <div class="modal-content modal-crop">
@@ -194,6 +205,7 @@
     <div id="node-context-menu" class="context-menu">
         <div class="context-menu-item" data-action="edit-config">Edit</div>
         <div class="context-menu-item" data-action="view">View Outputs</div>
+        <div class="context-menu-item" data-action="view-json">View JSON</div>
         <div class="context-menu-item" data-action="delete">Delete</div>
     </div>
 

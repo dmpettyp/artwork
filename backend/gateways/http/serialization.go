@@ -262,14 +262,15 @@ func mapImageGraphToResponse(ig *imagegraph.ImageGraph) imageGraphResponse {
 		}
 
 		nodeResp := nodeResponse{
-			ID:      node.ID.String(),
-			Name:    node.Name,
-			Type:    imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
-			Version: int(node.Version),
-			Config:  node.Config,
-			State:   imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
-			Inputs:  inputs,
-			Outputs: outputs,
+			ID:           node.ID.String(),
+			Name:         node.Name,
+			Type:         imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
+			Version:      int(node.Version),
+			ImageVersion: int(node.ImageVersion),
+			Config:       node.Config,
+			State:        imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
+			Inputs:       inputs,
+			Outputs:      outputs,
 		}
 
 		if !node.Preview.IsNil() {

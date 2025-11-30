@@ -424,6 +424,17 @@ body {
     border-color: var(--color-error-dark);
 }
 
+.code-block {
+    background: #111;
+    color: #f4f4f4;
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius);
+    max-height: 400px;
+    overflow: auto;
+    font-family: monospace;
+    font-size: 12px;
+}
+
 .color-field-wrapper {
     display: flex;
     align-items: center;

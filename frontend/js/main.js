@@ -18,7 +18,8 @@ import {
     EditNodeModalController,
     DeleteNodeModalController,
     ViewImageModalController,
-    CropModal
+    CropModal,
+    ViewJsonModalController
 } from './modals/index.js';
 
 // Initialize state and rendering
@@ -229,6 +230,9 @@ nodeContextMenu.addEventListener('click', (e) => {
             modals?.viewImage.open(contextMenuNodeId);
         } else if (action === 'edit-config') {
             modals?.editNode.open(contextMenuNodeId);
+        } else if (action === 'view-json') {
+            const node = graphState.getNode(contextMenuNodeId);
+            modals?.viewJson.open(node);
         } else if (action === 'delete') {
             modals?.deleteNode.open(contextMenuNodeId);
         }
@@ -463,6 +467,9 @@ async function initialize() {
             ),
             viewImage: new ViewImageModalController(
                 graphState, modalManager, interactions
+            ),
+            viewJson: new ViewJsonModalController(
+                modalManager
             )
         };
 
