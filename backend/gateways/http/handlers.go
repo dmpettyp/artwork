@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/dmpettyp/artwork/application"
@@ -470,12 +471,23 @@ func (s *HTTPServer) handleUploadNodeOutputImage(w http.ResponseWriter, r *http.
 		return
 	}
 
+	nodeVersionStr := r.FormValue("node_version")
+	if nodeVersionStr == "" {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "node_version is required"})
+		return
+	}
+	nodeVersionInt, err := strconv.Atoi(nodeVersionStr)
+	if err != nil || nodeVersionInt <= 0 {
+		respondJSON(w, http.StatusBadRequest, errorResponse{Error: "node_version must be a positive integer"})
+		return
+	}
+
 	command := application.NewSetImageGraphNodeOutputImageCommand(
 		imageGraphID,
 		nodeID,
 		imagegraph.OutputName(outputName),
 		imageID,
-		0,
+		imagegraph.NodeVersion(nodeVersionInt),
 	)
 
 	if err := s.messageBus.HandleCommand(r.Context(), command); err != nil {

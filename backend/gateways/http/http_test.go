@@ -8,8 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"mime/multipart"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"net/textproto"
 	"testing"
 	"time"
@@ -53,7 +53,9 @@ func (m *mockImageStorage) Remove(imageID imagegraph.ImageID) error {
 // testServer wraps HTTPServer with test utilities
 type testServer struct {
 	server     *httpgateway.HTTPServer
-	testServer *httptest.Server
+	httpServer *http.Server
+	listener   net.Listener
+	baseURL    string
 	messageBus *messagebus.MessageBus
 	cancelFunc context.CancelFunc
 }
@@ -104,25 +106,40 @@ func setupTestServer(t *testing.T) *testServer {
 	ctx, cancel := context.WithCancel(context.Background())
 	go mb.Start(ctx)
 
-	// Create test server
-	ts := httptest.NewServer(httpServer.Handler())
+	// Create test server bound to IPv4 (tcp6 may be disallowed in some environments)
+	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("skipping HTTP tests: cannot listen on tcp4: %v", err)
+		return nil
+	}
+	srv := &http.Server{Handler: httpServer.Handler()}
+	go func() {
+		_ = srv.Serve(ln)
+	}()
 
 	return &testServer{
 		server:     httpServer,
-		testServer: ts,
+		httpServer: srv,
+		listener:   ln,
+		baseURL:    "http://" + ln.Addr().String(),
 		messageBus: mb,
 		cancelFunc: cancel,
 	}
 }
 
 func (ts *testServer) Stop() {
-	ts.testServer.Close()
+	if ts.httpServer != nil {
+		_ = ts.httpServer.Shutdown(context.Background())
+	}
+	if ts.listener != nil {
+		_ = ts.listener.Close()
+	}
 	ts.cancelFunc()
 	ts.messageBus.Stop()
 }
 
 func (ts *testServer) URL() string {
-	return ts.testServer.URL
+	return ts.baseURL
 }
 
 // HTTP client helpers
@@ -291,6 +308,26 @@ func (ts *testServer) updateNode(t *testing.T, graphID, nodeID string, name *str
 func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputName, imageID string) string {
 	t.Helper()
 
+	graph := ts.getImageGraph(t, graphID)
+	nodes, ok := graph["nodes"].([]interface{})
+	if !ok {
+		t.Fatalf("unexpected nodes shape in graph response")
+	}
+	nodeVersion := 0
+	for _, n := range nodes {
+		if nodeMap, ok := n.(map[string]interface{}); ok {
+			if nodeMap["id"] == nodeID {
+				if v, ok := nodeMap["version"].(float64); ok {
+					nodeVersion = int(v)
+				}
+				break
+			}
+		}
+	}
+	if nodeVersion == 0 {
+		t.Fatalf("could not determine node version for node %s", nodeID)
+	}
+
 	// Create a simple 1x1 PNG image for testing
 	imageData := []byte{
 		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
@@ -319,6 +356,10 @@ func (ts *testServer) setNodeOutputImage(t *testing.T, graphID, nodeID, outputNa
 
 	if _, err := part.Write(imageData); err != nil {
 		t.Fatalf("failed to write image data: %v", err)
+	}
+
+	if err := writer.WriteField("node_version", fmt.Sprintf("%d", nodeVersion)); err != nil {
+		t.Fatalf("failed to add node_version field: %v", err)
 	}
 
 	writer.Close()

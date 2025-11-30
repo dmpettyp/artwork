@@ -357,7 +357,7 @@ func bootstrap(ctx context.Context, logger *slog.Logger, messageBus *messagebus.
 		inputNodeID,
 		"original",
 		imageID,
-		0,
+		1,
 	)
 	if err := messageBus.HandleCommand(ctx, setOutputCmd); err != nil {
 		return err
