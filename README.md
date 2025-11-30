@@ -41,6 +41,13 @@ the service that is built around it. This includes storage (i.e. database)
 concerns, API concerns, or any other integrations that need to access or 
 manipulated the ImageGraph.
 
+### Image versioning (previews/outputs)
+- All image writes (preview and outputs) must include `node_version`.
+- The domain rejects `node_version == 0` and ignores writes with versions older than the node’s current `ImageVersion`; equal versions are allowed.
+- A single `ImageVersion` is tracked per node (shared for preview and outputs) and advances on successful writes; events include `image_version` for previews/outputs.
+- Callers (ImageGen/command handlers/API) must pass the event’s `NodeVersion`; the boundary refuses commands without it.
+- Tests calling setters directly must supply a non-zero `node_version` (usually the node’s current version).
+
 The ImageGraph is primarily responsible for maintaining the Nodes that make
 up the image pipeline. Nodes are modeled with:
 - a name
