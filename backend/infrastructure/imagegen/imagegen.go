@@ -436,7 +436,7 @@ func (ig *ImageGen) createCropPreviewImage(originalImage image.Image, left, top,
 	borderWidth := int(float64(bounds.Dx()) * 0.02)
 
 	// Draw border by drawing thick lines on each side of the crop rectangle
-	for offset := 0; offset < borderWidth; offset++ {
+	for offset := range borderWidth {
 		// Top border
 		for x := left; x < right; x++ {
 			y := top + offset
@@ -665,12 +665,12 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	scaleY := float64(targetHeight) / float64(originalHeight)
 
 	// Draw vertical lines (delineating original pixel columns)
-	for i := 1; i < originalWidth; i++ {
-		x := int(float64(i) * scaleX)
-		for lineOffset := 0; lineOffset < lineWidth; lineOffset++ {
+	for i := range originalWidth - 1 {
+		x := int(float64(i+1) * scaleX)
+		for lineOffset := range lineWidth {
 			xPos := x + lineOffset - lineWidth/2
 			if xPos >= 0 && xPos < int(targetWidth) {
-				for y := 0; y < int(targetHeight); y++ {
+				for y := range int(targetHeight) {
 					outputImg.Set(xPos, y, lineCol)
 				}
 			}
@@ -678,12 +678,12 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	}
 
 	// Draw horizontal lines (delineating original pixel rows)
-	for i := 1; i < originalHeight; i++ {
-		y := int(float64(i) * scaleY)
-		for lineOffset := 0; lineOffset < lineWidth; lineOffset++ {
+	for i := range originalHeight - 1 {
+		y := int(float64(i+1) * scaleY)
+		for lineOffset := range lineWidth {
 			yPos := y + lineOffset - lineWidth/2
 			if yPos >= 0 && yPos < int(targetHeight) {
-				for x := 0; x < int(targetWidth); x++ {
+				for x := range int(targetWidth) {
 					outputImg.Set(x, yPos, lineCol)
 				}
 			}
@@ -1164,97 +1164,6 @@ func mostCommonColors(img image.Image, k int) []color.Color {
 	return palette
 }
 
-// kmeansClusteringRGB performs k-means clustering in RGB space to find dominant colors
-func kmeansClusteringRGB(colors []color.Color, k int) []color.Color {
-	if len(colors) == 0 {
-		return []color.Color{}
-	}
-
-	// If we have fewer colors than k, return all colors
-	if len(colors) <= k {
-		return colors
-	}
-
-	// Initialize centroids by evenly spacing through sorted colors
-	centroids := make([][3]float64, k)
-	step := len(colors) / k
-	for i := 0; i < k; i++ {
-		idx := i * step
-		if idx >= len(colors) {
-			idx = len(colors) - 1
-		}
-		r, g, b, _ := colors[idx].RGBA()
-		centroids[i] = [3]float64{float64(r >> 8), float64(g >> 8), float64(b >> 8)}
-	}
-
-	// Run k-means iterations
-	const maxIterations = 20
-	for iteration := 0; iteration < maxIterations; iteration++ {
-		// Assign colors to nearest centroid
-		assignments := make([]int, len(colors))
-		for i, c := range colors {
-			r, g, b, _ := c.RGBA()
-			r8, g8, b8 := float64(r>>8), float64(g>>8), float64(b>>8)
-
-			minDist := float64(1000000)
-			bestCluster := 0
-			for j, centroid := range centroids {
-				dr := r8 - centroid[0]
-				dg := g8 - centroid[1]
-				db := b8 - centroid[2]
-				dist := dr*dr + dg*dg + db*db
-
-				if dist < minDist {
-					minDist = dist
-					bestCluster = j
-				}
-			}
-			assignments[i] = bestCluster
-		}
-
-		// Update centroids
-		newCentroids := make([][3]float64, k)
-		counts := make([]int, k)
-
-		for i, c := range colors {
-			cluster := assignments[i]
-			r, g, b, _ := c.RGBA()
-			newCentroids[cluster][0] += float64(r >> 8)
-			newCentroids[cluster][1] += float64(g >> 8)
-			newCentroids[cluster][2] += float64(b >> 8)
-			counts[cluster]++
-		}
-
-		for i := 0; i < k; i++ {
-			if counts[i] > 0 {
-				newCentroids[i][0] /= float64(counts[i])
-				newCentroids[i][1] /= float64(counts[i])
-				newCentroids[i][2] /= float64(counts[i])
-			}
-		}
-
-		centroids = newCentroids
-	}
-
-	// Convert centroids to colors
-	result := make([]color.Color, k)
-	for i, centroid := range centroids {
-		result[i] = color.RGBA{
-			R: uint8(centroid[0]),
-			G: uint8(centroid[1]),
-			B: uint8(centroid[2]),
-			A: 255,
-		}
-	}
-
-	// Stable sort by luminance then hue for consistency
-	sort.SliceStable(result, func(i, j int) bool {
-		return lessByLuminanceHue(result[i], result[j])
-	})
-
-	return result
-}
-
 type labColor struct {
 	l, a, b float64
 	src     color.Color
@@ -1278,8 +1187,8 @@ func createPaletteImage(colors []color.Color) image.Image {
 
 	// Fill with colors
 	idx := 0
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			if idx < len(colors) {
 				img.Set(x, y, colors[idx])
 				idx++
@@ -1341,11 +1250,11 @@ func kmeansClusteringOKLab(colors []color.Color, k int) []color.Color {
 	const maxIterations = 30
 	const restarts = 3
 
-	for r := 0; r < restarts; r++ {
+	for range restarts {
 		centroids := initCentroidsKMeansPP(labColors, k, rng)
 		assignments := make([]int, len(labColors))
 
-		for iteration := 0; iteration < maxIterations; iteration++ {
+		for range maxIterations {
 			changed := false
 
 			for i, lc := range labColors {
@@ -1377,7 +1286,7 @@ func kmeansClusteringOKLab(colors []color.Color, k int) []color.Color {
 				counts[cluster]++
 			}
 
-			for i := 0; i < k; i++ {
+			for i := range counts {
 				if counts[i] > 0 {
 					newCentroids[i][0] /= float64(counts[i])
 					newCentroids[i][1] /= float64(counts[i])
