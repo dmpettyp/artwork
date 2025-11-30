@@ -1,4 +1,5 @@
 // Dynamic form builder for node configuration fields
+import { PaletteEditor } from './palette-editor.js';
 
 export class NodeConfigFormBuilder {
     constructor(nodeTypeConfigs) {
@@ -41,11 +42,6 @@ export class NodeConfigFormBuilder {
 
         // Special handling for palette_create colors: present as list with color pickers
         if ((nodeType === 'palette_create' || nodeType === 'palette_edit') && fieldName === 'colors') {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'palette-colors-field';
-            wrapper.setAttribute('data-field-name', fieldName);
-            wrapper.setAttribute('data-field-type', 'palette_colors');
-            wrapper.id = `${idPrefix}-${fieldName}`;
             const isEditModal = idPrefix && idPrefix.startsWith('edit');
             if (nodeType === 'palette_edit') {
                 if (!isEditModal) {
@@ -60,97 +56,16 @@ export class NodeConfigFormBuilder {
                 label.style.display = '';
             }
 
-            const rowsContainer = document.createElement('div');
-            rowsContainer.className = 'palette-colors-rows';
-
-            const header = document.createElement('div');
-            header.className = 'palette-colors-header';
-            ['Use', 'Color', 'Hex', ''].forEach((text) => {
-                const cell = document.createElement('div');
-                cell.textContent = text;
-                header.appendChild(cell);
-            });
-
-            wrapper.appendChild(header);
-            wrapper.appendChild(rowsContainer);
-
-            const addBtn = document.createElement('button');
-            addBtn.type = 'button';
-            addBtn.className = 'btn';
-            addBtn.textContent = 'Add color';
-            wrapper.appendChild(addBtn);
-
-            const addRow = (colorValue = '#000000', enabled = true) => {
-                const row = document.createElement('div');
-                row.className = 'palette-color-row';
-
-                const includeCheckbox = document.createElement('input');
-                includeCheckbox.type = 'checkbox';
-                includeCheckbox.checked = enabled;
-                includeCheckbox.title = 'Include this color in the palette';
-
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.className = 'form-input color-picker';
-                colorInput.value = colorValue;
-
-                const textInput = document.createElement('input');
-                textInput.type = 'text';
-                textInput.className = 'form-input color-text';
-                textInput.value = colorValue;
-                textInput.placeholder = '#RRGGBB';
-
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'btn palette-remove-btn';
-                removeBtn.textContent = '✕';
-
-                includeCheckbox.addEventListener('change', () => {
-                    row.classList.toggle('disabled', !includeCheckbox.checked);
-                });
-
-                colorInput.addEventListener('input', () => {
-                    textInput.value = colorInput.value;
-                });
-
-                textInput.addEventListener('input', () => {
-                    // Only update color input when valid hex; otherwise leave as-is
-                    if (/^#[0-9a-fA-F]{6}$/.test(textInput.value)) {
-                        colorInput.value = textInput.value;
-                    }
-                });
-
-                removeBtn.addEventListener('click', () => {
-                    row.remove();
-                });
-
-                row.appendChild(includeCheckbox);
-                row.appendChild(colorInput);
-                row.appendChild(textInput);
-                row.appendChild(removeBtn);
-                rowsContainer.appendChild(row);
-            };
-
-            // Initialize rows from current value if present
             const initial = (currentValues && currentValues[fieldName]) ? currentValues[fieldName] : '';
-            if (initial) {
-                const parts = initial.split(',').map(p => p.trim()).filter(Boolean);
-                if (parts.length > 0) {
-                    parts.forEach(color => {
-                        const enabled = !color.startsWith('!');
-                        const value = enabled ? color : color.slice(1);
-                        addRow(value, enabled);
-                    });
-                }
-            }
+            const parts = initial ? initial.split(',').map(p => p.trim()).filter(Boolean) : [];
+            const allowAdd = !(nodeType === 'palette_edit' && !isEditModal);
+            const editor = new PaletteEditor({ allowAdd });
+            const wrapper = editor.render(parts);
+            wrapper.setAttribute('data-field-name', fieldName);
+            wrapper.setAttribute('data-field-type', 'palette_colors');
+            wrapper.id = `${idPrefix}-${fieldName}`;
+            wrapper._paletteEditor = editor;
 
-            if (!(nodeType === 'palette_edit' && !isEditModal)) {
-                addBtn.addEventListener('click', () => addRow('#000000'));
-            } else {
-                addBtn.style.display = 'none';
-            }
-
-            // No inputs with data-field-name are nested; wrapper acts as field element
             return { label, input: wrapper };
         }
 
@@ -302,12 +217,13 @@ export class NodeConfigFormBuilder {
         const paletteContainers = container.querySelectorAll('[data-field-type="palette_colors"]');
         paletteContainers.forEach(containerEl => {
             const fieldName = containerEl.getAttribute('data-field-name');
-            const rows = containerEl.querySelectorAll('.palette-color-row .color-text');
-            const values = Array.from(rows).map(input => input.value.trim()).filter(v => v.length > 0);
+            const editor = containerEl._paletteEditor;
+            const values = editor ? editor.getValues() : [];
             fieldMap.set(fieldName, {
                 input: containerEl,
                 fieldType: 'palette_colors',
-                value: values
+                value: values,
+                editor
             });
         });
 
@@ -323,22 +239,11 @@ export class NodeConfigFormBuilder {
                 return;
             }
 
-            const { input, fieldType, value } = field;
+            const { input, fieldType, value, editor } = field;
 
             if (fieldType === 'palette_colors') {
-                // Accept empty list; validate each entry when present
-                let hasError = false;
-                value.forEach(val => {
-                    if (!/^#[0-9a-fA-F]{6}$/.test(val)) {
-                        errors.push(`Field "${fieldName}" has invalid color "${val}"`);
-                        hasError = true;
-                    }
-                });
-                if (hasError) {
-                    input.classList.add('error');
-                } else {
-                    input.classList.remove('error');
-                }
+                const validation = editor ? editor.validate(fieldName) : { valid: true, errors: [] };
+                errors.push(...(validation.errors || []));
                 return;
             }
 
@@ -423,16 +328,8 @@ export class NodeConfigFormBuilder {
         const paletteContainers = container.querySelectorAll('[data-field-type="palette_colors"]');
         paletteContainers.forEach(containerEl => {
             const fieldName = containerEl.getAttribute('data-field-name');
-            const rows = containerEl.querySelectorAll('.palette-color-row');
-            const values = Array.from(rows)
-                .map(row => {
-                    const textInput = row.querySelector('.color-text');
-                    const include = row.querySelector('input[type="checkbox"]')?.checked ?? true;
-                    const val = textInput ? textInput.value.trim() : '';
-                    if (!val) return '';
-                    return include ? val : `!${val}`;
-                })
-                .filter(v => v.length > 0);
+            const editor = containerEl._paletteEditor;
+            const values = editor ? editor.getValues() : [];
             // Join with commas; empty list allowed
             config[fieldName] = values.join(',');
         });
