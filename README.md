@@ -13,9 +13,6 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 ## TODO
 
 
-- logging for image generation
-- seems to be a race when generating outputs, don't want older output to be
-  written over newer outputs
 - node types
   - paint? paint over? something that can be used to create a stencil
   - stencil apply
@@ -60,9 +57,11 @@ performed by processes external to the domain models, which set their output
 in the domain models to drive further changes in the ImageGraph pipeline.
 
 
-
 ## Done
 
+- DONE - seems to be a race when generating outputs, don't want older output to be
+  written over newer outputs
+- DONE - logging for image generation
 - DONE - full postgres store
 - DONE - better json representation for commands and events
 - DONE - expose Version from ImageGraph events to be written to the DB

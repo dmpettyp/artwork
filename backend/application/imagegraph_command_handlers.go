@@ -202,6 +202,10 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
+		if command.NodeVersion == 0 {
+			return fmt.Errorf("node_version is required for SetImageGraphNodeOutputImageCommand")
+		}
+
 		err = ig.SetNodeOutputImage(
 			command.NodeID,
 			command.OutputName,
@@ -256,6 +260,10 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 
 		if err != nil {
 			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
+		}
+
+		if command.NodeVersion == 0 {
+			return fmt.Errorf("node_version is required for SetImageGraphNodePreviewCommand")
 		}
 
 		err = ig.SetNodePreview(

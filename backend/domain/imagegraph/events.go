@@ -151,8 +151,9 @@ func NewOutputDisconnectedEvent(
 
 type NodeOutputImageSetEvent struct {
 	NodeEvent
-	OutputName OutputName `json:"output_name"`
-	ImageID    ImageID    `json:"image_id"`
+	OutputName   OutputName  `json:"output_name"`
+	ImageID      ImageID     `json:"image_id"`
+	ImageVersion NodeVersion `json:"image_version"`
 }
 
 func NewOutputImageSetEvent(
@@ -161,8 +162,9 @@ func NewOutputImageSetEvent(
 	imageID ImageID,
 ) *NodeOutputImageSetEvent {
 	e := &NodeOutputImageSetEvent{
-		OutputName: outputName,
-		ImageID:    imageID,
+		OutputName:   outputName,
+		ImageID:      imageID,
+		ImageVersion: n.ImageVersion,
 	}
 	e.Init("NodeOutputImageSet")
 	e.applyNode(n)
@@ -171,8 +173,9 @@ func NewOutputImageSetEvent(
 
 type NodeOutputImageUnsetEvent struct {
 	NodeEvent
-	OutputName OutputName `json:"output_name"`
-	ImageID    ImageID    `json:"image_id"`
+	OutputName   OutputName  `json:"output_name"`
+	ImageID      ImageID     `json:"image_id"`
+	ImageVersion NodeVersion `json:"image_version"`
 }
 
 func NewOutputImageUnsetEvent(
@@ -181,8 +184,9 @@ func NewOutputImageUnsetEvent(
 	imageID ImageID,
 ) *NodeOutputImageUnsetEvent {
 	e := &NodeOutputImageUnsetEvent{
-		OutputName: outputName,
-		ImageID:    imageID,
+		OutputName:   outputName,
+		ImageID:      imageID,
+		ImageVersion: n.ImageVersion,
 	}
 	e.Init("NodeOutputImageUnset")
 	e.applyNode(n)

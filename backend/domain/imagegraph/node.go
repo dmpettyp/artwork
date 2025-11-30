@@ -160,7 +160,7 @@ func (n *Node) SetPreview(imageID ImageID, version NodeVersion) error {
 	}
 
 	if version == 0 {
-		version = n.Version
+		return fmt.Errorf("node version must be provided for preview")
 	}
 	if version < n.ImageVersion {
 		return nil
@@ -209,7 +209,7 @@ func (n *Node) SetOutputImage(
 	version NodeVersion,
 ) error {
 	if version == 0 {
-		version = n.Version
+		return fmt.Errorf("node version must be provided for output")
 	}
 	if version < n.ImageVersion {
 		return nil
@@ -245,6 +245,10 @@ func (n *Node) UnsetOutputImage(outputName OutputName) error {
 	}
 
 	if !oldImageID.IsNil() {
+		// Keep image version at least at current node version
+		if n.ImageVersion < n.Version {
+			n.ImageVersion = n.Version
+		}
 		n.addEvent(NewOutputImageUnsetEvent(n, outputName, oldImageID))
 	}
 
