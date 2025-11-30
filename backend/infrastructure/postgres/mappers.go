@@ -43,6 +43,7 @@ type nodeDTO struct {
 	State          string               `json:"state"`
 	Config         json.RawMessage      `json:"config"`
 	PreviewImageID string               `json:"preview_image_id,omitempty"`
+	ImageVersion   int64                `json:"image_version,omitempty"`
 	Inputs         map[string]inputDTO  `json:"inputs"`
 	Outputs        map[string]outputDTO `json:"outputs"`
 }
@@ -138,14 +139,15 @@ func serializeImageGraph(ig *imagegraph.ImageGraph) (imageGraphRow, error) {
 		}
 
 		nodeDTO := nodeDTO{
-			ID:      node.ID.String(),
-			Version: int64(node.Version),
-			Type:    imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
-			Name:    node.Name,
-			State:   imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
-			Config:  configJSON,
-			Inputs:  inputsDTO,
-			Outputs: outputsDTO,
+			ID:           node.ID.String(),
+			Version:      int64(node.Version),
+			Type:         imagegraph.NodeTypeMapper.FromWithDefault(node.Type, "unknown"),
+			Name:         node.Name,
+			State:        imagegraph.NodeStateMapper.FromWithDefault(node.State.Get(), "unknown"),
+			Config:       configJSON,
+			ImageVersion: int64(node.ImageVersion),
+			Inputs:       inputsDTO,
+			Outputs:      outputsDTO,
 		}
 
 		if !node.Preview.IsNil() {
@@ -277,14 +279,15 @@ func deserializeImageGraph(row imageGraphRow) (*imagegraph.ImageGraph, error) {
 		}
 
 		node := &imagegraph.Node{
-			ID:      nodeID,
-			Version: imagegraph.NodeVersion(nodeDTO.Version),
-			Type:    nodeType,
-			Name:    nodeDTO.Name,
-			State:   nodeStateObj,
-			Config:  config,
-			Inputs:  inputs,
-			Outputs: outputs,
+			ID:           nodeID,
+			Version:      imagegraph.NodeVersion(nodeDTO.Version),
+			Type:         nodeType,
+			Name:         nodeDTO.Name,
+			State:        nodeStateObj,
+			Config:       config,
+			Inputs:       inputs,
+			Outputs:      outputs,
+			ImageVersion: imagegraph.NodeVersion(nodeDTO.ImageVersion),
 		}
 
 		if nodeDTO.PreviewImageID != "" {

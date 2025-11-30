@@ -90,15 +90,16 @@ type imageGraphResponse struct {
 }
 
 type nodeResponse struct {
-	ID      string                `json:"id"`
-	Name    string                `json:"name"`
-	Type    string                `json:"type"`
-	Version int                   `json:"version"`
-	Config  imagegraph.NodeConfig `json:"config"`
-	State   string                `json:"state"`
-	Preview string                `json:"preview,omitempty"`
-	Inputs  []inputResponse       `json:"inputs"`
-	Outputs []outputResponse      `json:"outputs"`
+	ID           string                `json:"id"`
+	Name         string                `json:"name"`
+	Type         string                `json:"type"`
+	Version      int                   `json:"version"`
+	ImageVersion int                   `json:"image_version,omitempty"`
+	Config       imagegraph.NodeConfig `json:"config"`
+	State        string                `json:"state"`
+	Preview      string                `json:"preview,omitempty"`
+	Inputs       []inputResponse       `json:"inputs"`
+	Outputs      []outputResponse      `json:"outputs"`
 }
 
 type inputResponse struct {
