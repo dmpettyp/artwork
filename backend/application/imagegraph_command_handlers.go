@@ -202,15 +202,20 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodeOutputImageCommand(
 			return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
-		if command.NodeVersion == 0 {
-			return fmt.Errorf("node_version is required for SetImageGraphNodeOutputImageCommand")
+		nodeVersion := command.NodeVersion
+		if nodeVersion == 0 {
+			node, ok := ig.Nodes.Get(command.NodeID)
+			if !ok {
+				return fmt.Errorf("could not process SetImageGraphNodeOutputImageCommand for ImageGraph %q: node %q not found", command.ImageGraphID, command.NodeID)
+			}
+			nodeVersion = node.Version
 		}
 
 		err = ig.SetNodeOutputImage(
 			command.NodeID,
 			command.OutputName,
 			command.ImageID,
-			command.NodeVersion,
+			nodeVersion,
 		)
 
 		if err != nil {
@@ -262,14 +267,19 @@ func (h *ImageGraphCommandHandlers) HandleSetImageGraphNodePreviewCommand(
 			return fmt.Errorf("could not process SetImageGraphNodePreviewCommand for ImageGraph %q: %w", command.ImageGraphID, err)
 		}
 
-		if command.NodeVersion == 0 {
-			return fmt.Errorf("node_version is required for SetImageGraphNodePreviewCommand")
+		nodeVersion := command.NodeVersion
+		if nodeVersion == 0 {
+			node, ok := ig.Nodes.Get(command.NodeID)
+			if !ok {
+				return fmt.Errorf("could not process SetImageGraphNodePreviewCommand for ImageGraph %q: node %q not found", command.ImageGraphID, command.NodeID)
+			}
+			nodeVersion = node.Version
 		}
 
 		err = ig.SetNodePreview(
 			command.NodeID,
 			command.ImageID,
-			command.NodeVersion,
+			nodeVersion,
 		)
 
 		if err != nil {

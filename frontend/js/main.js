@@ -469,7 +469,15 @@ async function initialize() {
                 graphState, modalManager, interactions
             ),
             viewJson: new ViewJsonModalController(
-                modalManager
+                modalManager,
+                graphState,
+                (nodeId) => {
+                    // If node isn't in current state (unlikely), attempt reload and try again
+                    const node = graphState.getNode(nodeId);
+                    if (node) {
+                        modals?.viewJson.open(node);
+                    }
+                }
             )
         };
 

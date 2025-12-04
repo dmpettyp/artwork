@@ -425,14 +425,18 @@ body {
 }
 
 .code-block {
-    background: #111;
-    color: #f4f4f4;
+    background: #f6f8fa;
+    color: #111;
     padding: var(--spacing-lg);
     border-radius: var(--border-radius);
     max-height: 400px;
     overflow: auto;
     font-family: monospace;
     font-size: 12px;
+}
+.code-block a {
+    color: #1a73e8;
+    text-decoration: underline;
 }
 
 .color-field-wrapper {
