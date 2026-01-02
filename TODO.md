@@ -1,0 +1,99 @@
+
+# TODO
+
+
+- node types
+  - paint? paint over? something that can be used to create a stencil
+  - stencil apply
+- need better error handling when image generation fails
+  - error state in node? store error in node?
+- more retro style
+
+# Done
+
+- DONE - seems to be a race when generating outputs, don't want older output to be
+  written over newer outputs
+- DONE - logging for image generation
+- DONE - full postgres store
+- DONE - better json representation for commands and events
+- DONE - expose Version from ImageGraph events to be written to the DB
+- DONE - input node should take filename for node name
+- DONE - registry lib for node application
+- DONE - lots of domain refactoring/cleanup
+- DONE - better right click menu
+- DONE hierarchy/class for node types
+- DONE lib for blur?
+- DONE fix preview for input node
+- DONE - setting a preview image
+  - interface to set
+  - implement in image generators
+    - create with appropriate size
+    - zoom in with nearest neighbour
+    - zoom out with something cleaner
+  - use in UI if exists
+- DONE - decopule handlers from json/domain converters
+- DONE - pixel blow up node deliniating lines, width, colour
+- DONE - crop ratio: can set w/h ratio, drag and zoom the crop
+- DONE - much better cropping, interactive probably best
+- DONE - initial crop node
+- DONE - delete images when they are no longer being used
+- DONE - don't share output nodes
+- DONE - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
+- DONE - publish node field config to frontend?
+- DONE - clean up and commonize aspects of imagegen
+- DONE - match resize implementations
+- DONE - all the nodeconfig casting sucks, let's add some methods
+- DONE - optional Node name
+- DONE - better output file name, {graph_name}-{output_name}
+- DONE - why is resize width/height float? make int 
+- implement different scaling types
+  - DONE - frontend
+  - DONE - backend
+- NewImageGraph ✅
+- AddNode ✅
+- RemoveNode ✅
+  - should unset image downstream if it is set ✅
+- ConnectNodes ✅
+- SetNodeOutputImage ✅
+- UnsetNodeOutputImage ✅
+- DisconnectNodes ✅
+- Node configuration ✅
+  - json blob, parse it and verify contents ✅
+- Node Preview Image ✅
+- Add a new node type that supports inputs!
+- Inmem repository and unit of work ✅
+- command, handlers and messagebus ✅
+- regenerate events✅
+- node states✅
+- swagger documentation? ✅
+- mapper ✅
+- move config to actual json in the API layer ✅
+- http APIlayer ✅
+- change patch node/config to patch node to allow name changing ✅
+  - add domain method to Node and ImageGraph ✅
+  - add command ✅
+  - modify patch endpoint to update multiple things ✅
+  - ui - in progress ✅
+- change UpdateUIMetadataCommand to not use a map, use a slice of structs ✅
+- uploading images ✅
+  - create depenedency (ImageStore) that implements interface to set and get images ✅
+  - create handler that allows images to be uploaded and uses ImageStore the is injected ✅
+- UI
+  - show output as thumbnail ✅
+  - drawer for inputs and outputs - not doing this, went with a table approach for inputs and outputs
+  - output/input node green when set, red when not
+- websocket implementation for events ✅
+- message when outputs are being generated ✅
+- output nodes should have side bar or something that shows the output images ✅
+- more node types
+  - get rid of scale
+  - output ✅
+  - blur ✅
+  - resize ✅
+  - resizeTo ✅
+- split up viewport/layout ✅
+- implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that? ✅
+- separate ws notifications for graph and layout changes ✅
+- download functionality for output panel ✅
+- extract current graph for bootstrap ✅
+- ensure that input and output order is stable as defined in node type ✅

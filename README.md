@@ -1,154 +1,142 @@
-# artwork
+# Project Summary (Artwork)
 
-artwork is used to model a pipeline for generating artwork. It creates an graph
-of nodes, each of which has inputs and outputs that can be connected together
-to process images in a non-destructive way.
+Artwork is an image-processing pipeline app built around an ImageGraph
+(a DAG of nodes). Each node transforms images, passes outputs to downstream
+nodes, and can expose previews. The backend is Go (DDD style), the frontend
+is vanilla JS with an SVG graph editor, and the backend serves the UI and API.
 
-## Installation
+## Quick Start
 
-Using golang-migrate:
+- Postgres (optional):
+  - docker run --name artwork-postgres -e POSTGRES_PASSWORD=foofoofoo -e POSTGRES_USER=postgres -e POSTGRES_DB=artwork -p 5432:5432 -d postgres:16
+- Run backend:
+  - cd backend
+  - go run ./cmd/artwork -store=postgres
+  - or use -store=inmem for no DB
+  - optional demo graph: -bootstrap
+- UI: open http://localhost:8080
+- Images: stored under backend/uploads/ (must exist and be writable)
 
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+## Repository Map
 
-## TODO
+- backend/
+  - cmd/artwork/         app entrypoint, flags, optional bootstrap
+  - domain/              core ImageGraph model + UI metadata
+  - application/         command/event handlers, unit of work, output setting
+  - infrastructure/      image generation, storage, in-memory repos
+  - gateways/http/       HTTP + WebSocket API, serialization
+- frontend/
+  - index.html, css/
+  - js/                  app state, graph editor, modals, schema usage
+- doc/                   palettes and notes
+- scripts/               utility scripts (if any)
 
+## Backend Architecture
 
-- node types
-  - paint? paint over? something that can be used to create a stencil
-  - stencil apply
-- need better error handling when image generation fails
-  - error state in node? store error in node?
-- more retro style
+DDD layers:
+- Domain: backend/domain/imagegraph
+  - ImageGraph aggregate, Node entity, typed configs, events
+  - Enforces DAG constraints and input/output invariants
+- Application: backend/application
+  - Commands, handlers, message bus orchestration
+  - Event handlers trigger image generation and WebSocket updates
+- Infrastructure: backend/infrastructure
+  - imagegen: transforms images by node type
+  - filestorage + inmem repos
+- Gateways: backend/gateways/http
+  - REST API + WS notifications
 
-## Overview
+UnitOfWork pattern:
+- All state changes are wrapped in a UoW transaction.
+- Changes are persisted when the UoW function returns nil.
 
-The core model in this project is called an "ImageGraph". An ImageGraph
-consists of a name, a version, and a collection of nodes which may be connected
-to each other.
+## Core Concepts
 
-The ImageGraph is the primary way to interact with the pipeline, and provides
-an interface that enables clients to manipulate the pipeline. This includes:
-- adding nodes
-- removing nodes
-- connecting nodes
-- disconnecting nodes
-- setting node output images
-- unsetting node output images
+ImageGraph:
+- A graph of nodes with inputs/outputs and typed configs.
+- Operations: add/remove nodes, connect/disconnect, set outputs, set preview,
+  update config/name, set layout/viewport.
 
-The ImageGraph model attempts to use domain driven design principles. As such, 
-it does not have any dependencies that are specific to the implementation of
-the service that is built around it. This includes storage (i.e. database) 
-concerns, API concerns, or any other integrations that need to access or 
-manipulated the ImageGraph.
+Node types:
+- Input, Output, Crop, Blur, Resize, ResizeMatch, PixelInflate,
+  PaletteExtract, PaletteApply.
+- Each node type defines inputs, outputs, and a typed config schema.
+- /api/node-types is the frontend source of truth for config shapes.
 
-### Image versioning (previews/outputs)
-- All image writes (preview and outputs) must include `node_version`.
-- The domain rejects `node_version == 0` and ignores writes with versions older than the node’s current `ImageVersion`; equal versions are allowed.
-- A single `ImageVersion` is tracked per node (shared for preview and outputs) and advances on successful writes; events include `image_version` for previews/outputs.
-- Callers (ImageGen/command handlers/API) must pass the event’s `NodeVersion`; the boundary refuses commands without it.
-- Tests calling setters directly must supply a non-zero `node_version` (usually the node’s current version).
+Image versioning:
+- Each node tracks ImageVersion for preview/outputs.
+- Writes must include node_version; stale writes are ignored.
+- Events include image_version and generation logs include node_version.
 
-The ImageGraph is primarily responsible for maintaining the Nodes that make
-up the image pipeline. Nodes are modeled with:
-- a name
-- a version
-- a type that indicates what transformation the node represents
-- a generic configuration object that is used to configure the node's 
-  image transoformation
-- inputs which feed source images into the node for processing
-- outputs which provide output images to be used as inputs for downstream nodes
+## Data and Event Flow
 
-The ImageGraph and Nodes are primarily used as a control plane to model and
-configure the image pipeline. The actual image creation/manipulation is 
-performed by processes external to the domain models, which set their output
-in the domain models to drive further changes in the ImageGraph pipeline.
+Typical flow (create/update):
+1. HTTP handler receives request and builds a command.
+2. Command handler loads ImageGraph via UnitOfWork.
+3. Domain operation emits events.
+4. Message bus dispatches events to handlers.
+5. Side effects run (image generation, storage updates, WS notify).
 
+Image generation flow:
+- NodeNeedsOutputsEvent triggers imagegen.
+- Imagegen saves preview/output images, then sets them on the node via
+  commands that carry node_version.
+- Outputs propagate to downstream nodes; state updates push over WS.
 
-## Done
+WebSocket:
+- /api/imagegraphs/{id}/ws sends graph/layout/viewport updates in real time.
 
-- DONE - seems to be a race when generating outputs, don't want older output to be
-  written over newer outputs
-- DONE - logging for image generation
-- DONE - full postgres store
-- DONE - better json representation for commands and events
-- DONE - expose Version from ImageGraph events to be written to the DB
-- DONE - input node should take filename for node name
-- DONE - registry lib for node application
-- DONE - lots of domain refactoring/cleanup
-- DONE - better right click menu
-- DONE hierarchy/class for node types
-- DONE lib for blur?
-- DONE fix preview for input node
-- DONE - setting a preview image
-  - interface to set
-  - implement in image generators
-    - create with appropriate size
-    - zoom in with nearest neighbour
-    - zoom out with something cleaner
-  - use in UI if exists
-- DONE - decopule handlers from json/domain converters
-- DONE - pixel blow up node deliniating lines, width, colour
-- DONE - crop ratio: can set w/h ratio, drag and zoom the crop
-- DONE - much better cropping, interactive probably best
-- DONE - initial crop node
-- DONE - delete images when they are no longer being used
-- DONE - don't share output nodes
-- DONE - order of node types? only care about for add menu. maybe convert to a list, add node category as well?
-- DONE - publish node field config to frontend?
-- DONE - clean up and commonize aspects of imagegen
-- DONE - match resize implementations
-- DONE - all the nodeconfig casting sucks, let's add some methods
-- DONE - optional Node name
-- DONE - better output file name, {graph_name}-{output_name}
-- DONE - why is resize width/height float? make int 
-- implement different scaling types
-  - DONE - frontend
-  - DONE - backend
-- NewImageGraph ✅
-- AddNode ✅
-- RemoveNode ✅
-  - should unset image downstream if it is set ✅
-- ConnectNodes ✅
-- SetNodeOutputImage ✅
-- UnsetNodeOutputImage ✅
-- DisconnectNodes ✅
-- Node configuration ✅
-  - json blob, parse it and verify contents ✅
-- Node Preview Image ✅
-- Add a new node type that supports inputs!
-- Inmem repository and unit of work ✅
-- command, handlers and messagebus ✅
-- regenerate events✅
-- node states✅
-- swagger documentation? ✅
-- mapper ✅
-- move config to actual json in the API layer ✅
-- http APIlayer ✅
-- change patch node/config to patch node to allow name changing ✅
-  - add domain method to Node and ImageGraph ✅
-  - add command ✅
-  - modify patch endpoint to update multiple things ✅
-  - ui - in progress ✅
-- change UpdateUIMetadataCommand to not use a map, use a slice of structs ✅
-- uploading images ✅
-  - create depenedency (ImageStore) that implements interface to set and get images ✅
-  - create handler that allows images to be uploaded and uses ImageStore the is injected ✅
-- UI
-  - show output as thumbnail ✅
-  - drawer for inputs and outputs - not doing this, went with a table approach for inputs and outputs
-  - output/input node green when set, red when not
-- websocket implementation for events ✅
-- message when outputs are being generated ✅
-- output nodes should have side bar or something that shows the output images ✅
-- more node types
-  - get rid of scale
-  - output ✅
-  - blur ✅
-  - resize ✅
-  - resizeTo ✅
-- split up viewport/layout ✅
-- implement node preview...small images look crappy when scaled by the UI. but maybe SVG can help with that? ✅
-- separate ws notifications for graph and layout changes ✅
-- download functionality for output panel ✅
-- extract current graph for bootstrap ✅
-- ensure that input and output order is stable as defined in node type ✅
+## HTTP API (high level)
+
+- GET /api/node-types
+- GET/POST /api/imagegraphs
+- GET /api/imagegraphs/{id}
+- POST /api/imagegraphs/{id}/nodes
+- PATCH /api/imagegraphs/{id}/nodes/{node_id}
+- DELETE /api/imagegraphs/{id}/nodes/{node_id}
+- PUT /api/imagegraphs/{id}/connectNodes
+- PUT /api/imagegraphs/{id}/disconnectNodes
+- PUT /api/imagegraphs/{id}/nodes/{node_id}/outputs/{output_name} (multipart)
+- GET /api/images/{image_id}
+- GET/PUT /api/imagegraphs/{id}/layout
+- GET/PUT /api/imagegraphs/{id}/viewport
+
+## Frontend Architecture
+
+- Vanilla JS + SVG graph editor.
+- State is hydrated from API and kept in sync via WebSocket updates.
+- Uses /api/node-types to build config forms and validate inputs.
+- Modals handle editing, image previews, and node JSON viewing.
+
+Key folders:
+- frontend/js/graph: graph model + rendering
+- frontend/js/api: API calls
+- frontend/js/modals: modal controllers
+- frontend/js/form-builder.js: node config UI
+
+## Adding a New Node Type (Checklist)
+
+Update all:
+- backend/domain/imagegraph/node_type.go
+- backend/domain/imagegraph/node_type_config.go
+- backend/domain/imagegraph/mappers.go
+- backend/gateways/http/serialization.go (metadata)
+- backend/application/node_output_generators.go
+- backend/infrastructure/imagegen/ (implementation)
+- frontend/js/schemas/ (schema file)
+
+Run: go test ./... (from backend)
+
+## Testing
+
+- go test ./... (backend)
+- Domain tests: backend/domain/imagegraph/imagegraph_test.go
+- HTTP tests: backend/gateways/http/http_test.go
+
+## Common Gotchas
+
+- backend/uploads/ must exist and be writable.
+- Use -store=inmem if Postgres is not available.
+- Typed configs reject invalid JSON; rely on /api/node-types schemas.
+- Resize interpolation must use supported names.
+- Image versioning requires node_version on preview/output writes.
