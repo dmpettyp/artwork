@@ -14,6 +14,7 @@ import (
 
 	"github.com/dmpettyp/artwork/application"
 	"github.com/dmpettyp/artwork/infrastructure/filestorage"
+	"github.com/dmpettyp/artwork/metrics"
 )
 
 type HTTPServer struct {
@@ -26,6 +27,7 @@ type HTTPServer struct {
 	notifier        *ImageGraphNotifier
 	server          *http.Server
 	port            string
+	metrics         *metrics.HTTPMetrics
 }
 
 // ServerOption is a functional option for configuring the HTTPServer
@@ -48,8 +50,13 @@ func NewHTTPServer(
 	viewportViews application.ViewportViews,
 	imageStorage filestorage.ImageStorage,
 	notifier *ImageGraphNotifier,
+	appMetrics *metrics.AppMetrics,
 	opts ...ServerOption,
 ) *HTTPServer {
+	if appMetrics == nil {
+		appMetrics = metrics.NewAppMetrics()
+	}
+
 	s := &HTTPServer{
 		logger:          logger,
 		messageBus:      messageBus,
@@ -65,6 +72,8 @@ func NewHTTPServer(
 	for _, opt := range opts {
 		opt(s)
 	}
+
+	s.metrics = appMetrics.HTTP
 
 	// Set up routes
 	mux := http.NewServeMux()
@@ -101,7 +110,7 @@ func NewHTTPServer(
 
 	s.server = &http.Server{
 		Addr:    ":" + s.port,
-		Handler: loggingMiddleware(logger, mux),
+		Handler: loggingMiddleware(logger, appMetrics.HTTP.Middleware(mux)),
 	}
 
 	return s
@@ -133,6 +142,10 @@ func (s *HTTPServer) Stop(ctx context.Context) error {
 // Handler returns the HTTP handler for testing
 func (s *HTTPServer) Handler() http.Handler {
 	return s.server.Handler
+}
+
+func (s *HTTPServer) Metrics() *metrics.HTTPMetrics {
+	return s.metrics
 }
 
 type ctxKey string

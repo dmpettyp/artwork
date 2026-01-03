@@ -19,6 +19,7 @@ import (
 	httpgateway "github.com/dmpettyp/artwork/gateways/http"
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
+	"github.com/dmpettyp/artwork/metrics"
 	"github.com/dmpettyp/dorky/messagebus"
 )
 
@@ -82,7 +83,7 @@ func setupTestServer(t *testing.T) *testServer {
 	nodeUpdater := application.NewNodeUpdater(mb)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger)
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger, nil)
 
 	// Create notifier
 	notifier := httpgateway.NewImageGraphNotifier(logger)
@@ -100,7 +101,17 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Create HTTP server
-	httpServer := httpgateway.NewHTTPServer(logger, mb, uow.ImageGraphViews, uow.LayoutViews, uow.ViewportViews, imageStorage, notifier)
+	appMetrics := metrics.NewAppMetrics()
+	httpServer := httpgateway.NewHTTPServer(
+		logger,
+		mb,
+		uow.ImageGraphViews,
+		uow.LayoutViews,
+		uow.ViewportViews,
+		imageStorage,
+		notifier,
+		appMetrics,
+	)
 
 	// Start the message bus
 	ctx, cancel := context.WithCancel(context.Background())

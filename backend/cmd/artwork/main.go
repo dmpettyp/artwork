@@ -17,6 +17,7 @@ import (
 	"github.com/dmpettyp/artwork/infrastructure/imagegen"
 	"github.com/dmpettyp/artwork/infrastructure/inmem"
 	"github.com/dmpettyp/artwork/infrastructure/postgres"
+	"github.com/dmpettyp/artwork/metrics"
 )
 
 func main() {
@@ -88,7 +89,8 @@ func main() {
 	nodeUpdater := application.NewNodeUpdater(messageBus)
 
 	// Create ImageGen with dependencies
-	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger)
+	appMetrics := metrics.NewAppMetrics()
+	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger, appMetrics.ImageGen)
 
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
 
@@ -142,9 +144,20 @@ func main() {
 		viewportViews,
 		imageStorage,
 		notifier,
+		appMetrics,
 	)
 
 	httpServer.Start()
+
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = ":9090"
+	}
+	metricsServer := metrics.StartMetricsServer(
+		logger,
+		metricsAddr,
+		metrics.NewMetricsHandler(appMetrics),
+	)
 
 	go messageBus.Start(context.Background())
 
@@ -169,6 +182,9 @@ func main() {
 
 	if err := httpServer.Stop(shutdownCtx); err != nil {
 		logger.Error("error stopping HTTP server", "error", err)
+	}
+	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+		logger.Error("error stopping metrics server", "error", err)
 	}
 
 	logger.Info("shutdown complete")

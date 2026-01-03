@@ -17,6 +17,7 @@ import (
 
 	"github.com/anthonynsimon/bild/blur"
 	"github.com/dmpettyp/artwork/domain/imagegraph"
+	"github.com/dmpettyp/artwork/metrics"
 	"github.com/nfnt/resize"
 )
 
@@ -55,12 +56,14 @@ type ImageGen struct {
 	imageStorage imageStorage
 	nodeUpdater  nodeUpdater
 	logger       *slog.Logger
+	metrics      *metrics.ImageGenMetrics
 }
 
 func NewImageGen(
 	imageStorage imageStorage,
 	nodeUpdater nodeUpdater,
 	logger *slog.Logger,
+	metrics *metrics.ImageGenMetrics,
 ) *ImageGen {
 	if logger == nil {
 		logger = slog.Default()
@@ -70,8 +73,11 @@ func NewImageGen(
 		imageStorage: imageStorage,
 		nodeUpdater:  nodeUpdater,
 		logger:       logger,
+		metrics:      metrics,
 	}
 }
+
+// Metrics helpers live in metrics_helpers.go.
 
 func (ig *ImageGen) logGeneration(
 	nodeType string,
@@ -218,15 +224,19 @@ func (ig *ImageGen) GeneratePreviewForInputNode(
 	nodeID imagegraph.NodeID,
 	nodeVersion imagegraph.NodeVersion,
 	outputImageID imagegraph.ImageID,
-) error {
-	outputImage, err := ig.loadImage(outputImageID)
+) (err error) {
+	rec := ig.newRecorder(nodeTypeInput)
+	defer func() {
+		rec.total(err)
+	}()
 
+	outputImage, err := ig.loadImage(outputImageID)
 	if err != nil {
 		return err
 	}
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, outputImage)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
 	}
@@ -241,8 +251,13 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	nodeVersion imagegraph.NodeVersion,
 	inputImageID imagegraph.ImageID,
 	radius int,
-) error {
-	ig.logGeneration("blur", imageGraphID, nodeID, nodeVersion, "radius", radius)
+) (err error) {
+	rec := ig.newRecorder(nodeTypeBlur)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypeBlur, imageGraphID, nodeID, nodeVersion, "radius", radius)
 
 	// Load the input image
 	img, err := ig.loadImage(inputImageID)
@@ -253,13 +268,13 @@ func (ig *ImageGen) GenerateOutputsForBlurNode(
 	blurredImg := blur.Gaussian(img, float64(radius))
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, blurredImg)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "blurred", nodeVersion, blurredImg)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for blur node: %w", err)
 	}
@@ -276,8 +291,13 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	width *int,
 	height *int,
 	interpolation string,
-) error {
-	ig.logGeneration("resize", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypeResize)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypeResize, imageGraphID, nodeID, nodeVersion,
 		"width", width,
 		"height", height,
 		"interpolation", interpolation,
@@ -317,13 +337,13 @@ func (ig *ImageGen) GenerateOutputsForResizeNode(
 	resizedImg := resize.Resize(targetWidth, targetHeight, img, interpolationFunction)
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, resizedImg)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", nodeVersion, resizedImg)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize node: %w", err)
 	}
@@ -348,8 +368,13 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	originalImageID imagegraph.ImageID,
 	sizeMatchImageID imagegraph.ImageID,
 	interpolation string,
-) error {
-	ig.logGeneration("resize_match", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypeResizeMatch)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypeResizeMatch, imageGraphID, nodeID, nodeVersion,
 		"interpolation", interpolation,
 	)
 
@@ -371,7 +396,6 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	targetHeight := uint(targetBounds.Dy())
 
 	interpolationFunction, ok := resizeInterpolationFunctions[interpolation]
-
 	if !ok {
 		return fmt.Errorf("unsupported interpolation function %q", interpolation)
 	}
@@ -384,13 +408,13 @@ func (ig *ImageGen) GenerateOutputsForResizeMatchNode(
 	)
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, resizedImg)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "resized", nodeVersion, resizedImg)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for resize match node: %w", err)
 	}
@@ -485,8 +509,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	nodeVersion imagegraph.NodeVersion,
 	imageID imagegraph.ImageID,
 	left, right, top, bottom *int,
-) error {
-	ig.logGeneration("crop", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypeCrop)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypeCrop, imageGraphID, nodeID, nodeVersion,
 		"left", left,
 		"right", right,
 		"top", top,
@@ -494,7 +523,6 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	)
 
 	originalImage, err := ig.loadImage(imageID)
-
 	if err != nil {
 		return err
 	}
@@ -504,13 +532,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	// If no crop bounds are provided, pass through the original image
 	if left == nil && right == nil && top == nil && bottom == nil {
 		err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, originalImage)
-
+		rec.preview(err)
 		if err != nil {
 			return fmt.Errorf("could not generate outputs for crop node: %w", err)
 		}
 
 		err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", nodeVersion, originalImage)
-
+		rec.output(err)
 		if err != nil {
 			return fmt.Errorf("could not generate outputs for crop node: %w", err)
 		}
@@ -573,13 +601,13 @@ func (ig *ImageGen) GenerateOutputsForCropNode(
 	previewImg := ig.createCropPreviewImage(originalImage, actualLeft, actualTop, actualRight, actualBottom)
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, previewImg)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for crop node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "cropped", nodeVersion, croppedImg)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for crop node: %w", err)
 	}
@@ -593,23 +621,27 @@ func (ig *ImageGen) GenerateOutputsForOutputNode(
 	nodeID imagegraph.NodeID,
 	nodeVersion imagegraph.NodeVersion,
 	imageID imagegraph.ImageID,
-) error {
-	ig.logGeneration("output", imageGraphID, nodeID, nodeVersion)
+) (err error) {
+	rec := ig.newRecorder(nodeTypeOutput)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypeOutput, imageGraphID, nodeID, nodeVersion)
 
 	originalImage, err := ig.loadImage(imageID)
-
 	if err != nil {
 		return err
 	}
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, originalImage)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for output node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "final", nodeVersion, originalImage)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for output node: %w", err)
 	}
@@ -626,8 +658,13 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 	width int,
 	lineWidth int,
 	lineColor string,
-) error {
-	ig.logGeneration("pixel_inflate", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypePixelInflate)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypePixelInflate, imageGraphID, nodeID, nodeVersion,
 		"width", width,
 		"line_width", lineWidth,
 		"line_color", lineColor,
@@ -639,70 +676,70 @@ func (ig *ImageGen) GenerateOutputsForPixelInflateNode(
 		return err
 	}
 
-	// Get original dimensions
-	bounds := img.Bounds()
-	originalWidth := bounds.Dx()
-	originalHeight := bounds.Dy()
+		// Get original dimensions
+		bounds := img.Bounds()
+		originalWidth := bounds.Dx()
+		originalHeight := bounds.Dy()
 
-	// Calculate new height maintaining aspect ratio
-	targetWidth := uint(width)
-	targetHeight := uint(float64(width) * float64(originalHeight) / float64(originalWidth))
+		// Calculate new height maintaining aspect ratio
+		targetWidth := uint(width)
+		targetHeight := uint(float64(width) * float64(originalHeight) / float64(originalWidth))
 
-	// Scale the image using NearestNeighbor to preserve pixel appearance
-	scaledImg := resize.Resize(targetWidth, targetHeight, img, resize.NearestNeighbor)
+		// Scale the image using NearestNeighbor to preserve pixel appearance
+		scaledImg := resize.Resize(targetWidth, targetHeight, img, resize.NearestNeighbor)
 
-	// Create a mutable RGBA image from the scaled image
-	scaledBounds := scaledImg.Bounds()
-	outputImg := image.NewRGBA(scaledBounds)
-	for y := scaledBounds.Min.Y; y < scaledBounds.Max.Y; y++ {
-		for x := scaledBounds.Min.X; x < scaledBounds.Max.X; x++ {
-			outputImg.Set(x, y, scaledImg.At(x, y))
+		// Create a mutable RGBA image from the scaled image
+		scaledBounds := scaledImg.Bounds()
+		outputImg := image.NewRGBA(scaledBounds)
+		for y := scaledBounds.Min.Y; y < scaledBounds.Max.Y; y++ {
+			for x := scaledBounds.Min.X; x < scaledBounds.Max.X; x++ {
+				outputImg.Set(x, y, scaledImg.At(x, y))
+			}
 		}
-	}
 
-	// Parse hex color #RRGGBB
-	var r, g, b uint8
-	fmt.Sscanf(lineColor, "#%02x%02x%02x", &r, &g, &b)
-	lineCol := color.RGBA{R: r, G: g, B: b, A: 255}
+		// Parse hex color #RRGGBB
+		var r, g, b uint8
+		fmt.Sscanf(lineColor, "#%02x%02x%02x", &r, &g, &b)
+		lineCol := color.RGBA{R: r, G: g, B: b, A: 255}
 
-	// Calculate scale factor
-	scaleX := float64(targetWidth) / float64(originalWidth)
-	scaleY := float64(targetHeight) / float64(originalHeight)
+		// Calculate scale factor
+		scaleX := float64(targetWidth) / float64(originalWidth)
+		scaleY := float64(targetHeight) / float64(originalHeight)
 
-	// Draw vertical lines (delineating original pixel columns)
-	for i := range originalWidth - 1 {
-		x := int(float64(i+1) * scaleX)
-		for lineOffset := range lineWidth {
-			xPos := x + lineOffset - lineWidth/2
-			if xPos >= 0 && xPos < int(targetWidth) {
-				for y := range int(targetHeight) {
-					outputImg.Set(xPos, y, lineCol)
+		// Draw vertical lines (delineating original pixel columns)
+		for i := range originalWidth - 1 {
+			x := int(float64(i+1) * scaleX)
+			for lineOffset := range lineWidth {
+				xPos := x + lineOffset - lineWidth/2
+				if xPos >= 0 && xPos < int(targetWidth) {
+					for y := range int(targetHeight) {
+						outputImg.Set(xPos, y, lineCol)
+					}
 				}
 			}
 		}
-	}
 
-	// Draw horizontal lines (delineating original pixel rows)
-	for i := range originalHeight - 1 {
-		y := int(float64(i+1) * scaleY)
-		for lineOffset := range lineWidth {
-			yPos := y + lineOffset - lineWidth/2
-			if yPos >= 0 && yPos < int(targetHeight) {
-				for x := range int(targetWidth) {
-					outputImg.Set(x, yPos, lineCol)
+		// Draw horizontal lines (delineating original pixel rows)
+		for i := range originalHeight - 1 {
+			y := int(float64(i+1) * scaleY)
+			for lineOffset := range lineWidth {
+				yPos := y + lineOffset - lineWidth/2
+				if yPos >= 0 && yPos < int(targetHeight) {
+					for x := range int(targetWidth) {
+						outputImg.Set(x, yPos, lineCol)
+					}
 				}
 			}
 		}
-	}
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, outputImg)
-
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "inflated", nodeVersion, outputImg)
-
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for pixel inflate node: %w", err)
 	}
@@ -718,8 +755,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 	sourceImageID imagegraph.ImageID,
 	numColors int,
 	method string,
-) error {
-	ig.logGeneration("palette_extract", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypePaletteExtract)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypePaletteExtract, imageGraphID, nodeID, nodeVersion,
 		"method", method,
 		"num_colors", numColors,
 	)
@@ -730,26 +772,28 @@ func (ig *ImageGen) GenerateOutputsForPaletteExtractNode(
 		return err
 	}
 
-	var palette []color.Color
-	switch method {
-	case "dominant_frequency":
-		palette = mostCommonColors(sourceImg, numColors)
-	default: // "oklab_clusters" and fallback
-		// Extract colors from the image (ignoring alpha)
-		colors := extractColorsFromImage(sourceImg)
-		palette = kmeansClusteringOKLab(colors, numColors)
-	}
+		var palette []color.Color
+		switch method {
+		case "dominant_frequency":
+			palette = mostCommonColors(sourceImg, numColors)
+		default: // "oklab_clusters" and fallback
+			// Extract colors from the image (ignoring alpha)
+			colors := extractColorsFromImage(sourceImg)
+			palette = kmeansClusteringOKLab(colors, numColors)
+		}
 
-	// No sorting - use colors as returned by clustering
+		// No sorting - use colors as returned by clustering
 
-	paletteImg := createPaletteImage(palette)
+		paletteImg := createPaletteImage(palette)
 
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, paletteImg)
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
 	}
 
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", nodeVersion, paletteImg)
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette extract node: %w", err)
 	}
@@ -765,12 +809,17 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 	sourceImageID imagegraph.ImageID,
 	paletteImageID imagegraph.ImageID,
 	config *imagegraph.NodeConfigPaletteApply,
-) error {
+) (err error) {
+	rec := ig.newRecorder(nodeTypePaletteApply)
+	defer func() {
+		rec.total(err)
+	}()
+
 	normalizeMode := ""
 	if config != nil {
 		normalizeMode = config.Normalize
 	}
-	ig.logGeneration("palette_apply", imageGraphID, nodeID, nodeVersion,
+	ig.logGeneration(nodeTypePaletteApply, imageGraphID, nodeID, nodeVersion,
 		"normalize", normalizeMode,
 	)
 
@@ -803,12 +852,14 @@ func (ig *ImageGen) GenerateOutputsForPaletteApplyNode(
 
 	// Save preview
 	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, outputImg)
+	rec.preview(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
 	}
 
 	// Save output
 	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "mapped", nodeVersion, outputImg)
+	rec.output(err)
 	if err != nil {
 		return fmt.Errorf("could not generate outputs for palette apply node: %w", err)
 	}
@@ -822,8 +873,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
 	nodeID imagegraph.NodeID,
 	nodeVersion imagegraph.NodeVersion,
 	colorStrings []string,
-) error {
-	ig.logGeneration("palette_create", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypePaletteCreate)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypePaletteCreate, imageGraphID, nodeID, nodeVersion,
 		"colors_count", len(colorStrings),
 	)
 
@@ -838,11 +894,15 @@ func (ig *ImageGen) GenerateOutputsForPaletteCreateNode(
 
 	paletteImg := createPaletteImage(colors)
 
-	if err := ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, paletteImg); err != nil {
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, paletteImg)
+	rec.preview(err)
+	if err != nil {
 		return fmt.Errorf("could not generate palette create preview: %w", err)
 	}
 
-	if err := ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", nodeVersion, paletteImg); err != nil {
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", nodeVersion, paletteImg)
+	rec.output(err)
+	if err != nil {
 		return fmt.Errorf("could not generate palette create output: %w", err)
 	}
 
@@ -857,8 +917,13 @@ func (ig *ImageGen) GenerateOutputsForPaletteEditNode(
 	sourceImageID imagegraph.ImageID,
 	existingColors []string,
 	currentConfig string,
-) error {
-	ig.logGeneration("palette_edit", imageGraphID, nodeID, nodeVersion,
+) (err error) {
+	rec := ig.newRecorder(nodeTypePaletteEdit)
+	defer func() {
+		rec.total(err)
+	}()
+
+	ig.logGeneration(nodeTypePaletteEdit, imageGraphID, nodeID, nodeVersion,
 		"existing_colors", len(existingColors),
 	)
 
@@ -932,11 +997,15 @@ func (ig *ImageGen) GenerateOutputsForPaletteEditNode(
 		}
 	}
 
-	if err := ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, paletteImg); err != nil {
+	err = ig.saveAndSetPreview(ctx, imageGraphID, nodeID, nodeVersion, paletteImg)
+	rec.preview(err)
+	if err != nil {
 		return fmt.Errorf("could not generate palette edit preview: %w", err)
 	}
 
-	if err := ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", nodeVersion, paletteImg); err != nil {
+	err = ig.saveAndSetOutput(ctx, imageGraphID, nodeID, "palette", nodeVersion, paletteImg)
+	rec.output(err)
+	if err != nil {
 		return fmt.Errorf("could not generate palette edit output: %w", err)
 	}
 

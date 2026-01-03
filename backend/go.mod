@@ -6,6 +6,7 @@ require (
 	github.com/coder/websocket v1.8.14
 	github.com/dmpettyp/dorky v0.0.0-20251117013211-b144987f2ffb
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+	github.com/prometheus/client_golang v1.20.5
 )
 
 require (
