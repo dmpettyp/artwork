@@ -11,6 +11,7 @@ type AppMetrics struct {
 	registry *prometheus.Registry
 	HTTP     *HTTPMetrics
 	ImageGen *ImageGenMetrics
+	MessageBus *MessageBusMetrics
 }
 
 func NewAppMetrics() *AppMetrics {
@@ -18,11 +19,13 @@ func NewAppMetrics() *AppMetrics {
 
 	httpMetrics := newHTTPMetrics(registry)
 	imageGenMetrics := newImageGenMetrics(registry)
+	messageBusMetrics := newMessageBusMetrics(registry)
 
 	return &AppMetrics{
 		registry: registry,
 		HTTP:     httpMetrics,
 		ImageGen: imageGenMetrics,
+		MessageBus: messageBusMetrics,
 	}
 }
 

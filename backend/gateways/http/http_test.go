@@ -74,7 +74,7 @@ func setupTestServer(t *testing.T) *testServer {
 	}
 
 	// Create message bus
-	mb := messagebus.New(logger)
+	mb := messagebus.New()
 
 	// Create mock image storage
 	imageStorage := &mockImageStorage{data: make(map[string][]byte)}

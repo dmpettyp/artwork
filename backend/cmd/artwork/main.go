@@ -75,7 +75,11 @@ func main() {
 		return
 	}
 
-	messageBus := messagebus.New(logger)
+	appMetrics := metrics.NewAppMetrics()
+	messageBus := messagebus.New(
+		messagebus.WithLogger(logger),
+		messagebus.WithMetricsHook(appMetrics.MessageBus),
+	)
 
 	// Create image storage
 	imageStorage, err := filestorage.NewFilesystemImageStorage("uploads")
@@ -89,7 +93,6 @@ func main() {
 	nodeUpdater := application.NewNodeUpdater(messageBus)
 
 	// Create ImageGen with dependencies
-	appMetrics := metrics.NewAppMetrics()
 	imageGen := imagegen.NewImageGen(imageStorage, nodeUpdater, logger, appMetrics.ImageGen)
 
 	_, err = application.NewImageGraphCommandHandlers(messageBus, uow)
