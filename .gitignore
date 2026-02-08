@@ -32,3 +32,6 @@ go.work.sum
 # .vscode/
 build/
 uploads/
+
+frontend/pixel-editor/dist/
+frontend/pixel-editor/node_modules/

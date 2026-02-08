@@ -1,0 +1,20 @@
+export { createEditor } from "./editor.js";
+export type {
+  CreateEditorOptions,
+  Editor,
+  ActiveTool,
+  EditorConfig,
+  EditorHooks,
+  EditorInitialState,
+  EditorState,
+  EraserState,
+  EraserSelection,
+  ImageSnapshot,
+  InitialImage,
+  PaintbrushState,
+  PaintbrushSelection,
+  PersistPayload,
+  PersistReason,
+  RGBA,
+  Tool,
+} from "./types.js";

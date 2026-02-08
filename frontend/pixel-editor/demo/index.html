@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Editor Demo</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --line: #d8dee4;
+        --text: #202939;
+        --accent: #0b7285;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top right, #d8f3ff, var(--bg) 45%);
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px 16px 32px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.6rem;
+      }
+
+      .sub {
+        margin: 0 0 20px;
+        color: #506070;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+
+      button,
+      input[type="color"] {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 8px 10px;
+        font-size: 0.95rem;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .status {
+        margin-left: auto;
+        color: #556575;
+        font-size: 0.9rem;
+      }
+
+      .stage {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+
+      canvas {
+        display: block;
+        border: 1px solid #b9c4ce;
+        border-radius: 6px;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background-image:
+          linear-gradient(45deg, #edf1f5 25%, transparent 25%),
+          linear-gradient(-45deg, #edf1f5 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #edf1f5 75%),
+          linear-gradient(-45deg, transparent 75%, #edf1f5 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Pixel Editor Demo</h1>
+      <p class="sub">Click or drag to paint. Save stores to localStorage. Download exports PNG.</p>
+
+      <section class="controls">
+        <label>
+          Color
+          <input id="color" type="color" value="#ff4444" />
+        </label>
+        <button id="erase" type="button">Eraser: Off</button>
+        <button id="clear" type="button">Clear</button>
+        <button id="save" type="button" class="primary">Save Snapshot</button>
+        <button id="download" type="button">Download PNG</button>
+        <span id="status" class="status">Ready</span>
+      </section>
+
+      <section class="stage">
+        <canvas id="canvas"></canvas>
+      </section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
