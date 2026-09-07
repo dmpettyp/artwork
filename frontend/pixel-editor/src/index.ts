@@ -1,11 +1,13 @@
 export { createEditor } from "./editor.js";
+export { attachEditorCanvas } from "./canvas.js";
+export type { CanvasEditorAdapter, CanvasEditorAdapterOptions } from "./canvas.js";
 export type {
   CreateEditorOptions,
   Editor,
   ActiveTool,
   EditorConfig,
   EditorHooks,
-  EditorInitialState,
+  EditorInit,
   EditorState,
   EraserState,
   EraserSelection,

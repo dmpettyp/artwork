@@ -1,4 +1,4 @@
-import { createEditor } from "../dist/index.js";
+import { attachEditorCanvas, createEditor } from "../dist/index.js";
 
 const STORAGE_KEY = "pixel-editor-demo-state-v1";
 const WIDTH = 32;
@@ -12,19 +12,6 @@ const clearBtn = document.querySelector("#clear");
 const saveBtn = document.querySelector("#save");
 const downloadBtn = document.querySelector("#download");
 const statusEl = document.querySelector("#status");
-
-const ctx = canvas.getContext("2d");
-if (!ctx) {
-  throw new Error("2d canvas context is unavailable");
-}
-
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
-canvas.style.width = `${WIDTH * ZOOM}px`;
-canvas.style.height = `${HEIGHT * ZOOM}px`;
-ctx.imageSmoothingEnabled = false;
-
-let lastPointer = null;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -100,20 +87,6 @@ function deserializeInitialState(raw) {
   }
 }
 
-function render(editor) {
-  const image = editor.getImage();
-  const imageData = new ImageData(new Uint8ClampedArray(image.pixels), image.width, image.height);
-  ctx.putImageData(imageData, 0, 0);
-  setStatus(editor.isDirty() ? "Unsaved changes" : "Saved");
-}
-
-function canvasPixelFromPointer(event) {
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor(((event.clientX - rect.left) / rect.width) * WIDTH);
-  const y = Math.floor(((event.clientY - rect.top) / rect.height) * HEIGHT);
-  return [x, y];
-}
-
 async function main() {
   const saved = deserializeInitialState(localStorage.getItem(STORAGE_KEY));
   const editor = await createEditor({
@@ -147,6 +120,19 @@ async function main() {
     },
   });
 
+  const canvasAdapter = attachEditorCanvas({
+    editor,
+    canvas,
+    onDraw: () => {
+      setStatus(editor.isDirty() ? "Unsaved changes" : "Saved");
+    },
+  });
+
+  function render() {
+    canvasAdapter.render();
+    setStatus(editor.isDirty() ? "Unsaved changes" : "Saved");
+  }
+
   function syncToolUi() {
     const active = editor.getActiveTool();
     eraseBtn.textContent = `Eraser: ${active.kind === "eraser" ? "On" : "Off"}`;
@@ -154,45 +140,7 @@ async function main() {
   }
 
   syncToolUi();
-  render(editor);
-
-  let pointerDown = false;
-
-  function paint(event) {
-    const [x, y] = canvasPixelFromPointer(event);
-
-    if (lastPointer) {
-      editor.stroke(lastPointer[0], lastPointer[1], x, y);
-    } else {
-      editor.dab(x, y);
-    }
-    lastPointer = [x, y];
-    render(editor);
-  }
-
-  canvas.addEventListener("pointerdown", (event) => {
-    pointerDown = true;
-    canvas.setPointerCapture(event.pointerId);
-    lastPointer = null;
-    paint(event);
-  });
-
-  canvas.addEventListener("pointermove", (event) => {
-    if (!pointerDown) {
-      return;
-    }
-    paint(event);
-  });
-
-  canvas.addEventListener("pointerup", () => {
-    pointerDown = false;
-    lastPointer = null;
-  });
-
-  canvas.addEventListener("pointercancel", () => {
-    pointerDown = false;
-    lastPointer = null;
-  });
+  render();
 
   eraseBtn.addEventListener("click", () => {
     const active = editor.getActiveTool();
@@ -211,12 +159,12 @@ async function main() {
 
   clearBtn.addEventListener("click", () => {
     editor.clear();
-    render(editor);
+    render();
   });
 
   saveBtn.addEventListener("click", async () => {
     await editor.save("manual");
-    render(editor);
+    render();
   });
 
   downloadBtn.addEventListener("click", () => {
@@ -233,6 +181,10 @@ async function main() {
       URL.revokeObjectURL(url);
       setStatus("Downloaded PNG");
     }, "image/png");
+  });
+
+  window.addEventListener("beforeunload", () => {
+    canvasAdapter.destroy();
   });
 }
 

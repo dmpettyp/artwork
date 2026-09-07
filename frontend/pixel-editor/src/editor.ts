@@ -10,7 +10,7 @@ import type {
   Editor,
   EditorConfig,
   EditorHooks,
-  EditorInitialState,
+  EditorInit,
   EditorState,
   EraserSelection,
   ImageSnapshot,
@@ -74,13 +74,13 @@ function cloneState(state: EditorState): EditorState {
   };
 }
 
-function normalizeState(initial: EditorInitialState): EditorState {
-  const legacy = initial.config as EditorConfig & {
+function normalizeState(init: EditorInit): EditorState {
+  const legacy = init.config as EditorConfig & {
     tool?: unknown;
     color?: unknown;
     brushSize?: unknown;
   };
-  const state = initial.state;
+  const state = init.state;
 
   const paintbrushSize = state?.paintbrush?.size ?? (typeof legacy.brushSize === "number" ? legacy.brushSize : 1);
   const eraserSize = state?.eraser?.size ?? (typeof legacy.brushSize === "number" ? legacy.brushSize : 1);
@@ -218,14 +218,14 @@ class PixelEditor implements Editor {
   private hooks: EditorHooks;
   private dirty = false;
 
-  constructor(state: EditorInitialState, hooks: EditorHooks) {
-    const normalizedConfig = normalizeConfig(state.config);
+  constructor(init: EditorInit, hooks: EditorHooks) {
+    const normalizedConfig = normalizeConfig(init.config);
     validateConfig(normalizedConfig);
-    const normalizedState = normalizeState(state);
+    const normalizedState = normalizeState(init);
 
     this.config = cloneConfig(normalizedConfig);
     this.state = cloneState(normalizedState);
-    this.image = normalizeImage(state.image, this.config);
+    this.image = normalizeImage(init.image, this.config);
     this.hooks = hooks;
   }
 

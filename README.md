@@ -114,6 +114,45 @@ Key folders:
 - frontend/js/modals: modal controllers
 - frontend/js/form-builder.js: node config UI
 
+## Pixel Editor Library
+
+The pixel editor package (`frontend/pixel-editor`) exposes:
+- `createEditor(...)` for headless pixel/state operations.
+- `attachEditorCanvas(...)` for canvas rendering + pointer painting.
+
+Example:
+
+```js
+import { createEditor, attachEditorCanvas } from "../dist/index.js";
+
+const editor = await createEditor({
+  initial: {
+    config: { width: 32, height: 32, zoom: 16 },
+    state: {
+      activeTool: "paintbrush",
+      color: [0, 0, 0, 255],
+      paintbrush: { size: 1 },
+      eraser: { size: 1 },
+    },
+    image: { kind: "empty" },
+  },
+});
+
+const canvasAdapter = attachEditorCanvas({
+  editor,
+  canvas: document.querySelector("#canvas"),
+  onDraw: () => {
+    // e.g. refresh dirty status in your UI
+  },
+});
+
+canvasAdapter.render();
+```
+
+Notes:
+- `attachEditorCanvas(...)` sets canvas pixel size and CSS size using editor `config` (`zoom` is applied to CSS size).
+- Call `canvasAdapter.destroy()` to remove pointer listeners when tearing down the UI.
+
 ## Adding a New Node Type (Checklist)
 
 Update all:

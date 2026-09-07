@@ -34,7 +34,7 @@ export type InitialImage =
   | { kind: "imageData"; data: ImageData }
   | { kind: "rgba"; width: number; height: number; pixels: Uint8ClampedArray };
 
-export type EditorInitialState = {
+export type EditorInit = {
   config: EditorConfig;
   state?: Partial<EditorState>;
   image?: InitialImage;
@@ -50,13 +50,13 @@ export type PersistPayload = {
 };
 
 export type EditorHooks = {
-  load?: () => Promise<EditorInitialState | null> | EditorInitialState | null;
+  load?: () => Promise<EditorInit | null> | EditorInit | null;
   save?: (payload: PersistPayload) => Promise<void> | void;
   onError?: (error: unknown) => void;
 };
 
 export type CreateEditorOptions = {
-  initial?: EditorInitialState;
+  initial?: EditorInit;
   hooks?: EditorHooks;
 };
 
